@@ -280,9 +280,23 @@ function renderList(items) {
   return items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
 }
 
+function _lessonTipCard() {
+  if (localStorage.getItem("pySkillLabTipDismissed")) return "";
+  return `
+    <div class="lesson-tip-card" id="lessonTipCard">
+      <span class="lesson-tip-icon">ⓘ</span>
+      <span class="lesson-tip-text">
+        <strong>▶ Try it</strong> — hover any code block to run it in a popup without leaving this page &nbsp;·&nbsp;
+        <strong>Ask AI</strong> — select any text on the page, then click the floating button to ask the coach
+      </span>
+      <button type="button" class="lesson-tip-dismiss" aria-label="Dismiss tip">✕</button>
+    </div>`;
+}
+
 function renderLessonSections(sections) {
   if (!sections.length) return "";
-  return sections
+  const tipCard = _lessonTipCard();
+  return tipCard + sections
     .map(
       (section) => {
         const sourceLink = section.source_url
@@ -1031,7 +1045,13 @@ els.scratchClearBtn.addEventListener("click", () => {
 });
 
 // "Try it" delegation — opens popup in place, no page scroll
+// Also handles lesson tip card dismiss
 els.lessonSections.addEventListener("click", (e) => {
+  if (e.target.closest(".lesson-tip-dismiss")) {
+    document.getElementById("lessonTipCard")?.remove();
+    localStorage.setItem("pySkillLabTipDismissed", "1");
+    return;
+  }
   const btn = e.target.closest(".lesson-try-btn");
   if (!btn) return;
   openCodePopup(btn.dataset.code);
@@ -1151,8 +1171,11 @@ function _ensurePopover() {
     const question = `Explain this: "${displayText}"`;
     setActiveTopicSection("labsSection");
     setTimeout(() => {
+      els.coachInput.value = question;
       els.coachInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      askAiCoach(question, { skipAutoRun: true });
+      els.coachInput.focus();
+      // Move cursor to end so user can edit or append context before sending
+      els.coachInput.selectionStart = els.coachInput.selectionEnd = els.coachInput.value.length;
     }, 60);
   });
 

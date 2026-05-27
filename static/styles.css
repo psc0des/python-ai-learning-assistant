@@ -421,6 +421,56 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   color: var(--accent-hover);
 }
 
+/* --- Lesson tip card --- */
+.lesson-tip-card {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 2px;
+}
+
+.lesson-tip-icon {
+  font-size: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.lesson-tip-text {
+  flex: 1;
+  color: var(--ink-secondary);
+}
+
+.lesson-tip-dismiss {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 400;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+  transition: opacity 0.15s ease;
+}
+
+.lesson-tip-dismiss:hover {
+  opacity: 1;
+  background: var(--accent-soft);
+  transform: none;
+  box-shadow: none;
+}
+
 /* ========================================================================
    Lesson scratchpad
    ======================================================================== */
