@@ -677,6 +677,17 @@ button.secondary:hover {
   line-height: 1;
 }
 
+.ai-settings-panel-footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ai-settings-panel-footer button {
+  font-size: 13px;
+  padding: 7px 16px;
+}
+
 /* --- Code editor --- */
 #editor {
   width: 100%;

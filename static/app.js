@@ -802,8 +802,7 @@ els.model.addEventListener("change", () => {
   _updateSettingsBtnLabel();
 });
 els.endpoint.addEventListener("change", saveAiSettings);
-els.endpoint.addEventListener("change", loadModels);
-els.apiKey.addEventListener("change", loadModels);
+els.apiKey.addEventListener("change", saveAiSettings);
 els.refreshModelsBtn.addEventListener("click", loadModels);
 document.querySelectorAll(".mode-button").forEach((button) => {
   button.addEventListener("click", () => setActiveTopicSection(button.dataset.section));
@@ -842,6 +841,14 @@ _aiSettingsBtn.addEventListener("click", (e) => {
   _aiSettingsPanel.style.left = `${rect.left}px`;
   _aiSettingsPanel.style.width = `${rect.width}px`;
   _aiSettingsPanel.hidden = false;
+});
+
+document.querySelector("#aiSettingsSaveBtn").addEventListener("click", () => {
+  saveAiSettings();
+  loadModels();
+  _aiSettingsPanel.hidden = true;
+  _aiSettingsBtn.textContent = "✓ Saved";
+  setTimeout(() => _updateSettingsBtnLabel(), 1800);
 });
 
 document.addEventListener("click", (e) => {
