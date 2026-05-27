@@ -488,7 +488,15 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
     });
     const result = await response.json();
     const prefix = result.ok ? "" : `⚠ AI Coach unavailable (${result.error}). Built-in feedback:\n\n`;
-    replaceLastThinkingMessage(`${prefix}${result.answer}`);
+    const stats = result.ok ? {
+      model: els.model.value,
+      provider: els.provider.value,
+      tokens_in: result.tokens_in || 0,
+      tokens_out: result.tokens_out || 0,
+      elapsed_sec: result.elapsed_sec || 0,
+      tok_per_sec: result.tok_per_sec || 0,
+    } : null;
+    replaceLastThinkingMessage(`${prefix}${result.answer}`, stats);
     els.coachStatus.textContent = result.ok ? "Coach response received" : "Fallback feedback shown";
     saveAiSettings();
   } catch (error) {
@@ -711,14 +719,26 @@ function appendCoachMessage(role, text) {
   renderCoachMessages();
 }
 
-function replaceLastThinkingMessage(text) {
+function replaceLastThinkingMessage(text, stats = null) {
   const index = coachMessages.map((message) => message.text).lastIndexOf("thinking");
   if (index >= 0) {
-    coachMessages[index] = { role: "assistant", text };
+    coachMessages[index] = { role: "assistant", text, stats };
   } else {
-    coachMessages.push({ role: "assistant", text });
+    coachMessages.push({ role: "assistant", text, stats });
   }
   renderCoachMessages();
+}
+
+function _renderMessageStats(stats) {
+  if (!stats) return "";
+  const parts = [];
+  if (stats.model) parts.push(escapeHtml(stats.model));
+  if (stats.tokens_out > 0) parts.push(`${stats.tokens_out} out`);
+  if (stats.tokens_in > 0) parts.push(`${stats.tokens_in} in`);
+  if (stats.tok_per_sec > 0) parts.push(`${stats.tok_per_sec} tok/s`);
+  if (stats.elapsed_sec > 0) parts.push(`${stats.elapsed_sec}s`);
+  if (!parts.length) return "";
+  return `<div class="message-stats">${parts.join(" · ")}</div>`;
 }
 
 function renderCoachMessages() {
@@ -734,10 +754,12 @@ function renderCoachMessages() {
           `;
         }
         const content = message.role === "assistant" ? renderMarkdown(message.text) : escapeHtml(message.text);
+        const statsHtml = message.role === "assistant" ? _renderMessageStats(message.stats) : "";
         return `
           <div class="coach-message ${message.role}">
             <strong>${message.role === "user" ? "You" : "Coach"}</strong>
             <div class="message-content">${content}</div>
+            ${statsHtml}
           </div>
         `;
       }

@@ -843,6 +843,19 @@ button.secondary:hover {
   font-size: 14px;
 }
 
+.message-stats {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .coach-message .message-content br + br {
   display: block;
   content: "";

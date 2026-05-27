@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import textwrap
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -199,10 +200,25 @@ def build_ai_prompt(
 SYSTEM_MESSAGE = "You are a friendly Python learning coach. Help beginners build practical coding skills step by step."
 
 
+def _make_result(text: str, tokens_in: int, tokens_out: int,
+                 elapsed_sec: float, gen_sec: float | None = None) -> dict[str, Any]:
+    """Build a standardised call-result dict with usage stats."""
+    divisor = gen_sec if (gen_sec and gen_sec > 0) else elapsed_sec
+    tok_per_sec = round(tokens_out / divisor, 1) if divisor > 0 and tokens_out > 0 else 0.0
+    return {
+        "text": text,
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "elapsed_sec": round(elapsed_sec, 1),
+        "tok_per_sec": tok_per_sec,
+    }
+
+
 def call_ollama(base_url: str, model: str, prompt: str,
-                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> str:
+                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> dict[str, Any]:
     """Call the Ollama local API."""
     url = base_url.rstrip("/") + "/api/chat"
+    t0 = time.time()
     data = post_json(
         url,
         {"Content-Type": "application/json"},
@@ -220,12 +236,19 @@ def call_ollama(base_url: str, model: str, prompt: str,
             },
         },
     )
-    return data.get("message", {}).get("content", "").strip() or "No response text returned."
+    elapsed = time.time() - t0
+    text = data.get("message", {}).get("content", "").strip() or "No response text returned."
+    tokens_out = int(data.get("eval_count") or 0)
+    tokens_in = int(data.get("prompt_eval_count") or 0)
+    eval_ns = data.get("eval_duration") or 0
+    gen_sec = eval_ns / 1e9 if eval_ns and tokens_out else None
+    return _make_result(text, tokens_in, tokens_out, elapsed, gen_sec)
 
 
 def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
-                           temperature: float = 0.2, top_p: float = 0.9) -> str:
-    """Call an OpenAI-compatible API (OpenAI, LM Studio, etc.)."""
+                           temperature: float = 0.2, top_p: float = 0.9) -> dict[str, Any]:
+    """Call an OpenAI-compatible API (OpenAI, LM Studio, Grok, Groq, etc.)."""
+    t0 = time.time()
     data = post_json(
         url,
         {
@@ -242,12 +265,21 @@ def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
             "top_p": top_p,
         },
     )
-    return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip() or "No response text returned."
+    elapsed = time.time() - t0
+    text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip() or "No response text returned."
+    usage = data.get("usage") or {}
+    tokens_in = int(usage.get("prompt_tokens") or 0)
+    tokens_out = int(usage.get("completion_tokens") or 0)
+    # Groq returns usage.completion_time (seconds) — more accurate than wall time
+    groq_gen_sec = usage.get("completion_time")
+    gen_sec = float(groq_gen_sec) if groq_gen_sec else None
+    return _make_result(text, tokens_in, tokens_out, elapsed, gen_sec)
 
 
 def call_anthropic(url: str, api_key: str, model: str, prompt: str,
-                   temperature: float = 0.2, top_p: float = 0.9) -> str:
+                   temperature: float = 0.2, top_p: float = 0.9) -> dict[str, Any]:
     """Call the Anthropic Messages API."""
+    t0 = time.time()
     data = post_json(
         url,
         {
@@ -264,18 +296,24 @@ def call_anthropic(url: str, api_key: str, model: str, prompt: str,
             "messages": [{"role": "user", "content": prompt}],
         },
     )
+    elapsed = time.time() - t0
     chunks = data.get("content", [])
-    return "\n".join(
+    text = "\n".join(
         chunk.get("text", "") for chunk in chunks if chunk.get("type") == "text"
     ).strip() or "No response text returned."
+    usage = data.get("usage") or {}
+    tokens_in = int(usage.get("input_tokens") or 0)
+    tokens_out = int(usage.get("output_tokens") or 0)
+    return _make_result(text, tokens_in, tokens_out, elapsed)
 
 
 def call_google(endpoint: str, api_key: str, model: str, prompt: str,
-                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> str:
+                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> dict[str, Any]:
     """Call the Google AI Studio (Gemini) API."""
     base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
     model_id = model.replace("models/", "")
     url = f"{base}/models/{model_id}:generateContent?key={api_key}"
+    t0 = time.time()
     data = post_json(
         url,
         {"Content-Type": "application/json"},
@@ -290,8 +328,13 @@ def call_google(endpoint: str, api_key: str, model: str, prompt: str,
             },
         },
     )
+    elapsed = time.time() - t0
     parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-    return "".join(p.get("text", "") for p in parts).strip() or "No response text returned."
+    text = "".join(p.get("text", "") for p in parts).strip() or "No response text returned."
+    usage = data.get("usageMetadata") or {}
+    tokens_in = int(usage.get("promptTokenCount") or 0)
+    tokens_out = int(usage.get("candidatesTokenCount") or 0)
+    return _make_result(text, tokens_in, tokens_out, elapsed)
 
 
 # ---------------------------------------------------------------------------
@@ -325,10 +368,10 @@ def ask_ai_coach(
 
     try:
         if provider == "ollama":
-            answer = call_ollama(endpoint or "http://127.0.0.1:11434", model or "qwen3.5:latest", prompt,
-                                 temperature, top_p, top_k)
+            call_result = call_ollama(endpoint or "http://127.0.0.1:11434", model or "qwen3.5:latest", prompt,
+                                      temperature, top_p, top_k)
         elif provider == "lmstudio":
-            answer = call_openai_compatible(
+            call_result = call_openai_compatible(
                 endpoint or "http://127.0.0.1:1234/v1/chat/completions",
                 api_key or "lm-studio",
                 model or "local-model",
@@ -337,7 +380,7 @@ def ask_ai_coach(
         elif provider == "openai":
             if not api_key:
                 raise ValueError("OpenAI API key is required. Set it in the UI or as PY_SKILL_LAB_OPENAI_KEY env var.")
-            answer = call_openai_compatible(
+            call_result = call_openai_compatible(
                 endpoint or "https://api.openai.com/v1/chat/completions",
                 api_key,
                 model or "gpt-4.1-mini",
@@ -346,7 +389,7 @@ def ask_ai_coach(
         elif provider == "anthropic":
             if not api_key:
                 raise ValueError("Anthropic API key is required. Set it in the UI or as PY_SKILL_LAB_ANTHROPIC_KEY env var.")
-            answer = call_anthropic(
+            call_result = call_anthropic(
                 endpoint or "https://api.anthropic.com/v1/messages",
                 api_key,
                 model or "claude-3-5-haiku-latest",
@@ -355,7 +398,7 @@ def ask_ai_coach(
         elif provider == "google":
             if not api_key:
                 raise ValueError("Google API key is required. Get one free at aistudio.google.com or set PY_SKILL_LAB_GOOGLE_KEY env var.")
-            answer = call_google(
+            call_result = call_google(
                 endpoint or "https://generativelanguage.googleapis.com/v1beta",
                 api_key,
                 model or "gemini-2.0-flash",
@@ -364,7 +407,7 @@ def ask_ai_coach(
         elif provider == "grok":
             if not api_key:
                 raise ValueError("Grok API key is required. Get one at console.x.ai or set PY_SKILL_LAB_GROK_KEY env var.")
-            answer = call_openai_compatible(
+            call_result = call_openai_compatible(
                 endpoint or "https://api.x.ai/v1/chat/completions",
                 api_key,
                 model or "grok-3-mini",
@@ -373,7 +416,7 @@ def ask_ai_coach(
         elif provider == "groq":
             if not api_key:
                 raise ValueError("Groq API key is required. Get one free at console.groq.com or set PY_SKILL_LAB_GROQ_KEY env var.")
-            answer = call_openai_compatible(
+            call_result = call_openai_compatible(
                 endpoint or "https://api.groq.com/openai/v1/chat/completions",
                 api_key,
                 model or "llama-3.3-70b-versatile",
@@ -382,8 +425,16 @@ def ask_ai_coach(
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
-        logger.info("AI coach responded via %s/%s", provider, model)
-        return {"ok": True, "answer": answer}
+        logger.info("AI coach responded via %s/%s (%.1fs, %d out tokens)",
+                    provider, model, call_result["elapsed_sec"], call_result["tokens_out"])
+        return {
+            "ok": True,
+            "answer": call_result["text"],
+            "tokens_in": call_result["tokens_in"],
+            "tokens_out": call_result["tokens_out"],
+            "elapsed_sec": call_result["elapsed_sec"],
+            "tok_per_sec": call_result["tok_per_sec"],
+        }
 
     except Exception as exc:
         logger.warning("AI coach failed (%s): %s", provider, exc)
