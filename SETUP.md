@@ -149,6 +149,42 @@ Endpoint: https://api.anthropic.com/v1/messages
 API key: your Anthropic API key
 ```
 
+### Google AI Studio (free tier available)
+
+Get a free API key at `https://aistudio.google.com`. Use:
+
+```text
+Provider: Google AI Studio
+Endpoint: https://generativelanguage.googleapis.com/v1beta
+API key: your Google AI Studio API key
+```
+
+Recommended free models: `gemini-2.0-flash`, `gemini-2.0-flash-lite`.
+
+### Grok (xAI)
+
+Get an API key at `https://console.x.ai`. Use:
+
+```text
+Provider: Grok (xAI)
+Endpoint: https://api.x.ai/v1/chat/completions
+API key: your xAI API key
+```
+
+Recommended model: `grok-3-mini` (has a free tier).
+
+### Groq Cloud (free tier available)
+
+Get a free API key at `https://console.groq.com`. Groq runs open models (Llama, Gemma, Mistral) on custom inference hardware — very fast responses. Use:
+
+```text
+Provider: Groq Cloud
+Endpoint: https://api.groq.com/openai/v1/chat/completions
+API key: your Groq API key
+```
+
+Recommended free models: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`.
+
 ## Local Deployment
 
 For personal/local use, running `python app.py` is enough.

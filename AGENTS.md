@@ -50,7 +50,7 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 
 - `app.py`: local HTTP server and API routes.
 - `content_loader.py`: loads structured curriculum from `content/`.
-- `ai_coach.py`: AI provider integration for Ollama, LM Studio, OpenAI, and Anthropic.
+- `ai_coach.py`: AI provider integration for Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), and Groq Cloud.
 - `runner.py`: local Python exercise runner.
 - `models.py`: request/response validation and startup content checks.
 - `curriculum.py`: topic metadata, overview copy, lesson content, citations, real-world notes.
@@ -144,10 +144,15 @@ When adding labs:
 
 The AI Coach supports:
 
-- Ollama;
-- LM Studio;
+- Ollama (local);
+- LM Studio (local);
 - OpenAI;
-- Anthropic.
+- Anthropic;
+- Google AI Studio (free tier: `gemini-2.0-flash`, `gemini-2.0-flash-lite`);
+- Grok (xAI) (free tier: `grok-3-mini`);
+- Groq Cloud (free tier: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`).
+
+Google AI Studio uses a non-OpenAI API format (`system_instruction` / `contents` / `generationConfig`). Grok and Groq are OpenAI-compatible.
 
 Selecting any text on the page (except inside the code editor or input fields) shows a floating Ask AI button. Clicking it switches to the Labs tab and sends the selected text as a question to the coach. The coach works without a loaded exercise in this mode — no code context is sent, just the topic and the question.
 

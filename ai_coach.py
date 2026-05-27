@@ -26,6 +26,9 @@ AI_TIMEOUT_SECONDS = 90
 # Environment variable names for server-side API keys (preferred over client-sent)
 ENV_OPENAI_API_KEY = "PY_SKILL_LAB_OPENAI_KEY"
 ENV_ANTHROPIC_API_KEY = "PY_SKILL_LAB_ANTHROPIC_KEY"
+ENV_GOOGLE_API_KEY = "PY_SKILL_LAB_GOOGLE_KEY"
+ENV_GROK_API_KEY = "PY_SKILL_LAB_GROK_KEY"
+ENV_GROQ_API_KEY = "PY_SKILL_LAB_GROQ_KEY"
 
 
 # ---------------------------------------------------------------------------
@@ -59,22 +62,22 @@ def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
 # API key resolution
 # ---------------------------------------------------------------------------
 
-def resolve_api_key(provider: str, client_key: str) -> str:
-    """Resolve the API key: prefer server-side env var, fall back to client-sent.
+_ENV_KEY_MAP = {
+    "openai": ENV_OPENAI_API_KEY,
+    "anthropic": ENV_ANTHROPIC_API_KEY,
+    "google": ENV_GOOGLE_API_KEY,
+    "grok": ENV_GROK_API_KEY,
+    "groq": ENV_GROQ_API_KEY,
+}
 
-    This allows secure deployment where keys are set on the server,
-    while still supporting the local single-user workflow where the
-    learner enters their own key.
-    """
-    if provider == "openai":
-        server_key = os.environ.get(ENV_OPENAI_API_KEY, "")
+
+def resolve_api_key(provider: str, client_key: str) -> str:
+    """Resolve the API key: prefer server-side env var, fall back to client-sent."""
+    env_var = _ENV_KEY_MAP.get(provider)
+    if env_var:
+        server_key = os.environ.get(env_var, "")
         if server_key:
-            logger.debug("Using server-side OpenAI API key")
-            return server_key
-    elif provider == "anthropic":
-        server_key = os.environ.get(ENV_ANTHROPIC_API_KEY, "")
-        if server_key:
-            logger.debug("Using server-side Anthropic API key")
+            logger.debug("Using server-side API key for %s", provider)
             return server_key
     return client_key
 
@@ -267,6 +270,30 @@ def call_anthropic(url: str, api_key: str, model: str, prompt: str,
     ).strip() or "No response text returned."
 
 
+def call_google(endpoint: str, api_key: str, model: str, prompt: str,
+                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> str:
+    """Call the Google AI Studio (Gemini) API."""
+    base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+    model_id = model.replace("models/", "")
+    url = f"{base}/models/{model_id}:generateContent?key={api_key}"
+    data = post_json(
+        url,
+        {"Content-Type": "application/json"},
+        {
+            "system_instruction": {"parts": [{"text": SYSTEM_MESSAGE}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "topP": top_p,
+                "topK": top_k,
+                "maxOutputTokens": 2048,
+            },
+        },
+    )
+    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    return "".join(p.get("text", "") for p in parts).strip() or "No response text returned."
+
+
 # ---------------------------------------------------------------------------
 # Main AI coach entry point
 # ---------------------------------------------------------------------------
@@ -325,6 +352,33 @@ def ask_ai_coach(
                 model or "claude-3-5-haiku-latest",
                 prompt, temperature, top_p,
             )
+        elif provider == "google":
+            if not api_key:
+                raise ValueError("Google API key is required. Get one free at aistudio.google.com or set PY_SKILL_LAB_GOOGLE_KEY env var.")
+            answer = call_google(
+                endpoint or "https://generativelanguage.googleapis.com/v1beta",
+                api_key,
+                model or "gemini-2.0-flash",
+                prompt, temperature, top_p, top_k,
+            )
+        elif provider == "grok":
+            if not api_key:
+                raise ValueError("Grok API key is required. Get one at console.x.ai or set PY_SKILL_LAB_GROK_KEY env var.")
+            answer = call_openai_compatible(
+                endpoint or "https://api.x.ai/v1/chat/completions",
+                api_key,
+                model or "grok-3-mini",
+                prompt, temperature, top_p,
+            )
+        elif provider == "groq":
+            if not api_key:
+                raise ValueError("Groq API key is required. Get one free at console.groq.com or set PY_SKILL_LAB_GROQ_KEY env var.")
+            answer = call_openai_compatible(
+                endpoint or "https://api.groq.com/openai/v1/chat/completions",
+                api_key,
+                model or "llama-3.3-70b-versatile",
+                prompt, temperature, top_p,
+            )
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
@@ -374,6 +428,9 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
         "lmstudio": ["local-model"],
         "openai": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
         "anthropic": ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
+        "google": ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
+        "grok": ["grok-3-mini", "grok-3", "grok-2-1212"],
+        "groq": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
     }
 
     try:
@@ -405,6 +462,29 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
                     },
                 )
                 models = [item["id"] for item in data.get("data", []) if item.get("id")]
+        elif provider in ("grok", "groq"):
+            if not api_key:
+                models = fallback[provider]
+            else:
+                default_endpoint = (
+                    "https://api.x.ai/v1/chat/completions" if provider == "grok"
+                    else "https://api.groq.com/openai/v1/chat/completions"
+                )
+                url = model_list_url(endpoint or default_endpoint)
+                data = get_json(url, {"Authorization": f"Bearer {api_key}"})
+                models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
+        elif provider == "google":
+            if not api_key:
+                models = fallback[provider]
+            else:
+                base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+                data = get_json(f"{base}/models?key={api_key}", {})
+                models = [
+                    item["name"].replace("models/", "")
+                    for item in data.get("models", [])
+                    if item.get("name", "").startswith("models/gemini")
+                    and "generateContent" in item.get("supportedGenerationMethods", [])
+                ]
         else:
             raise ValueError(f"Unknown provider: {provider}")
 

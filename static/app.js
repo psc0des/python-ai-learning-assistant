@@ -532,10 +532,13 @@ function loadAiSettings() {
 
 function applyProviderDefaults() {
   const defaults = {
-    ollama: { model: "qwen3.5:latest", endpoint: "http://127.0.0.1:11434" },
-    lmstudio: { model: "local-model", endpoint: "http://127.0.0.1:1234/v1/chat/completions" },
-    openai: { model: "gpt-4.1-mini", endpoint: "https://api.openai.com/v1/chat/completions" },
-    anthropic: { model: "claude-3-5-haiku-latest", endpoint: "https://api.anthropic.com/v1/messages" },
+    ollama:    { model: "qwen3.5:latest",             endpoint: "http://127.0.0.1:11434" },
+    lmstudio:  { model: "local-model",                endpoint: "http://127.0.0.1:1234/v1/chat/completions" },
+    openai:    { model: "gpt-4.1-mini",               endpoint: "https://api.openai.com/v1/chat/completions" },
+    anthropic: { model: "claude-3-5-haiku-latest",    endpoint: "https://api.anthropic.com/v1/messages" },
+    google:    { model: "gemini-2.0-flash",           endpoint: "https://generativelanguage.googleapis.com/v1beta" },
+    grok:      { model: "grok-3-mini",                endpoint: "https://api.x.ai/v1/chat/completions" },
+    groq:      { model: "llama-3.3-70b-versatile",    endpoint: "https://api.groq.com/openai/v1/chat/completions" },
   };
   const selected = defaults[els.provider.value];
   preferredModel = selected.model;
@@ -545,10 +548,13 @@ function applyProviderDefaults() {
 
 async function loadModels() {
   const providerDefaults = {
-    ollama: ["qwen3.5:latest", "nemotron-3-nano:4b"],
-    lmstudio: ["local-model"],
-    openai: ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
+    ollama:    ["qwen3.5:latest", "nemotron-3-nano:4b"],
+    lmstudio:  ["local-model"],
+    openai:    ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
     anthropic: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
+    google:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
+    grok:      ["grok-3-mini", "grok-3", "grok-2-1212"],
+    groq:      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
   };
   const fallback = providerDefaults[els.provider.value] || [];
   setModelOptions(fallback, preferredModel || fallback[0]);
