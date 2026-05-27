@@ -40,11 +40,6 @@ const els = {
   refreshModelsBtn: document.querySelector("#refreshModelsBtn"),
   endpoint: document.querySelector("#endpoint"),
   apiKey: document.querySelector("#apiKey"),
-  temperature: document.querySelector("#temperature"),
-  temperatureVal: document.querySelector("#temperatureVal"),
-  topP: document.querySelector("#topP"),
-  topPVal: document.querySelector("#topPVal"),
-  topK: document.querySelector("#topK"),
   practiceQuestions: document.querySelector("#practiceQuestions"),
   checkTestBtn: document.querySelector("#checkTestBtn"),
   testResult: document.querySelector("#testResult"),
@@ -483,9 +478,6 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
         model: els.model.value,
         endpoint: els.endpoint.value,
         api_key: els.apiKey.value,
-        temperature: parseFloat(els.temperature.value),
-        top_p: parseFloat(els.topP.value),
-        top_k: parseInt(els.topK.value, 10),
         topic_id: selectedTopicId,
         exercise_id: selectedExercise ? selectedExercise.id : "",
         code: selectedExercise ? els.editor.value : "",
@@ -519,9 +511,6 @@ function saveAiSettings() {
       provider: els.provider.value,
       model: els.model.value,
       endpoint: els.endpoint.value,
-      temperature: els.temperature.value,
-      topP: els.topP.value,
-      topK: els.topK.value,
     })
   );
 }
@@ -535,9 +524,6 @@ function loadAiSettings() {
     if (settings.provider) els.provider.value = settings.provider;
     if (settings.model) preferredModel = settings.model;
     if (settings.endpoint) els.endpoint.value = settings.endpoint;
-    if (settings.temperature != null) { els.temperature.value = settings.temperature; els.temperatureVal.textContent = settings.temperature; }
-    if (settings.topP != null) { els.topP.value = settings.topP; els.topPVal.textContent = settings.topP; }
-    if (settings.topK != null) els.topK.value = settings.topK;
   } catch {
     localStorage.removeItem("pySkillLabSettings");
     localStorage.removeItem("pyInterviewAiSettings");
@@ -581,6 +567,7 @@ async function loadModels() {
     const result = await response.json();
     setModelOptions(result.models && result.models.length ? result.models : fallback, preferredModel || fallback[0]);
     saveAiSettings();
+    _updateSettingsBtnLabel();
     els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no model selected"}`;
     if (!result.ok && result.error) {
       appendCoachMessage("assistant", `Could not refresh models: ${result.error}\nUsing fallback model list.`);
@@ -808,24 +795,16 @@ els.editor.addEventListener("input", () => {
   }
 });
 
-els.provider.addEventListener("change", applyProviderDefaults);
+els.provider.addEventListener("change", () => { applyProviderDefaults(); _updateSettingsBtnLabel(); });
 els.model.addEventListener("change", () => {
   preferredModel = els.model.value;
   saveAiSettings();
+  _updateSettingsBtnLabel();
 });
 els.endpoint.addEventListener("change", saveAiSettings);
 els.endpoint.addEventListener("change", loadModels);
 els.apiKey.addEventListener("change", loadModels);
 els.refreshModelsBtn.addEventListener("click", loadModels);
-els.temperature.addEventListener("input", () => {
-  els.temperatureVal.textContent = parseFloat(els.temperature.value).toFixed(2);
-  saveAiSettings();
-});
-els.topP.addEventListener("input", () => {
-  els.topPVal.textContent = parseFloat(els.topP.value).toFixed(2);
-  saveAiSettings();
-});
-els.topK.addEventListener("change", saveAiSettings);
 document.querySelectorAll(".mode-button").forEach((button) => {
   button.addEventListener("click", () => setActiveTopicSection(button.dataset.section));
 });
@@ -834,6 +813,47 @@ els.coachInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
     askAiCoach();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// AI settings popup
+// ---------------------------------------------------------------------------
+
+const _aiSettingsBtn = document.querySelector("#aiSettingsBtn");
+const _aiSettingsPanel = document.querySelector("#aiSettingsPanel");
+
+function _updateSettingsBtnLabel() {
+  if (!_aiSettingsBtn) return;
+  const provider = els.provider.value || "Ollama";
+  const model = els.model.value || "";
+  const label = model ? `⚙ ${provider} · ${model.length > 16 ? model.slice(0, 16) + "…" : model}` : `⚙ ${provider}`;
+  _aiSettingsBtn.textContent = label;
+}
+
+_aiSettingsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!_aiSettingsPanel.hidden) {
+    _aiSettingsPanel.hidden = true;
+    return;
+  }
+  const rect = _aiSettingsBtn.getBoundingClientRect();
+  _aiSettingsPanel.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+  _aiSettingsPanel.style.left = `${rect.left}px`;
+  _aiSettingsPanel.style.width = `${rect.width}px`;
+  _aiSettingsPanel.hidden = false;
+});
+
+document.addEventListener("click", (e) => {
+  if (!_aiSettingsPanel.hidden && !_aiSettingsPanel.contains(e.target) && e.target !== _aiSettingsBtn) {
+    _aiSettingsPanel.hidden = true;
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !_aiSettingsPanel.hidden) {
+    _aiSettingsPanel.hidden = true;
+    _aiSettingsBtn.focus();
   }
 });
 
@@ -929,4 +949,5 @@ document.documentElement.classList.remove("dark");
 localStorage.setItem("pySkillLabTheme", "light");
 loadAiSettings();
 loadModels();
+_updateSettingsBtnLabel();
 boot();

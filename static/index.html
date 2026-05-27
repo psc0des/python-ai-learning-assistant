@@ -28,9 +28,13 @@
         </div>
         <nav id="topicList" class="topic-list" aria-label="Learning topics"></nav>
 
-        <div class="ai-settings-sidebar">
-          <p class="ai-settings-title">⚙ AI Settings</p>
-          <div class="settings-grid">
+        <div class="ai-settings-launcher">
+          <button id="aiSettingsBtn" type="button" class="secondary ai-settings-btn">⚙ AI Settings</button>
+        </div>
+
+        <div id="aiSettingsPanel" class="ai-settings-panel" hidden>
+          <p class="ai-settings-panel-title">AI Provider</p>
+          <div class="settings-grid ai-panel-grid">
             <label>Provider
               <select id="provider">
                 <option value="ollama">Ollama</option>
@@ -50,17 +54,6 @@
             </label>
             <label>API key
               <input id="apiKey" type="password" placeholder="Only needed for hosted APIs" />
-            </label>
-            <label>
-              <span class="param-label">Temperature <span id="temperatureVal" class="param-val">0.2</span></span>
-              <input id="temperature" type="range" min="0" max="1" step="0.05" value="0.2" />
-            </label>
-            <label>
-              <span class="param-label">Top P <span id="topPVal" class="param-val">0.9</span></span>
-              <input id="topP" type="range" min="0" max="1" step="0.05" value="0.9" />
-            </label>
-            <label>Top K <small>(Ollama)</small>
-              <input id="topK" type="number" min="1" max="200" value="40" />
             </label>
           </div>
         </div>
