@@ -1,0 +1,104 @@
+{
+  "id": "langchain",
+  "track": "AI Apps",
+  "title": "LangChain",
+  "level": "Intermediate",
+  "intro": "LangChain is a framework for building LLM applications with reusable components instead of fragile glue code. It helps you assemble prompts, models, tools, retrieval, and structured outputs into predictable workflows. For learning, the important part is understanding when each component is needed and how to debug the full pipeline when responses are weak.",
+  "mental_model": "Think in layers: prepare input, call a model, optionally retrieve context, optionally call tools, then parse output into a usable format. LangChain gives shared interfaces and composition patterns for these steps, so you can swap model providers, add instrumentation, and scale from simple chains to agent workflows.",
+  "syntax": "from langchain.chat_models import init_chat_model\nfrom langchain.agents import create_agent\n\nmodel = init_chat_model('openai:gpt-4.1-mini')\nagent = create_agent(model=model, tools=[])\nresult = agent.invoke({'messages': [{'role': 'user', 'content': 'Summarize this note'}]})\nprint(result)",
+  "example": "A support assistant can retrieve product docs, run a policy lookup tool, and return a structured response with fields like `answer`, `confidence`, and `citations`. LangChain keeps these steps organized while preserving model/tool flexibility.",
+  "must_know": [
+    "LangChain standardizes model interfaces across providers.",
+    "Prompt design and context assembly strongly influence output quality.",
+    "Tools are callable capabilities that extend the model beyond plain text generation.",
+    "Retrieval brings external context at runtime and is a foundation for RAG.",
+    "Structured output reduces brittle text parsing in downstream code.",
+    "Tracing and evaluation are required to debug drift, hallucination, and tool misuse."
+  ],
+  "common_traps": [
+    "Building one giant prompt instead of composable, testable steps.",
+    "Using agents by default when a deterministic chain is enough.",
+    "Skipping retrieval quality checks and blaming the model for wrong context.",
+    "Exposing dangerous tools without policy checks or human review.",
+    "Not logging prompts, retrieved docs, tool calls, and final responses."
+  ],
+  "interview": [
+    "Explain LangChain building blocks: models, prompts, tools, retrieval, structured output.",
+    "Describe when to use a simple chain versus an agent.",
+    "Discuss RAG failure modes and how to diagnose them.",
+    "Explain observability needs for LLM applications in production.",
+    "Show how structured outputs improve reliability over free-form parsing."
+  ],
+  "docs": [
+    {
+      "label": "LangChain Overview",
+      "url": "https://docs.langchain.com/oss/python/langchain/overview"
+    },
+    {
+      "label": "Providers and Models",
+      "url": "https://docs.langchain.com/oss/python/concepts/providers-and-models"
+    },
+    {
+      "label": "LangChain Agents",
+      "url": "https://docs.langchain.com/oss/python/langchain/agents"
+    },
+    {
+      "label": "LangChain Tools",
+      "url": "https://docs.langchain.com/oss/python/langchain/tools"
+    },
+    {
+      "label": "LangChain Structured Output",
+      "url": "https://docs.langchain.com/oss/python/langchain/structured-output"
+    },
+    {
+      "label": "LangChain Retrieval",
+      "url": "https://docs.langchain.com/oss/python/langchain/retrieval"
+    }
+  ],
+  "real_world": [
+    "A customer support copilot can retrieve KB passages, call account lookup tools, and produce structured answers with confidence and citations.",
+    "A compliance workflow can force structured output to ensure every answer includes required policy IDs and evidence references.",
+    "Production teams trace full runs to debug whether failures come from prompts, retrieval, tool outputs, or model choice."
+  ],
+  "outcome": "By the end of this topic, you should be able to design a basic LangChain workflow, justify chain vs agent choices, incorporate retrieval/tools safely, and explain how to debug output quality issues with traces.",
+  "lesson_sections": [
+    {
+      "title": "1. What LangChain Solves",
+      "body": "LangChain is designed for building LLM apps that can evolve as providers and capabilities change. Instead of custom one-off wrappers, it gives reusable abstractions for model invocation, tools, retrieval, and orchestration.",
+      "source_label": "LangChain Overview",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/overview"
+    },
+    {
+      "title": "2. Providers and Model Interfaces",
+      "body": "Different providers expose different APIs, but LangChain gives a common interface so you can switch providers and models with less rewrite risk. This is important for reliability, cost control, and experimentation.",
+      "source_label": "Providers and Models",
+      "source_url": "https://docs.langchain.com/oss/python/concepts/providers-and-models"
+    },
+    {
+      "title": "3. Tools and Controlled Actions",
+      "body": "Tools let an agent call external capabilities such as search, internal APIs, or data stores. They are powerful and potentially risky, so every tool should have clear input schema, limited scope, and strong logging.",
+      "source_label": "LangChain Tools",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/tools"
+    },
+    {
+      "title": "4. Agents vs Deterministic Chains",
+      "body": "Use deterministic chains when flow is fixed and predictable. Use agents when the system must choose between tools dynamically at runtime. Choosing agents everywhere adds complexity, so treat agentic behavior as a deliberate trade-off.",
+      "source_label": "LangChain Agents",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/agents"
+    },
+    {
+      "title": "5. Retrieval and RAG Foundations",
+      "body": "Retrieval fetches relevant external context at runtime and is central to RAG. If retrieval returns weak context, model output degrades. Good chunking, indexing, and filtering matter as much as prompt quality.",
+      "source_label": "LangChain Retrieval",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/retrieval"
+    },
+    {
+      "title": "6. Structured Output and Reliability",
+      "body": "Structured output reduces brittle post-processing by returning machine-usable data shapes. Instead of regex parsing free text, you can validate fields and fail fast when required keys are missing.",
+      "source_label": "LangChain Structured Output",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/structured-output"
+    }
+  ],
+  "lesson_path": "content/topics/langchain/lesson.md",
+  "quality_status": "reference"
+}

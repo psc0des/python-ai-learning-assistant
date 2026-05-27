@@ -1,0 +1,89 @@
+{
+  "id": "functions",
+  "track": "Python Core",
+  "title": "Functions and Clean Code",
+  "level": "Beginner",
+  "intro": "Functions turn scattered lines of code into reusable building blocks. In this topic you will learn how Python function calls map arguments to parameters, how defaults and keyword arguments behave, how return values flow through a program, and how to avoid common mistakes like mutable default arguments. The goal is practical clarity: write small functions that are easy to test, debug, and explain.",
+  "mental_model": "A function is a contract. Inputs come in through parameters, work happens inside local scope, and results go back through return values. Good functions are focused and predictable. If a function is hard to name, hard to test, or hard to describe, it usually needs to be split.",
+  "syntax": "def normalize_name(name: str) -> str:\n    cleaned = name.strip()\n    return cleaned.title()\n\n\ndef build_label(name, role='learner', prefix='User'):\n    return f'{prefix}: {name} ({role})'\n",
+  "example": "def summarize_scores(scores, passing=60):\n    passed = [score for score in scores if score >= passing]\n    failed = [score for score in scores if score < passing]\n    return {\n        'total': len(scores),\n        'passed_count': len(passed),\n        'failed_count': len(failed),\n        'passing': passing,\n    }\n\nprint(summarize_scores([72, 44, 90, 61]))\n",
+  "must_know": [
+    "Parameters are names in the function definition; arguments are values provided at call time.",
+    "Return values are the primary way functions communicate results to other code.",
+    "Default argument values are evaluated once at definition time, so mutable defaults can leak state.",
+    "Keyword arguments make calls clearer when there are many parameters.",
+    "Docstrings and type hints improve readability and maintenance, even in dynamic Python code."
+  ],
+  "common_traps": [
+    "Using print() when tests or callers need a return value.",
+    "Using mutable default arguments such as [] or {}.",
+    "Mixing unrelated responsibilities in one function.",
+    "Relying on global state instead of explicit parameters.",
+    "Creating very long parameter lists instead of grouping related data."
+  ],
+  "interview": [
+    "Explain positional, keyword, default, and variadic arguments with examples.",
+    "Explain why mutable default arguments are risky.",
+    "Show how you would split a function that does too many things.",
+    "Use return values to make logic easy to test."
+  ],
+  "docs": [
+    {
+      "label": "Python Tutorial: Defining Functions",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"
+    },
+    {
+      "label": "Python Tutorial: More on Defining Functions",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions"
+    },
+    {
+      "label": "Python Docs: Typing",
+      "url": "https://docs.python.org/3/library/typing.html"
+    }
+  ],
+  "real_world": [
+    "Backend services usually compose multiple small functions: parse request, validate data, apply business rules, and format response.",
+    "Automation scripts become safer when side effects are isolated in specific functions and pure logic stays testable."
+  ],
+  "outcome": "By the end of this topic, you should be able to design focused function contracts, call functions confidently with positional and keyword arguments, handle defaults correctly, and write function-level code that is easy to test.",
+  "lesson_sections": [
+    {
+      "title": "1. Function Signatures and Basic Calls",
+      "body": "A function starts with `def`, then a name, parameter list, and indented body. Each call supplies argument values that bind to parameters. Naming and ordering matter, because signatures define how other code can safely call your function.",
+      "source_label": "Python Tutorial: Defining Functions",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"
+    },
+    {
+      "title": "2. Default Argument Values and the Mutable Default Trap",
+      "body": "Default values are evaluated once when the function is defined, not every time it is called. This is why mutable defaults can retain state across calls. Use `None` as a default sentinel, then create a new list or dict inside the function body.",
+      "source_label": "Python Tutorial: Default Argument Values",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#default-argument-values"
+    },
+    {
+      "title": "3. Keyword Arguments and Readable Call Sites",
+      "body": "Keyword arguments improve readability, especially when functions have many parameters or optional settings. Python lets you mix positional and keyword calls, but readability should lead your choice. Clear call sites reduce mistakes in production code.",
+      "source_label": "Python Tutorial: Keyword Arguments",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments"
+    },
+    {
+      "title": "4. Special Parameters, *args, and **kwargs",
+      "body": "Python supports flexible signatures with positional-only, keyword-only, variadic positional (`*args`), and variadic keyword (`**kwargs`) parameters. Learn these to read modern library APIs and design wrappers without brittle argument handling.",
+      "source_label": "Python Tutorial: Special Parameters",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#special-parameters"
+    },
+    {
+      "title": "5. Return Values, Scope, and Side Effects",
+      "body": "Functions should return values that callers can reuse. Prefer returning data over printing. Keep scope explicit: names created inside a function are local unless declared otherwise. Reduce hidden side effects so tests and debugging remain predictable.",
+      "source_label": "Python Tutorial: Defining Functions",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"
+    },
+    {
+      "title": "6. Docstrings, Annotations, and Function Clarity",
+      "body": "Docstrings explain behavior and intent. Type annotations document expected input and output shapes. They do not replace tests, but they improve code comprehension and tooling support. Together they make functions easier for other developers to use correctly.",
+      "source_label": "Python Tutorial: Function Annotations",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#function-annotations"
+    }
+  ],
+  "lesson_path": "content/topics/functions/lesson.md",
+  "quality_status": "reference"
+}

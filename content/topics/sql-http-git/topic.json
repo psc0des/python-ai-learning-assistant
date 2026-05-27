@@ -1,0 +1,96 @@
+{
+  "id": "sql-http-git",
+  "track": "Must-Know Extras",
+  "title": "SQL, HTTP, Git, and Linux Basics",
+  "level": "Beginner",
+  "intro": "These four skill areas are the daily operating language of software teams. HTTP explains request/response behavior, SQL explains data inspection and updates, Git explains change history and collaboration, and Linux command-line basics explain runtime inspection. Learning them together helps you debug real systems end-to-end.",
+  "mental_model": "Production debugging crosses layers: an HTTP request hits an API, API code reads/writes SQL data, a change in Git may have introduced behavior, and Linux tools help inspect logs and process state. You become stronger by tracing issues across layers instead of isolating only one layer.",
+  "syntax": "HTTP: GET /users/42, POST /users, status 200/201/404/422\n\nSQL: SELECT id, name FROM users WHERE active = true ORDER BY id DESC LIMIT 10;\n\nGit: git status, git diff, git add, git commit, git pull, git push\n\nLinux: pwd, ls, cat, grep, tail, ps",
+  "example": "If an endpoint returns 500, inspect HTTP request/response, check recent Git diffs, query the affected SQL row, and review Linux logs/process output. This layered workflow finds root cause faster than guessing in one place.",
+  "must_know": [
+    "HTTP methods communicate intent: GET read, POST create, PUT/PATCH update, DELETE remove.",
+    "Status codes communicate outcomes and should be interpreted precisely.",
+    "SQL basics include SELECT, WHERE, ORDER BY, LIMIT, INSERT, UPDATE, DELETE, and safe filtering.",
+    "Git basics include status, diff, add, commit, branch, merge, pull, push, and review workflow.",
+    "Linux basics include path awareness, file inspection, process inspection, and log filtering.",
+    "Debugging quality improves when you correlate evidence across all layers."
+  ],
+  "common_traps": [
+    "Confusing 401 (unauthenticated) with 403 (forbidden).",
+    "Running UPDATE/DELETE without a WHERE filter.",
+    "Committing secrets into Git history.",
+    "Running commands in the wrong directory or wrong environment.",
+    "Debugging only code while ignoring runtime logs and database state."
+  ],
+  "interview": [
+    "Explain common HTTP status codes and method semantics.",
+    "Write/read basic SQL queries with filtering and sorting.",
+    "Describe a clean Git commit workflow from change to push.",
+    "Explain a practical Linux log-inspection command sequence.",
+    "Walk through a full-stack debugging flow using all four areas."
+  ],
+  "docs": [
+    {
+      "label": "MDN HTTP Reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference"
+    },
+    {
+      "label": "PostgreSQL Tutorial",
+      "url": "https://www.postgresql.org/docs/current/tutorial.html"
+    },
+    {
+      "label": "Git Book",
+      "url": "https://git-scm.com/book/en/v2"
+    },
+    {
+      "label": "GNU Bash Manual",
+      "url": "https://www.gnu.org/software/bash/manual/bash.html"
+    }
+  ],
+  "real_world": [
+    "Backend incidents are often solved by combining HTTP traces, SQL verification, Git diff review, and Linux log/process checks.",
+    "Junior developers gain credibility quickly when they can investigate issues across these layers instead of escalating immediately.",
+    "Operational safety depends on precise SQL filters, careful Git commits, and clear runtime inspection habits."
+  ],
+  "outcome": "By the end of this topic, you should be able to interpret HTTP outcomes, write basic SQL checks, inspect Git changes safely, and use Linux commands to gather runtime evidence during debugging.",
+  "lesson_sections": [
+    {
+      "title": "1. HTTP Request/Response Semantics",
+      "body": "HTTP methods and status codes communicate system behavior. Correct interpretation of 2xx, 4xx, and 5xx outcomes is a core debugging and integration skill.",
+      "source_label": "MDN HTTP Reference",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference"
+    },
+    {
+      "title": "2. SQL Query Fundamentals",
+      "body": "SQL is the fastest way to inspect application state directly. Learn safe use of SELECT/WHERE/ORDER BY/LIMIT, and apply strict filters before updates or deletes.",
+      "source_label": "PostgreSQL Tutorial",
+      "source_url": "https://www.postgresql.org/docs/current/tutorial.html"
+    },
+    {
+      "title": "3. Git for Collaboration and Traceability",
+      "body": "Git records exactly what changed and when. status, diff, and commit discipline make debugging easier because you can map behavior changes to code history.",
+      "source_label": "Git Book",
+      "source_url": "https://git-scm.com/book/en/v2"
+    },
+    {
+      "title": "4. Linux Command-Line Inspection",
+      "body": "Linux command-line tools help inspect files, logs, and process state quickly. Knowing where you are and what command scope is applied prevents many operational mistakes.",
+      "source_label": "GNU Bash Manual",
+      "source_url": "https://www.gnu.org/software/bash/manual/bash.html"
+    },
+    {
+      "title": "5. Cross-Layer Debugging Workflow",
+      "body": "Practical debugging moves across layers: reproduce HTTP request, inspect logs, verify SQL state, check recent Git changes, and confirm environment assumptions before patching.",
+      "source_label": "MDN HTTP Reference",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference"
+    },
+    {
+      "title": "6. Safety and Professional Habits",
+      "body": "Use cautious SQL updates, branch-based Git workflows, and command verification habits. Small safety checks prevent large production mistakes.",
+      "source_label": "Git Book",
+      "source_url": "https://git-scm.com/book/en/v2"
+    }
+  ],
+  "lesson_path": "content/topics/sql-http-git/lesson.md",
+  "quality_status": "reference"
+}

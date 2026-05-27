@@ -1,0 +1,178 @@
+[
+  {
+    "id": "prompt-template-safe",
+    "topic_id": "langchain",
+    "title": "Prompt Template Fill",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `fill_template(template, variables)`.\nReplace `{key}` placeholders with values from `variables`.\nIf a key is missing, leave the placeholder unchanged.",
+    "starter": "def fill_template(template, variables):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic fill",
+        "call": "fill_template('Hello {name}', {'name': 'Ada'})",
+        "expected": "Hello Ada"
+      },
+      {
+        "label": "missing key preserved",
+        "call": "fill_template('Role: {role}', {})",
+        "expected": "Role: {role}"
+      },
+      {
+        "label": "multiple keys",
+        "call": "fill_template('{a}-{b}', {'a': 1, 'b': 2})",
+        "expected": "1-2"
+      }
+    ],
+    "hint": "Loop through dict items and replace exact `{key}` tokens.",
+    "solution": "def fill_template(template, variables):\n    result = template\n    for key, value in variables.items():\n        token = '{' + str(key) + '}'\n        result = result.replace(token, str(value))\n    return result\n",
+    "explanation": "Prompt templating should be explicit and predictable, especially when variables are optional."
+  },
+  {
+    "id": "choose-orchestrator",
+    "topic_id": "langchain",
+    "title": "Chain vs Agent Decision",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `choose_mode(task)`.\n\nRules:\n- Return `chain` when task has fixed steps (`summarize`, `classify`, `extract`).\n- Return `agent` when task includes dynamic tool choice (`research`, `investigate`, `triage`).\n- Otherwise return `unknown`.",
+    "starter": "def choose_mode(task):\n    pass\n",
+    "tests": [
+      {
+        "label": "fixed task",
+        "call": "choose_mode('summarize')",
+        "expected": "chain"
+      },
+      {
+        "label": "dynamic task",
+        "call": "choose_mode('investigate')",
+        "expected": "agent"
+      },
+      {
+        "label": "unknown",
+        "call": "choose_mode('chat')",
+        "expected": "unknown"
+      }
+    ],
+    "hint": "Use membership checks with small sets.",
+    "solution": "def choose_mode(task):\n    fixed = {'summarize', 'classify', 'extract'}\n    dynamic = {'research', 'investigate', 'triage'}\n    if task in fixed:\n        return 'chain'\n    if task in dynamic:\n        return 'agent'\n    return 'unknown'\n",
+    "explanation": "Not every task needs an agent. Choosing architecture intentionally improves reliability."
+  },
+  {
+    "id": "rank-retrieved-context",
+    "topic_id": "langchain",
+    "title": "Retrieve and Rank Context",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `rank_context(query, docs)`.\n\nEach doc is a dict with keys `id` and `text`.\nScore by count of overlapping lowercase words between query and doc text.\nReturn a list of doc ids sorted by score descending, then id ascending for ties.",
+    "starter": "def rank_context(query, docs):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic ranking",
+        "call": "rank_context('python api validation', [{'id': 'a', 'text': 'python api guide'}, {'id': 'b', 'text': 'gardening notes'}, {'id': 'c', 'text': 'api validation pydantic'}])",
+        "expected": [
+          "a",
+          "c",
+          "b"
+        ]
+      },
+      {
+        "label": "tie break by id",
+        "call": "rank_context('x', [{'id': 'b', 'text': 'x'}, {'id': 'a', 'text': 'x'}])",
+        "expected": [
+          "a",
+          "b"
+        ]
+      }
+    ],
+    "hint": "Tokenize with `split()`, use set intersections for overlap.",
+    "solution": "def rank_context(query, docs):\n    q = set(query.lower().split())\n    scored = []\n    for doc in docs:\n        words = set(str(doc.get('text', '')).lower().split())\n        score = len(q & words)\n        scored.append((doc.get('id'), score))\n    scored.sort(key=lambda item: (-item[1], item[0]))\n    return [doc_id for doc_id, _ in scored]\n",
+    "explanation": "Retrieval quality starts with good scoring and ranking signals before LLM generation."
+  },
+  {
+    "id": "tool-policy-check",
+    "topic_id": "langchain",
+    "title": "Tool Permission Policy",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `is_tool_allowed(tool_name, role)`.\n\nRules:\n- `read_docs` is allowed for everyone.\n- `create_ticket` allowed for `analyst`, `admin`.\n- `delete_ticket` allowed only for `admin`.\n- Unknown tools are denied.",
+    "starter": "def is_tool_allowed(tool_name, role):\n    pass\n",
+    "tests": [
+      {
+        "label": "public read tool",
+        "call": "is_tool_allowed('read_docs', 'viewer')",
+        "expected": true
+      },
+      {
+        "label": "allowed create",
+        "call": "is_tool_allowed('create_ticket', 'analyst')",
+        "expected": true
+      },
+      {
+        "label": "denied create",
+        "call": "is_tool_allowed('create_ticket', 'viewer')",
+        "expected": false
+      },
+      {
+        "label": "admin delete",
+        "call": "is_tool_allowed('delete_ticket', 'admin')",
+        "expected": true
+      },
+      {
+        "label": "non-admin delete",
+        "call": "is_tool_allowed('delete_ticket', 'analyst')",
+        "expected": false
+      }
+    ],
+    "hint": "Represent policy as a mapping from tool to allowed roles.",
+    "solution": "def is_tool_allowed(tool_name, role):\n    policy = {\n        'read_docs': {'viewer', 'analyst', 'admin'},\n        'create_ticket': {'analyst', 'admin'},\n        'delete_ticket': {'admin'},\n    }\n    allowed_roles = policy.get(tool_name)\n    if not allowed_roles:\n        return False\n    return role in allowed_roles\n",
+    "explanation": "Tool guardrails are mandatory for production agent safety."
+  },
+  {
+    "id": "parse-structured-response",
+    "topic_id": "langchain",
+    "title": "Structured Output Validator",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `validate_response(payload)`.\n\nRules:\n- Required keys: `answer` (non-empty str), `confidence` (float/int 0..1), `citations` (list).\n- Return `(True, payload)` if valid.\n- Else return `(False, {'error': '<code>'})` with code one of `missing_field`, `invalid_answer`, `invalid_confidence`, `invalid_citations`.",
+    "starter": "def validate_response(payload):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid",
+        "call": "validate_response({'answer': 'Use retries', 'confidence': 0.8, 'citations': ['doc-1']})",
+        "expected": [
+          true,
+          {
+            "answer": "Use retries",
+            "confidence": 0.8,
+            "citations": [
+              "doc-1"
+            ]
+          }
+        ]
+      },
+      {
+        "label": "missing field",
+        "call": "validate_response({'answer': 'x', 'confidence': 0.8})",
+        "expected": [
+          false,
+          {
+            "error": "missing_field"
+          }
+        ]
+      },
+      {
+        "label": "bad confidence",
+        "call": "validate_response({'answer': 'x', 'confidence': 2, 'citations': []})",
+        "expected": [
+          false,
+          {
+            "error": "invalid_confidence"
+          }
+        ]
+      }
+    ],
+    "hint": "Validate presence first, then types/ranges.",
+    "solution": "def validate_response(payload):\n    required = ('answer', 'confidence', 'citations')\n    for key in required:\n        if key not in payload:\n            return [False, {'error': 'missing_field'}]\n\n    answer = payload.get('answer')\n    if not isinstance(answer, str) or not answer.strip():\n        return [False, {'error': 'invalid_answer'}]\n\n    confidence = payload.get('confidence')\n    if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):\n        return [False, {'error': 'invalid_confidence'}]\n\n    citations = payload.get('citations')\n    if not isinstance(citations, list):\n        return [False, {'error': 'invalid_citations'}]\n\n    return [True, payload]\n",
+    "explanation": "Structured outputs reduce brittle parsing and improve downstream reliability."
+  }
+]

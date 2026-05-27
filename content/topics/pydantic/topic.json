@@ -1,0 +1,100 @@
+{
+  "id": "pydantic",
+  "track": "Backend",
+  "title": "Pydantic",
+  "level": "Intermediate",
+  "intro": "Pydantic helps you turn messy external input into trustworthy Python data. You define a model with type hints and field rules, then Pydantic parses, validates, and returns a model instance whose output is guaranteed to match that schema. This is core for API requests, config files, queue messages, and any boundary where your code receives untrusted input.",
+  "mental_model": "Treat Pydantic as a data contract at system boundaries. Raw input comes in. Pydantic applies parsing and validation rules. If valid, you get a predictable model object. If invalid, you get structured validation errors. Downstream business logic should work with validated model output, not with raw untrusted payloads.",
+  "syntax": "from pydantic import BaseModel, Field, ValidationError\n\nclass Ticket(BaseModel):\n    title: str\n    priority: int = Field(ge=1, le=5)\n    owner: str | None = None\n\npayload = {'title': 'CPU high', 'priority': '3'}\nmodel = Ticket.model_validate(payload)\nprint(model.model_dump())\n\ntry:\n    Ticket.model_validate({'title': '', 'priority': 9})\nexcept ValidationError as exc:\n    print(exc.errors())",
+  "example": "from pydantic import BaseModel, Field\n\nclass DeployRequest(BaseModel):\n    service: str\n    environment: str\n    replicas: int = Field(ge=1, le=20)\n    dry_run: bool = False\n\nrequest = DeployRequest.model_validate({\n    'service': 'billing-api',\n    'environment': 'staging',\n    'replicas': '3',\n})\n\nprint(request.model_dump())\n# {'service': 'billing-api', 'environment': 'staging', 'replicas': 3, 'dry_run': False}",
+  "must_know": [
+    "BaseModel fields define the accepted schema using Python type hints.",
+    "Validation guarantees the resulting model instance conforms to field types and constraints.",
+    "By default, Pydantic may coerce compatible input types; strict mode reduces coercion.",
+    "Field constraints like ge/le/min_length/max_length enforce domain rules at the boundary.",
+    "ValidationError provides structured details suitable for API responses and debugging.",
+    "model_dump() and model_dump_json() are the standard ways to serialize validated output."
+  ],
+  "common_traps": [
+    "Assuming validation means the original raw input was already correct.",
+    "Confusing Optional[T] with having a default value.",
+    "Relying on implicit coercion where strict typing is required.",
+    "Ignoring ValidationError details and returning vague error messages.",
+    "Skipping boundary validation and validating deep inside business logic."
+  ],
+  "interview": [
+    "Explain Pydantic validation as an output guarantee after parsing and constraints.",
+    "Discuss coercion versus strict mode and when strict behavior is safer.",
+    "Show how Field constraints encode business rules near data boundaries.",
+    "Explain Optional fields, defaults, and required fields with clear examples.",
+    "Describe how structured validation errors improve API behavior and debugging."
+  ],
+  "docs": [
+    {
+      "label": "Pydantic Models",
+      "url": "https://docs.pydantic.dev/latest/concepts/models/"
+    },
+    {
+      "label": "Pydantic Fields",
+      "url": "https://docs.pydantic.dev/latest/concepts/fields/"
+    },
+    {
+      "label": "Pydantic Strict Mode",
+      "url": "https://docs.pydantic.dev/latest/concepts/strict_mode/"
+    },
+    {
+      "label": "Pydantic Validators",
+      "url": "https://docs.pydantic.dev/latest/concepts/validators/"
+    },
+    {
+      "label": "Pydantic Serialization",
+      "url": "https://docs.pydantic.dev/latest/concepts/serialization/"
+    }
+  ],
+  "real_world": [
+    "A FastAPI endpoint can validate incoming JSON with a Pydantic model and immediately return clear field-level errors for invalid payloads.",
+    "A deployment tool can parse environment config with Pydantic so downstream logic always receives typed, constrained values.",
+    "Teams use strict mode for high-risk fields to prevent accidental coercion from turning bad input into silent bugs."
+  ],
+  "outcome": "By the end of this topic, you should be able to design Pydantic models for real input boundaries, explain coercion versus strict validation, enforce field constraints, interpret validation errors, and serialize validated models safely.",
+  "lesson_sections": [
+    {
+      "title": "1. Models as Boundary Contracts",
+      "body": "Pydantic models inherit from BaseModel and declare fields with type hints. They are most useful at trust boundaries such as API requests, config files, and message queues. Instead of passing raw dictionaries through your app, you parse into models first, so downstream code can rely on predictable field types and structure.",
+      "source_label": "Pydantic: Models",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/models/"
+    },
+    {
+      "title": "2. Validation Is an Output Guarantee",
+      "body": "In Pydantic, validation means the resulting model instance satisfies declared types and constraints. It does not mean raw input was already clean. Pydantic may parse and coerce data before producing the output model. This nuance matters in interviews and production systems because it explains why validated model output is safer than unparsed input.",
+      "source_label": "Pydantic: Models",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/models/"
+    },
+    {
+      "title": "3. Field Rules and Constraints",
+      "body": "Use Field() to define constraints such as ge/le for numbers and min_length/max_length for strings. This keeps data rules close to schema definition and prevents invalid state from entering business logic. Constraints also improve generated API documentation when used with frameworks like FastAPI.",
+      "source_label": "Pydantic: Fields",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/fields/"
+    },
+    {
+      "title": "4. Optional, Default, and Required Semantics",
+      "body": "Optional[T] means None is allowed. A default means input can omit that field. Required fields are those without defaults. These are separate concerns, and mixing them up leads to common bugs. Write models so each field clearly signals whether it may be missing, may be null, or must always be present.",
+      "source_label": "Pydantic: Fields",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/fields/"
+    },
+    {
+      "title": "5. Coercion Versus Strict Validation",
+      "body": "By default, Pydantic can coerce compatible values, like converting '3' to 3 for an int field. Strict mode makes validation less lenient and rejects mismatched types instead of converting them. Use strict behavior when data quality and safety are more important than convenience.",
+      "source_label": "Pydantic: Strict Mode",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/strict_mode/"
+    },
+    {
+      "title": "6. Errors, Validators, and Serialization",
+      "body": "When validation fails, Pydantic raises ValidationError with structured details for each field issue. For custom domain rules, add field or model validators. After successful validation, serialize with model_dump() or model_dump_json() for APIs, logs, and persistence workflows.",
+      "source_label": "Pydantic: Validators",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/validators/"
+    }
+  ],
+  "lesson_path": "content/topics/pydantic/lesson.md",
+  "quality_status": "reference"
+}

@@ -1,0 +1,195 @@
+[
+  {
+    "id": "async-task-collector",
+    "topic_id": "async",
+    "title": "Task Result Collector",
+    "difficulty": "Intermediate",
+    "difficulty_order": 1,
+    "prompt": "Write `collect_results(tasks)` that takes a list of `{'id': ..., 'status': ...}` dicts and returns a dict grouping task IDs by status.",
+    "starter": "def collect_results(tasks):\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed statuses",
+        "call": "collect_results([{'id': 1, 'status': 'done'}, {'id': 2, 'status': 'fail'}, {'id': 3, 'status': 'done'}])",
+        "expected": {
+          "done": [
+            1,
+            3
+          ],
+          "fail": [
+            2
+          ]
+        }
+      },
+      {
+        "label": "all same",
+        "call": "collect_results([{'id': 1, 'status': 'ok'}, {'id': 2, 'status': 'ok'}])",
+        "expected": {
+          "ok": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "label": "empty",
+        "call": "collect_results([])",
+        "expected": {}
+      }
+    ],
+    "hint": "Use a dictionary where keys are statuses and values are lists of IDs.",
+    "solution": "def collect_results(tasks):\n    grouped = {}\n    for task in tasks:\n        status = task['status']\n        if status not in grouped:\n            grouped[status] = []\n        grouped[status].append(task['id'])\n    return grouped\n",
+    "explanation": "Grouping task results by status is a common async workflow reporting step."
+  },
+  {
+    "id": "backoff-delay",
+    "topic_id": "async",
+    "title": "Exponential Backoff Calculator",
+    "difficulty": "Intermediate",
+    "difficulty_order": 2,
+    "prompt": "Write `backoff_delay(attempt, base=1.0, max_delay=30.0)` that returns `min(base * 2^attempt, max_delay)`.",
+    "starter": "def backoff_delay(attempt, base=1.0, max_delay=30.0):\n    pass\n",
+    "tests": [
+      {
+        "label": "attempt 0",
+        "call": "backoff_delay(0)",
+        "expected": 1.0
+      },
+      {
+        "label": "attempt 3",
+        "call": "backoff_delay(3)",
+        "expected": 8.0
+      },
+      {
+        "label": "capped",
+        "call": "backoff_delay(10)",
+        "expected": 30.0
+      },
+      {
+        "label": "custom base",
+        "call": "backoff_delay(2, base=0.5)",
+        "expected": 2.0
+      }
+    ],
+    "hint": "Use `2 ** attempt` and cap with `min()`.",
+    "solution": "def backoff_delay(attempt, base=1.0, max_delay=30.0):\n    return min(base * (2 ** attempt), max_delay)\n",
+    "explanation": "Exponential backoff is a common retry pattern for async I/O operations."
+  },
+  {
+    "id": "batch-for-gather",
+    "topic_id": "async",
+    "title": "Batch Requests for gather",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `batch_for_gather(items, size)` that splits a list into consecutive chunks of length `size`. This simulates bounded concurrency.",
+    "starter": "def batch_for_gather(items, size):\n    pass\n",
+    "tests": [
+      {
+        "label": "exact chunks",
+        "call": "batch_for_gather([1,2,3,4], 2)",
+        "expected": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      {
+        "label": "last partial",
+        "call": "batch_for_gather([1,2,3,4,5], 2)",
+        "expected": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5
+          ]
+        ]
+      },
+      {
+        "label": "empty",
+        "call": "batch_for_gather([], 3)",
+        "expected": []
+      }
+    ],
+    "hint": "Loop from 0 to len(items) in steps of `size` and slice.",
+    "solution": "def batch_for_gather(items, size):\n    if size <= 0:\n        return []\n    return [items[i:i + size] for i in range(0, len(items), size)]\n",
+    "explanation": "Batching is useful when you want concurrency but must cap in-flight tasks."
+  },
+  {
+    "id": "estimate-async-gain",
+    "topic_id": "async",
+    "title": "Estimate Async Gain",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `estimate_async_gain(latencies_ms)` returning a dict with `sync_total_ms` (sum) and `ideal_async_ms` (max latency).",
+    "starter": "def estimate_async_gain(latencies_ms):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic",
+        "call": "estimate_async_gain([100, 200, 50])",
+        "expected": {
+          "sync_total_ms": 350,
+          "ideal_async_ms": 200
+        }
+      },
+      {
+        "label": "single",
+        "call": "estimate_async_gain([80])",
+        "expected": {
+          "sync_total_ms": 80,
+          "ideal_async_ms": 80
+        }
+      },
+      {
+        "label": "empty",
+        "call": "estimate_async_gain([])",
+        "expected": {
+          "sync_total_ms": 0,
+          "ideal_async_ms": 0
+        }
+      }
+    ],
+    "hint": "Use `sum()` and `max()` with an empty-list guard.",
+    "solution": "def estimate_async_gain(latencies_ms):\n    if not latencies_ms:\n        return {'sync_total_ms': 0, 'ideal_async_ms': 0}\n    return {\n        'sync_total_ms': sum(latencies_ms),\n        'ideal_async_ms': max(latencies_ms),\n    }\n",
+    "explanation": "This simplified estimate shows why async helps I/O waits overlap."
+  },
+  {
+    "id": "choose-execution-style",
+    "topic_id": "async",
+    "title": "Choose Execution Style",
+    "difficulty": "Beginner",
+    "difficulty_order": 5,
+    "prompt": "Write `choose_execution_style(wait_ms, cpu_heavy)` returning `'async'` when work is I/O-wait heavy and not CPU-heavy, otherwise `'sync'`.",
+    "starter": "def choose_execution_style(wait_ms, cpu_heavy):\n    pass\n",
+    "tests": [
+      {
+        "label": "io heavy use async",
+        "call": "choose_execution_style(120, False)",
+        "expected": "async"
+      },
+      {
+        "label": "cpu heavy use sync",
+        "call": "choose_execution_style(120, True)",
+        "expected": "sync"
+      },
+      {
+        "label": "tiny wait use sync",
+        "call": "choose_execution_style(3, False)",
+        "expected": "sync"
+      }
+    ],
+    "hint": "Use a simple threshold for wait time and check cpu_heavy.",
+    "solution": "def choose_execution_style(wait_ms, cpu_heavy):\n    if not cpu_heavy and wait_ms >= 10:\n        return 'async'\n    return 'sync'\n",
+    "explanation": "Async is usually worthwhile when wait times dominate and CPU demand is low."
+  }
+]

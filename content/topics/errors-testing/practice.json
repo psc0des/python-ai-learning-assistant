@@ -1,0 +1,93 @@
+{
+  "topic_id": "errors-testing",
+  "questions": [
+    {
+      "question": "What is the safest first step when Python raises a traceback?",
+      "options": [
+        "Read the exception type/message and the failing line in your code.",
+        "Delete the function and start again.",
+        "Catch all exceptions with bare `except`.",
+        "Ignore it if the code works sometimes."
+      ],
+      "answer": 0,
+      "explanation": "Traceback type and location are the fastest route to diagnosis."
+    },
+    {
+      "question": "Why is bare `except:` considered risky?",
+      "options": [
+        "It is always a syntax error.",
+        "It can hide unexpected bugs and swallow important exceptions.",
+        "It only catches ValueError.",
+        "It makes code run slower than loops."
+      ],
+      "answer": 1,
+      "explanation": "Specific exceptions keep debugging signals visible."
+    },
+    {
+      "question": "Which inputs should tests include beyond happy-path values?",
+      "options": [
+        "Only random large numbers.",
+        "Only the exact example shown in docs.",
+        "Empty, invalid, boundary, zero/negative, and duplicate cases.",
+        "No edge cases if code looks correct."
+      ],
+      "answer": 2,
+      "explanation": "Edge cases expose assumptions that normal inputs hide."
+    },
+    {
+      "question": "What does `assert x > 0` do?",
+      "options": [
+        "Skips the check in all modes.",
+        "Prints whether x is positive.",
+        "Converts x into a positive number.",
+        "Raises AssertionError if the condition is false."
+      ],
+      "answer": 3,
+      "explanation": "Assertions encode expected conditions and fail loudly when violated."
+    },
+    {
+      "question": "When should you raise a new exception?",
+      "options": [
+        "When input/state violates a function contract and caller must know.",
+        "Whenever you want to stop code quickly, regardless of context.",
+        "Never; always return None.",
+        "Only inside class methods."
+      ],
+      "answer": 0,
+      "explanation": "Raise with clear messages when contracts are violated and recovery is not local."
+    },
+    {
+      "question": "Which tool ensures cleanup runs whether or not an exception occurs?",
+      "options": [
+        "continue statement",
+        "finally block (or equivalent context manager cleanup).",
+        "break statement",
+        "assert statement"
+      ],
+      "answer": 1,
+      "explanation": "finally guarantees cleanup execution on both success and failure paths."
+    },
+    {
+      "question": "What is a reliable debugging workflow?",
+      "options": [
+        "Suppress the exception and continue.",
+        "Change many lines quickly and rerun once.",
+        "Reproduce, inspect, hypothesize, change one thing, retest.",
+        "Ask the AI for a full rewrite immediately."
+      ],
+      "answer": 2,
+      "explanation": "Controlled, iterative debugging reduces noise and isolates root causes."
+    },
+    {
+      "question": "What is the best reason to keep tests around after fixing a bug?",
+      "options": [
+        "They force every function to use classes.",
+        "They eliminate all need for logging.",
+        "They make exceptions unnecessary.",
+        "They prevent the same bug from silently returning."
+      ],
+      "answer": 3,
+      "explanation": "Regression tests lock in corrected behavior."
+    }
+  ]
+}

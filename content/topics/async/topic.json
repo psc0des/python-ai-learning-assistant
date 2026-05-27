@@ -1,0 +1,89 @@
+{
+  "id": "async",
+  "track": "Backend",
+  "title": "Async Python",
+  "level": "Intermediate",
+  "intro": "Async Python helps one process handle many waiting operations at once, especially network and database I/O. This topic teaches the event loop model, coroutines, task scheduling, cancellation basics, and practical rules for avoiding blocking calls. The goal is clear judgment: know when async is useful and how to apply it without introducing hidden complexity.",
+  "mental_model": "Async code is cooperative concurrency. Coroutines run until an `await` point, then the event loop can run other ready tasks. This overlaps waiting time; it does not automatically speed up CPU-heavy calculations.",
+  "syntax": "import asyncio\n\nasync def fetch_user(user_id):\n    await asyncio.sleep(0)\n    return {'id': user_id}\n\nasync def main():\n    user = await fetch_user(10)\n    return user\n\nresult = asyncio.run(main())\n",
+  "example": "import asyncio\n\nasync def fetch_all(ids):\n    tasks = [fetch_user(i) for i in ids]\n    return await asyncio.gather(*tasks)\n",
+  "must_know": [
+    "`async def` defines a coroutine function; calling it returns a coroutine object.",
+    "`await` yields control so other tasks can progress while waiting.",
+    "The event loop schedules tasks and resumes them when awaited operations complete.",
+    "Use `asyncio.create_task` and `asyncio.gather` for concurrent task orchestration.",
+    "Avoid blocking calls like `time.sleep()` in async code paths."
+  ],
+  "common_traps": [
+    "Forgetting to await a coroutine and assuming it already ran.",
+    "Mixing blocking sync I/O inside async routes or workers.",
+    "Assuming async means multi-core parallel CPU execution.",
+    "Launching tasks without tracking cancellation or error behavior.",
+    "Converting code to async when workload is CPU-bound."
+  ],
+  "interview": [
+    "Explain concurrency vs parallelism clearly with an example.",
+    "Explain why blocking calls hurt event-loop throughput.",
+    "Show how gather/task orchestration works at a high level.",
+    "State when async should not be used."
+  ],
+  "docs": [
+    {
+      "label": "Python Docs: asyncio",
+      "url": "https://docs.python.org/3/library/asyncio.html"
+    },
+    {
+      "label": "Python Docs: Coroutines and Tasks",
+      "url": "https://docs.python.org/3/library/asyncio-task.html"
+    },
+    {
+      "label": "Python Docs: Running Tasks Concurrently",
+      "url": "https://docs.python.org/3/library/asyncio-task.html#running-tasks-concurrently"
+    }
+  ],
+  "real_world": [
+    "API gateways use async I/O to overlap multiple downstream service calls within one request lifecycle.",
+    "Background workers can run many outbound checks concurrently without opening one OS thread per check."
+  ],
+  "outcome": "By the end of this topic, you should be able to reason about coroutine lifecycle, event-loop scheduling, concurrency utilities, and when async architecture helps or hurts a design.",
+  "lesson_sections": [
+    {
+      "title": "1. Coroutines and await",
+      "body": "`async def` creates coroutine functions. Calling one returns a coroutine object that must be awaited or scheduled. `await` marks yield points where the coroutine pauses so the event loop can run other tasks.",
+      "source_label": "Python Docs: Coroutines and Tasks",
+      "source_url": "https://docs.python.org/3/library/asyncio-task.html"
+    },
+    {
+      "title": "2. Event Loop Scheduling Model",
+      "body": "The event loop coordinates execution of asynchronous tasks. When a coroutine awaits I/O, control returns to the loop. This allows progress across many tasks in one thread while waiting operations complete.",
+      "source_label": "Python Docs: asyncio",
+      "source_url": "https://docs.python.org/3/library/asyncio.html"
+    },
+    {
+      "title": "3. Task Creation and gather",
+      "body": "Use `asyncio.create_task` for fire-and-track task scheduling and `asyncio.gather` for awaiting multiple coroutines together. Structured orchestration avoids ad-hoc concurrency bugs and makes error behavior explicit.",
+      "source_label": "Python Docs: Running Tasks Concurrently",
+      "source_url": "https://docs.python.org/3/library/asyncio-task.html#running-tasks-concurrently"
+    },
+    {
+      "title": "4. Cancellation and Timeouts",
+      "body": "Real systems need timeout and cancellation logic. Async tasks can be cancelled, and code should handle cancellation paths carefully to avoid partial state updates or hidden leaks.",
+      "source_label": "Python Docs: Task Cancellation",
+      "source_url": "https://docs.python.org/3/library/asyncio-task.html#task-cancellation"
+    },
+    {
+      "title": "5. Blocking Calls and Async Boundaries",
+      "body": "Blocking calls inside async code paths pause the event loop for all tasks. Prefer async-capable clients and adapters, and isolate unavoidable blocking work away from latency-sensitive async flows.",
+      "source_label": "Python Docs: asyncio",
+      "source_url": "https://docs.python.org/3/library/asyncio.html"
+    },
+    {
+      "title": "6. Choosing Async vs Sync",
+      "body": "Async is best for I/O-bound concurrency, not for heavy CPU workloads. Choose async when you need many overlapping waits. Choose sync when control flow is simple and throughput demands do not justify added complexity.",
+      "source_label": "Python Docs: asyncio",
+      "source_url": "https://docs.python.org/3/library/asyncio.html"
+    }
+  ],
+  "lesson_path": "content/topics/async/lesson.md",
+  "quality_status": "reference"
+}

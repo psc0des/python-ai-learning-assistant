@@ -1,0 +1,826 @@
+let topics = [];
+let exercises = [];
+let practiceTests = [];
+let selectedTopicId = null;
+let selectedExercise = null;
+
+const els = {
+  topicList: document.querySelector("#topicList"),
+  search: document.querySelector("#search"),
+  track: document.querySelector("#track"),
+  title: document.querySelector("#title"),
+  level: document.querySelector("#level"),
+  intro: document.querySelector("#intro"),
+  mentalModel: document.querySelector("#mentalModel"),
+  learningOutcome: document.querySelector("#learningOutcome"),
+  lessonSections: document.querySelector("#lessonSections"),
+  syntax: document.querySelector("#syntax"),
+  example: document.querySelector("#example"),
+  realWorld: document.querySelector("#realWorld"),
+  mustKnow: document.querySelector("#mustKnow"),
+  commonTraps: document.querySelector("#commonTraps"),
+  interview: document.querySelector("#interview"),
+  docs: document.querySelector("#docs"),
+  exerciseSelect: document.querySelector("#exerciseSelect"),
+  exerciseTitle: document.querySelector("#exerciseTitle"),
+  exercisePrompt: document.querySelector("#exercisePrompt"),
+  editor: document.querySelector("#editor"),
+  testOutput: document.querySelector("#testOutput"),
+  aiOutput: document.querySelector("#aiOutput"),
+  coachInput: document.querySelector("#coachInput"),
+  coachStatus: document.querySelector("#coachStatus"),
+  runBtn: document.querySelector("#runBtn"),
+  aiBtn: document.querySelector("#aiBtn"),
+  explainBtn: document.querySelector("#explainBtn"),
+  resetBtn: document.querySelector("#resetBtn"),
+  hintBtn: document.querySelector("#hintBtn"),
+  solutionBtn: document.querySelector("#solutionBtn"),
+  provider: document.querySelector("#provider"),
+  model: document.querySelector("#model"),
+  refreshModelsBtn: document.querySelector("#refreshModelsBtn"),
+  endpoint: document.querySelector("#endpoint"),
+  apiKey: document.querySelector("#apiKey"),
+  practiceQuestions: document.querySelector("#practiceQuestions"),
+  checkTestBtn: document.querySelector("#checkTestBtn"),
+  testResult: document.querySelector("#testResult"),
+};
+
+let lastRunResult = null;
+let preferredModel = "";
+let coachMessages = [];
+let solutionRevealed = false;
+let failedAttempts = 0;
+
+// ---------------------------------------------------------------------------
+// Progress tracking (localStorage)
+// ---------------------------------------------------------------------------
+
+function loadProgress() {
+  try {
+    return JSON.parse(localStorage.getItem("pySkillLabProgress") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveProgress(progress) {
+  localStorage.setItem("pySkillLabProgress", JSON.stringify(progress));
+}
+
+function markTopicVisited(topicId) {
+  const progress = loadProgress();
+  if (!progress[topicId]) progress[topicId] = {};
+  progress[topicId].visited = true;
+  progress[topicId].lastVisit = Date.now();
+  progress._lastTopicId = topicId;  // persist for "continue where you left off"
+  saveProgress(progress);
+}
+
+function markExercisePassed(exerciseId) {
+  const progress = loadProgress();
+  if (!progress.exercises) progress.exercises = {};
+  progress.exercises[exerciseId] = { passed: true, date: Date.now() };
+  saveProgress(progress);
+}
+
+function markTestScore(topicId, score, total) {
+  const progress = loadProgress();
+  if (!progress[topicId]) progress[topicId] = {};
+  progress[topicId].testScore = score;
+  progress[topicId].testTotal = total;
+  saveProgress(progress);
+}
+
+function getTopicProgress(topicId) {
+  const progress = loadProgress();
+  return progress[topicId] || {};
+}
+
+function isExercisePassed(exerciseId) {
+  const progress = loadProgress();
+  return progress.exercises && progress.exercises[exerciseId] && progress.exercises[exerciseId].passed;
+}
+
+// ---------------------------------------------------------------------------
+// Code draft auto-save
+// ---------------------------------------------------------------------------
+
+function saveDraft(exerciseId, code) {
+  try {
+    const drafts = JSON.parse(localStorage.getItem("pySkillLabDrafts") || "{}");
+    drafts[exerciseId] = code;
+    localStorage.setItem("pySkillLabDrafts", JSON.stringify(drafts));
+  } catch { /* ignore */ }
+}
+
+function loadDraft(exerciseId) {
+  try {
+    const drafts = JSON.parse(localStorage.getItem("pySkillLabDrafts") || "{}");
+    return drafts[exerciseId] || null;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(exerciseId) {
+  try {
+    const drafts = JSON.parse(localStorage.getItem("pySkillLabDrafts") || "{}");
+    delete drafts[exerciseId];
+    localStorage.setItem("pySkillLabDrafts", JSON.stringify(drafts));
+  } catch { /* ignore */ }
+}
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+
+async function boot() {
+  const response = await fetch("/api/curriculum");
+  const data = await response.json();
+  topics = data.topics;
+  exercises = data.exercises;
+  practiceTests = data.practice_tests || [];
+
+  // Restore last visited topic ("continue where you left off")
+  const progress = loadProgress();
+  const lastTopicId = progress._lastTopicId;
+  const validLastTopic = lastTopicId && topics.find((t) => t.id === lastTopicId);
+  selectedTopicId = validLastTopic ? lastTopicId : topics[0].id;
+
+  renderTopicList();
+  selectTopic(selectedTopicId);
+
+  // Spaced repetition: nudge for topics not visited in 7+ days
+  checkSpacedRepetitionNudges(progress);
+}
+
+/** Show one review nudge for any topic not practiced in 7+ days. */
+function checkSpacedRepetitionNudges(progress) {
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const stale = topics.filter((topic) => {
+    const tp = progress[topic.id];
+    return tp && tp.lastVisit && now - tp.lastVisit > SEVEN_DAYS_MS;
+  });
+  if (!stale.length) return;
+
+  // Pick the most recently studied of the stale topics
+  const oldest = stale.sort((a, b) => progress[a.id].lastVisit - progress[b.id].lastVisit)[0];
+  const days = Math.floor((now - progress[oldest.id].lastVisit) / (24 * 60 * 60 * 1000));
+
+  showReviewNudge(oldest, days);
+}
+
+function showReviewNudge(topic, days) {
+  const banner = document.createElement("div");
+  banner.className = "review-nudge";
+  banner.setAttribute("role", "alert");
+  banner.innerHTML = `
+    <span class="nudge-icon">🔁</span>
+    <span>You studied <strong>${escapeHtml(topic.title)}</strong> ${days} day${days !== 1 ? 's' : ''} ago — a quick review helps retention.</span>
+    <div class="nudge-actions">
+      <button type="button" onclick="selectTopic('${topic.id}');this.closest('.review-nudge').remove()" class="nudge-btn">Review now</button>
+      <button type="button" onclick="this.closest('.review-nudge').remove()" class="nudge-dismiss" aria-label="Dismiss">✕</button>
+    </div>
+  `;
+  document.querySelector(".workspace").prepend(banner);
+  // Auto-dismiss after 12 seconds
+  setTimeout(() => banner.remove(), 12000);
+}
+
+// ---------------------------------------------------------------------------
+// Topic list & navigation
+// ---------------------------------------------------------------------------
+
+function renderTopicList() {
+  const query = els.search.value.trim().toLowerCase();
+  const progress = loadProgress();
+  els.topicList.innerHTML = "";
+
+  let currentTrack = "";
+  topics
+    .filter((topic) => {
+      const haystack = `${topic.title} ${topic.track} ${topic.intro}`.toLowerCase();
+      return haystack.includes(query);
+    })
+    .forEach((topic) => {
+      // Track separator
+      if (topic.track !== currentTrack) {
+        currentTrack = topic.track;
+        const trackHeader = document.createElement("div");
+        trackHeader.className = "track-header";
+        trackHeader.textContent = currentTrack;
+        els.topicList.appendChild(trackHeader);
+      }
+
+      const button = document.createElement("button");
+      button.className = `topic-button ${topic.id === selectedTopicId ? "active" : ""}`;
+      button.type = "button";
+
+      const topicProgress = progress[topic.id] || {};
+      let badge = "";
+      if (topicProgress.testScore !== undefined) {
+        const pct = Math.round((topicProgress.testScore / topicProgress.testTotal) * 100);
+        badge = `<span class="progress-badge ${pct >= 80 ? 'badge-pass' : 'badge-partial'}">${pct}%</span>`;
+      } else if (topicProgress.visited) {
+        badge = `<span class="progress-badge badge-visited">●</span>`;
+      }
+
+      button.innerHTML = `<span>${topic.track}</span>${escapeHtml(topic.title)}${badge}`;
+      button.addEventListener("click", () => selectTopic(topic.id));
+      els.topicList.appendChild(button);
+    });
+}
+
+function selectTopic(topicId) {
+  selectedTopicId = topicId;
+  const topic = topics.find((item) => item.id === topicId);
+  els.track.textContent = topic.track;
+  els.title.textContent = topic.title;
+  els.level.textContent = topic.level;
+  els.intro.textContent = topic.intro;
+  els.mentalModel.textContent = topic.mental_model || "";
+  els.learningOutcome.textContent = topic.outcome || buildLearningOutcome(topic);
+  els.lessonSections.innerHTML = renderLessonSections(topic.lesson_sections || []);
+  els.syntax.textContent = topic.syntax;
+  els.example.textContent = topic.example;
+  els.realWorld.innerHTML = renderList(topic.real_world || []);
+  els.mustKnow.innerHTML = renderList(topic.must_know || []);
+  els.commonTraps.innerHTML = renderList(topic.common_traps || []);
+  els.interview.innerHTML = topic.interview.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  els.docs.innerHTML = (topic.docs || [])
+    .map((doc) => `<li><a href="${escapeHtml(doc.url)}" target="_blank" rel="noreferrer">${escapeHtml(doc.label)}</a></li>`)
+    .join("");
+  renderTopicList();
+  renderExercises(topicId);
+  renderPracticeTest(topicId);
+  setActiveTopicSection("overviewSection");
+  markTopicVisited(topicId);
+}
+
+function buildLearningOutcome(topic) {
+  const firstSkill = topic.must_know && topic.must_know[0] ? topic.must_know[0] : "explain the core idea clearly";
+  return `After this topic, you should be able to use the concept in a small program, recognize where it appears in real work, avoid common mistakes, and explain this skill clearly. First checkpoint: ${firstSkill}`;
+}
+
+function renderList(items) {
+  return items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+}
+
+function renderLessonSections(sections) {
+  if (!sections.length) return "";
+  return sections
+    .map(
+      (section) => {
+        const sourceLink = section.source_url
+          ? `<a class="section-source" href="${escapeHtml(section.source_url)}" target="_blank" rel="noreferrer">${escapeHtml(section.source_label || "Official source")}</a>`
+          : "";
+        return `
+          <article class="lesson-section-card">
+            <h3>${escapeHtml(section.title)}</h3>
+            <p>${escapeHtml(section.body)}</p>
+            ${sourceLink}
+          </article>
+        `;
+      }
+    )
+    .join("");
+}
+
+// ---------------------------------------------------------------------------
+// Exercises
+// ---------------------------------------------------------------------------
+
+function renderExercises(topicId) {
+  const topicExercises = exercises.filter((exercise) => exercise.topic_id === topicId);
+
+  if (!topicExercises.length) {
+    els.exerciseSelect.innerHTML = '<option value="">No exercises yet for this topic</option>';
+    els.exerciseTitle.textContent = "Coming Soon";
+    els.exercisePrompt.textContent = "Exercises for this topic are being developed. Check back later or explore the lesson and practice test.";
+    els.editor.value = "# No exercise available for this topic yet.\n# Try the Practice Test tab instead!\n";
+    els.editor.disabled = true;
+    els.testOutput.textContent = "No exercises available.";
+    return;
+  }
+
+  els.editor.disabled = false;
+  els.exerciseSelect.innerHTML = topicExercises
+    .map((exercise) => {
+      const passed = isExercisePassed(exercise.id);
+      const icon = passed ? "✓ " : "";
+      return `<option value="${exercise.id}">${icon}${escapeHtml(exercise.title)}</option>`;
+    })
+    .join("");
+  selectExercise(topicExercises[0].id);
+}
+
+function renderPracticeTest(topicId) {
+  const test = practiceTests.find((item) => item.topic_id === topicId);
+  const questions = test ? test.questions : [];
+  if (!questions.length) {
+    els.practiceQuestions.innerHTML = "<p>No practice test is available yet for this topic.</p>";
+    els.testResult.textContent = "Nothing to check yet.";
+    return;
+  }
+
+  els.practiceQuestions.innerHTML = questions
+    .map((question, questionIndex) => {
+      const options = question.options
+        .map(
+          (option, optionIndex) => `
+            <label class="answer-option">
+              <input type="radio" name="question-${questionIndex}" value="${optionIndex}" />
+              <span>${escapeHtml(option)}</span>
+            </label>
+          `
+        )
+        .join("");
+      return `
+        <article class="question-card" data-question-index="${questionIndex}">
+          <h4>${questionIndex + 1}. ${escapeHtml(question.question)}</h4>
+          <div class="answer-options">${options}</div>
+          <p class="answer-explanation"></p>
+        </article>
+      `;
+    })
+    .join("");
+  els.testResult.textContent = "Choose an answer, then check your result.";
+}
+
+function checkPracticeTest() {
+  const test = practiceTests.find((item) => item.topic_id === selectedTopicId);
+  const questions = test ? test.questions : [];
+  if (!questions.length) return;
+
+  let score = 0;
+  questions.forEach((question, questionIndex) => {
+    const card = document.querySelector(`[data-question-index="${questionIndex}"]`);
+    const selected = document.querySelector(`input[name="question-${questionIndex}"]:checked`);
+    const selectedValue = selected ? Number(selected.value) : -1;
+    const correct = selectedValue === question.answer;
+    if (correct) score += 1;
+    card.classList.toggle("correct", correct);
+    card.classList.toggle("incorrect", !correct);
+    card.querySelector(".answer-explanation").textContent = `${correct ? "✓ Correct." : "✗ Review this."} ${question.explanation}`;
+  });
+
+  els.testResult.textContent = `Score: ${score}/${questions.length}`;
+  markTestScore(selectedTopicId, score, questions.length);
+  renderTopicList(); // Update progress badges
+}
+
+function selectExercise(exerciseId) {
+  selectedExercise = exercises.find((exercise) => exercise.id === exerciseId);
+  if (!selectedExercise) return;
+
+  els.exerciseSelect.value = exerciseId;
+  els.exerciseTitle.textContent = selectedExercise.title;
+  els.exercisePrompt.textContent = selectedExercise.prompt;
+
+  // Load draft or starter code
+  const draft = loadDraft(exerciseId);
+  els.editor.value = draft || selectedExercise.starter;
+
+  els.testOutput.textContent = "No test run yet. Press Run Tests or Ctrl+Enter.";
+  coachMessages = [
+    {
+      role: "assistant",
+      text: "I can help you understand the lesson, review your code, explain test failures, or connect this topic to real-world work.",
+    },
+  ];
+  renderCoachMessages();
+  els.coachInput.value = "";
+  els.coachStatus.textContent = "Provider ready";
+  lastRunResult = null;
+  solutionRevealed = false;
+  failedAttempts = 0;
+
+  // Show/hide solution button
+  if (els.solutionBtn) {
+    els.solutionBtn.style.display = selectedExercise.solution ? "" : "none";
+    els.solutionBtn.textContent = "Show Solution";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Code execution
+// ---------------------------------------------------------------------------
+
+async function runCode() {
+  if (!selectedExercise) return;
+  els.testOutput.textContent = "Running local tests...";
+  els.runBtn.disabled = true;
+  els.runBtn.textContent = "Running...";
+
+  try {
+    const response = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        exercise_id: selectedExercise.id,
+        code: els.editor.value,
+      }),
+    });
+    const result = await response.json();
+    lastRunResult = result;
+    els.testOutput.innerHTML = formatResult(result);
+
+    if (result.ok) {
+      markExercisePassed(selectedExercise.id);
+      renderExercises(selectedTopicId); // Update checkmarks
+    } else {
+      failedAttempts++;
+    }
+  } catch (error) {
+    els.testOutput.textContent = `Could not reach the local runner: ${error}`;
+  } finally {
+    els.runBtn.disabled = false;
+    els.runBtn.textContent = "▶ Run Tests";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI Coach
+// ---------------------------------------------------------------------------
+
+async function askAiCoach(questionOverride = "") {
+  if (!selectedExercise) return;
+  const question = questionOverride || els.coachInput.value.trim() || "Please review my current code and test result. Explain what I should learn next.";
+  appendCoachMessage("user", question);
+  els.coachInput.value = "";
+  els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no model selected"}`;
+  els.aiBtn.disabled = true;
+  els.explainBtn.disabled = true;
+
+  let runResult = lastRunResult;
+  if (!runResult) {
+    els.testOutput.textContent = "Running local tests before coach review...";
+    const response = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        exercise_id: selectedExercise.id,
+        code: els.editor.value,
+      }),
+    });
+    runResult = await response.json();
+    lastRunResult = runResult;
+    els.testOutput.innerHTML = formatResult(runResult);
+  }
+
+  try {
+    appendCoachMessage("assistant", "thinking");
+    const response = await fetch("/api/ai-coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: els.provider.value,
+        model: els.model.value,
+        endpoint: els.endpoint.value,
+        api_key: els.apiKey.value,
+        topic_id: selectedTopicId,
+        exercise_id: selectedExercise.id,
+        code: els.editor.value,
+        run_result: runResult,
+        question,
+        chat_history: coachMessages.filter((message) => message.text !== "thinking").slice(-8),
+      }),
+    });
+    const result = await response.json();
+    const prefix = result.ok ? "" : `⚠ AI Coach unavailable (${result.error}). Built-in feedback:\n\n`;
+    replaceLastThinkingMessage(`${prefix}${result.answer}`);
+    els.coachStatus.textContent = result.ok ? "Coach response received" : "Fallback feedback shown";
+    saveAiSettings();
+  } catch (error) {
+    replaceLastThinkingMessage(`Could not reach the AI coach route: ${error}`);
+    els.coachStatus.textContent = "Coach unavailable";
+  } finally {
+    els.aiBtn.disabled = false;
+    els.explainBtn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI settings
+// ---------------------------------------------------------------------------
+
+function saveAiSettings() {
+  localStorage.setItem(
+    "pySkillLabSettings",
+    JSON.stringify({
+      provider: els.provider.value,
+      model: els.model.value,
+      endpoint: els.endpoint.value,
+    })
+  );
+}
+
+function loadAiSettings() {
+  // Try new key, fall back to old key for backwards compatibility
+  const saved = localStorage.getItem("pySkillLabSettings") || localStorage.getItem("pyInterviewAiSettings");
+  if (!saved) return;
+  try {
+    const settings = JSON.parse(saved);
+    if (settings.provider) els.provider.value = settings.provider;
+    if (settings.model) preferredModel = settings.model;
+    if (settings.endpoint) els.endpoint.value = settings.endpoint;
+  } catch {
+    localStorage.removeItem("pySkillLabSettings");
+    localStorage.removeItem("pyInterviewAiSettings");
+  }
+}
+
+function applyProviderDefaults() {
+  const defaults = {
+    ollama: { model: "qwen3.5:latest", endpoint: "http://127.0.0.1:11434" },
+    lmstudio: { model: "local-model", endpoint: "http://127.0.0.1:1234/v1/chat/completions" },
+    openai: { model: "gpt-4.1-mini", endpoint: "https://api.openai.com/v1/chat/completions" },
+    anthropic: { model: "claude-3-5-haiku-latest", endpoint: "https://api.anthropic.com/v1/messages" },
+  };
+  const selected = defaults[els.provider.value];
+  preferredModel = selected.model;
+  els.endpoint.value = selected.endpoint;
+  loadModels();
+}
+
+async function loadModels() {
+  const providerDefaults = {
+    ollama: ["qwen3.5:latest", "nemotron-3-nano:4b"],
+    lmstudio: ["local-model"],
+    openai: ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
+    anthropic: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
+  };
+  const fallback = providerDefaults[els.provider.value] || [];
+  setModelOptions(fallback, preferredModel || fallback[0]);
+
+  try {
+    els.refreshModelsBtn.disabled = true;
+    const response = await fetch("/api/ai-models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: els.provider.value,
+        endpoint: els.endpoint.value,
+        api_key: els.apiKey.value,
+      }),
+    });
+    const result = await response.json();
+    setModelOptions(result.models && result.models.length ? result.models : fallback, preferredModel || fallback[0]);
+    saveAiSettings();
+    els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no model selected"}`;
+    if (!result.ok && result.error) {
+      appendCoachMessage("assistant", `Could not refresh models: ${result.error}\nUsing fallback model list.`);
+    }
+  } catch (error) {
+    appendCoachMessage("assistant", `Could not refresh models: ${error}\nUsing fallback model list.`);
+  } finally {
+    els.refreshModelsBtn.disabled = false;
+  }
+}
+
+function setModelOptions(models, selectedModel) {
+  const uniqueModels = [...new Set(models.filter(Boolean))];
+  if (selectedModel && !uniqueModels.includes(selectedModel)) {
+    uniqueModels.unshift(selectedModel);
+  }
+  els.model.innerHTML = uniqueModels
+    .map((model) => `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`)
+    .join("");
+  els.model.value = selectedModel && uniqueModels.includes(selectedModel) ? selectedModel : uniqueModels[0] || "";
+  preferredModel = els.model.value;
+}
+
+// ---------------------------------------------------------------------------
+// Solution reveal
+// ---------------------------------------------------------------------------
+
+function toggleSolution() {
+  if (!selectedExercise || !selectedExercise.solution) return;
+
+  if (solutionRevealed) {
+    // Hide solution, restore code
+    const draft = loadDraft(selectedExercise.id);
+    els.editor.value = draft || selectedExercise.starter;
+    els.solutionBtn.textContent = "Show Solution";
+    solutionRevealed = false;
+  } else {
+    if (failedAttempts < 2) {
+      appendCoachMessage("assistant", `Try at least ${2 - failedAttempts} more time(s) before viewing the solution. You'll learn more by working through it!`);
+      return;
+    }
+    // Save current code as draft before showing solution
+    saveDraft(selectedExercise.id, els.editor.value);
+    els.editor.value = selectedExercise.solution;
+    els.solutionBtn.textContent = "Hide Solution";
+    solutionRevealed = true;
+
+    if (selectedExercise.explanation) {
+      appendCoachMessage("assistant", `📝 Solution explanation:\n\n${selectedExercise.explanation}`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Formatting
+// ---------------------------------------------------------------------------
+
+function formatResult(result) {
+  const lines = [];
+  if (result.stdout) {
+    lines.push("Output:");
+    lines.push(escapeHtml(result.stdout));
+    lines.push("");
+  }
+  if (result.stderr) {
+    lines.push('<span class="fail">Error:</span>');
+    lines.push(escapeHtml(result.stderr));
+    lines.push("");
+  }
+
+  if (result.tests && result.tests.length) {
+    const passed = result.tests.filter((t) => t.passed).length;
+    const total = result.tests.length;
+    lines.push(`Tests: <span class="${passed === total ? 'pass' : 'fail'}">${passed}/${total} passed</span>`);
+    result.tests.forEach((test) => {
+      const status = test.passed ? "PASS" : "FAIL";
+      const klass = test.passed ? "pass" : "fail";
+      lines.push(
+        `  <span class="${klass}">${status}</span> ${escapeHtml(test.label)} | expected ${escapeHtml(
+          JSON.stringify(test.expected)
+        )}, got ${escapeHtml(JSON.stringify(test.actual))}`
+      );
+    });
+    lines.push("");
+  }
+
+  if (result.feedback && result.feedback.length) {
+    lines.push("Coach:");
+    result.feedback.forEach((item) => lines.push(`  💡 ${escapeHtml(item)}`));
+  }
+
+  return lines.join("\n");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/** Simple markdown-like rendering for coach messages. */
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+  // Code blocks: ```...```
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="coach-code"><code>$2</code></pre>');
+  // Inline code: `...`
+  html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+  // Bold: **...**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italic: *...*
+  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  // Line breaks
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+// ---------------------------------------------------------------------------
+// UI state
+// ---------------------------------------------------------------------------
+
+function setActiveTopicSection(sectionId) {
+  document.querySelectorAll(".topic-section").forEach((section) => {
+    section.classList.toggle("active", section.id === sectionId);
+  });
+  document.querySelectorAll(".mode-button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.section === sectionId);
+  });
+}
+
+function appendCoachMessage(role, text) {
+  coachMessages.push({ role, text });
+  renderCoachMessages();
+}
+
+function replaceLastThinkingMessage(text) {
+  const index = coachMessages.map((message) => message.text).lastIndexOf("thinking");
+  if (index >= 0) {
+    coachMessages[index] = { role: "assistant", text };
+  } else {
+    coachMessages.push({ role: "assistant", text });
+  }
+  renderCoachMessages();
+}
+
+function renderCoachMessages() {
+  els.aiOutput.innerHTML = coachMessages
+    .map(
+      (message) => {
+        if (message.text === "thinking") {
+          return `
+            <div class="coach-message assistant thinking">
+              <strong>Coach</strong>
+              <div class="thinking-dots"><span></span><span></span><span></span></div>
+            </div>
+          `;
+        }
+        const content = message.role === "assistant" ? renderMarkdown(message.text) : escapeHtml(message.text);
+        return `
+          <div class="coach-message ${message.role}">
+            <strong>${message.role === "user" ? "You" : "Coach"}</strong>
+            <div class="message-content">${content}</div>
+          </div>
+        `;
+      }
+    )
+    .join("");
+  els.aiOutput.scrollTop = els.aiOutput.scrollHeight;
+}
+
+// ---------------------------------------------------------------------------
+// Event listeners
+// ---------------------------------------------------------------------------
+
+els.search.addEventListener("input", renderTopicList);
+els.exerciseSelect.addEventListener("change", (event) => selectExercise(event.target.value));
+els.runBtn.addEventListener("click", runCode);
+els.aiBtn.addEventListener("click", () => askAiCoach());
+els.explainBtn.addEventListener("click", () => askAiCoach("Explain my current code and test result. Give me one small next step, not the full answer unless it already passes."));
+els.resetBtn.addEventListener("click", () => {
+  if (selectedExercise) {
+    clearDraft(selectedExercise.id);
+    selectExercise(selectedExercise.id);
+  }
+});
+els.hintBtn.addEventListener("click", () => {
+  if (selectedExercise) {
+    els.testOutput.textContent = `💡 Hint: ${selectedExercise.hint}`;
+  }
+});
+
+if (els.solutionBtn) {
+  els.solutionBtn.addEventListener("click", toggleSolution);
+}
+
+// Code editor: Tab indent + Ctrl+Enter to run + auto-save
+els.editor.addEventListener("keydown", (event) => {
+  if (event.key === "Tab") {
+    event.preventDefault();
+    const start = els.editor.selectionStart;
+    const end = els.editor.selectionEnd;
+    els.editor.value = `${els.editor.value.slice(0, start)}    ${els.editor.value.slice(end)}`;
+    els.editor.selectionStart = els.editor.selectionEnd = start + 4;
+  }
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    runCode();
+  }
+  if ((event.key === "s" || event.key === "S") && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    if (selectedExercise) saveDraft(selectedExercise.id, els.editor.value);
+    els.coachStatus.textContent = "Draft saved";
+    setTimeout(() => { els.coachStatus.textContent = "Provider ready"; }, 1500);
+  }
+});
+
+// Auto-save on input (debounced)
+let saveTimer = null;
+els.editor.addEventListener("input", () => {
+  if (selectedExercise) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveDraft(selectedExercise.id, els.editor.value), 1000);
+  }
+});
+
+els.provider.addEventListener("change", applyProviderDefaults);
+els.model.addEventListener("change", () => {
+  preferredModel = els.model.value;
+  saveAiSettings();
+});
+els.endpoint.addEventListener("change", saveAiSettings);
+els.endpoint.addEventListener("change", loadModels);
+els.apiKey.addEventListener("change", loadModels);
+els.refreshModelsBtn.addEventListener("click", loadModels);
+document.querySelectorAll(".mode-button").forEach((button) => {
+  button.addEventListener("click", () => setActiveTopicSection(button.dataset.section));
+});
+els.checkTestBtn.addEventListener("click", checkPracticeTest);
+els.coachInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    askAiCoach();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+document.documentElement.classList.remove("dark");
+localStorage.setItem("pySkillLabTheme", "light");
+loadAiSettings();
+loadModels();
+boot();

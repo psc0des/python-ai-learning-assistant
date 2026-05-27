@@ -1,0 +1,153 @@
+[
+  {
+    "id": "http-status-classify",
+    "topic_id": "sql-http-git",
+    "title": "HTTP Status Classifier",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `classify_status(code)` returning:\n- `ok` for 2xx\n- `client_error` for 4xx\n- `server_error` for 5xx\n- `other` otherwise",
+    "starter": "def classify_status(code):\n    pass\n",
+    "tests": [
+      {
+        "label": "200",
+        "call": "classify_status(200)",
+        "expected": "ok"
+      },
+      {
+        "label": "404",
+        "call": "classify_status(404)",
+        "expected": "client_error"
+      },
+      {
+        "label": "500",
+        "call": "classify_status(500)",
+        "expected": "server_error"
+      },
+      {
+        "label": "301",
+        "call": "classify_status(301)",
+        "expected": "other"
+      }
+    ],
+    "hint": "Use integer division by 100.",
+    "solution": "def classify_status(code):\n    category = code // 100\n    if category == 2:\n        return 'ok'\n    if category == 4:\n        return 'client_error'\n    if category == 5:\n        return 'server_error'\n    return 'other'\n",
+    "explanation": "Status-family reasoning is a fast first step in API debugging."
+  },
+  {
+    "id": "safe-sql-update-check",
+    "topic_id": "sql-http-git",
+    "title": "Safe SQL Update Check",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `is_safe_update(query)`.\nReturn True only if query starts with `UPDATE` (case-insensitive) and contains `WHERE`.",
+    "starter": "def is_safe_update(query):\n    pass\n",
+    "tests": [
+      {
+        "label": "safe update",
+        "call": "is_safe_update('UPDATE users SET active = false WHERE id = 5')",
+        "expected": true
+      },
+      {
+        "label": "unsafe update",
+        "call": "is_safe_update('UPDATE users SET active = false')",
+        "expected": false
+      },
+      {
+        "label": "not update",
+        "call": "is_safe_update('SELECT * FROM users')",
+        "expected": false
+      }
+    ],
+    "hint": "Normalize with `.strip().upper()`.",
+    "solution": "def is_safe_update(query):\n    q = query.strip().upper()\n    return q.startswith('UPDATE ') and ' WHERE ' in q\n",
+    "explanation": "This lab reinforces a basic but critical SQL safety habit."
+  },
+  {
+    "id": "git-change-summary",
+    "topic_id": "sql-http-git",
+    "title": "Summarize Git File Changes",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `summarize_git_changes(lines)` where each line starts with `A`, `M`, or `D` then filename (e.g., `M app.py`).\nReturn dict counts for keys `added`, `modified`, `deleted`.",
+    "starter": "def summarize_git_changes(lines):\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed changes",
+        "call": "summarize_git_changes(['M app.py', 'A tests.py', 'D old.py', 'M readme.md'])",
+        "expected": {
+          "added": 1,
+          "modified": 2,
+          "deleted": 1
+        }
+      },
+      {
+        "label": "empty",
+        "call": "summarize_git_changes([])",
+        "expected": {
+          "added": 0,
+          "modified": 0,
+          "deleted": 0
+        }
+      }
+    ],
+    "hint": "Use first token to map into counters.",
+    "solution": "def summarize_git_changes(lines):\n    out = {'added': 0, 'modified': 0, 'deleted': 0}\n    mapping = {'A': 'added', 'M': 'modified', 'D': 'deleted'}\n    for line in lines:\n        parts = line.split(maxsplit=1)\n        if not parts:\n            continue\n        key = mapping.get(parts[0])\n        if key:\n            out[key] += 1\n    return out\n",
+    "explanation": "Git change summaries help review scope before commit or merge."
+  },
+  {
+    "id": "parse-log-lines",
+    "topic_id": "sql-http-git",
+    "title": "Linux-Style Log Filter",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `filter_logs(lines, keyword)` that returns only lines containing keyword (case-insensitive), preserving order.",
+    "starter": "def filter_logs(lines, keyword):\n    pass\n",
+    "tests": [
+      {
+        "label": "match errors",
+        "call": "filter_logs(['INFO start', 'ERROR db down', 'warn retry', 'error timeout'], 'error')",
+        "expected": [
+          "ERROR db down",
+          "error timeout"
+        ]
+      },
+      {
+        "label": "no match",
+        "call": "filter_logs(['ok'], 'fail')",
+        "expected": []
+      }
+    ],
+    "hint": "Lowercase both line and keyword.",
+    "solution": "def filter_logs(lines, keyword):\n    k = keyword.lower()\n    return [line for line in lines if k in line.lower()]\n",
+    "explanation": "Log filtering is a core Linux debugging workflow."
+  },
+  {
+    "id": "cross-layer-diagnosis",
+    "topic_id": "sql-http-git",
+    "title": "Cross-Layer Triage Decision",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `next_debug_step(signal)`.\n\nRules:\n- `http_5xx` -> `check_logs`\n- `validation_4xx` -> `check_request_schema`\n- `data_mismatch` -> `check_sql_rows`\n- `recent_regression` -> `check_git_diff`\n- unknown -> `gather_more_evidence`",
+    "starter": "def next_debug_step(signal):\n    pass\n",
+    "tests": [
+      {
+        "label": "server error signal",
+        "call": "next_debug_step('http_5xx')",
+        "expected": "check_logs"
+      },
+      {
+        "label": "data signal",
+        "call": "next_debug_step('data_mismatch')",
+        "expected": "check_sql_rows"
+      },
+      {
+        "label": "unknown signal",
+        "call": "next_debug_step('maybe')",
+        "expected": "gather_more_evidence"
+      }
+    ],
+    "hint": "Use a dict mapping with default fallback.",
+    "solution": "def next_debug_step(signal):\n    mapping = {\n        'http_5xx': 'check_logs',\n        'validation_4xx': 'check_request_schema',\n        'data_mismatch': 'check_sql_rows',\n        'recent_regression': 'check_git_diff',\n    }\n    return mapping.get(signal, 'gather_more_evidence')\n",
+    "explanation": "Structured triage prevents random debugging and speeds root-cause isolation."
+  }
+]

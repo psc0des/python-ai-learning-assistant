@@ -1,0 +1,93 @@
+{
+  "topic_id": "async",
+  "questions": [
+    {
+      "question": "When does async Python usually help most?",
+      "options": [
+        "When code spends significant time waiting on I/O.",
+        "When code is dominated by CPU-heavy loops.",
+        "When you want to avoid writing tests.",
+        "When all logic is synchronous file writes."
+      ],
+      "answer": 0,
+      "explanation": "Async improves throughput by overlapping waiting time."
+    },
+    {
+      "question": "What do you get when you call an async function without await?",
+      "options": [
+        "The final return value immediately.",
+        "A coroutine object.",
+        "A SyntaxError.",
+        "A background thread automatically."
+      ],
+      "answer": 1,
+      "explanation": "Coroutines must be awaited or scheduled to run."
+    },
+    {
+      "question": "Why is `time.sleep()` harmful inside async code?",
+      "options": [
+        "It converts async functions to sync permanently.",
+        "It automatically cancels tasks.",
+        "It blocks the event loop and pauses all tasks.",
+        "It raises ImportError."
+      ],
+      "answer": 2,
+      "explanation": "Blocking calls stall cooperative task scheduling."
+    },
+    {
+      "question": "What does `asyncio.gather()` primarily do?",
+      "options": [
+        "Retries failed tasks automatically.",
+        "Creates OS processes for each coroutine.",
+        "Compiles coroutines to machine code.",
+        "Waits for multiple coroutines and collects their results."
+      ],
+      "answer": 3,
+      "explanation": "gather coordinates multiple awaitables in one await."
+    },
+    {
+      "question": "What does the event loop coordinate?",
+      "options": [
+        "Scheduling and resuming asynchronous tasks at await points.",
+        "Automatic database schema migration.",
+        "Python package dependency resolution.",
+        "CPU vectorization."
+      ],
+      "answer": 0,
+      "explanation": "The event loop is the scheduler for coroutine execution."
+    },
+    {
+      "question": "What is the best short definition of concurrency vs parallelism?",
+      "options": [
+        "They are identical terms.",
+        "Concurrency overlaps progress; parallelism runs work simultaneously on multiple compute resources.",
+        "Parallelism only applies to async code.",
+        "Concurrency requires multiple CPU cores."
+      ],
+      "answer": 1,
+      "explanation": "Concurrency is about structure and interleaving; parallelism is about simultaneous execution."
+    },
+    {
+      "question": "Which scenario is a poor fit for async-only optimization?",
+      "options": [
+        "A workload with frequent database waits.",
+        "Many HTTP calls to remote services.",
+        "A pure CPU-bound image processing loop.",
+        "Concurrent I/O with timeouts."
+      ],
+      "answer": 2,
+      "explanation": "CPU-bound work often needs multiprocessing/native optimization, not only async I/O scheduling."
+    },
+    {
+      "question": "Why should cancellation behavior be designed explicitly?",
+      "options": [
+        "Because cancellation removes need for error handling.",
+        "Because cancellation makes code run faster by default.",
+        "Because cancelled tasks are always retried automatically.",
+        "To avoid partial updates and leaked resources when tasks stop early."
+      ],
+      "answer": 3,
+      "explanation": "Cancellation is part of correctness, not only performance."
+    }
+  ]
+}

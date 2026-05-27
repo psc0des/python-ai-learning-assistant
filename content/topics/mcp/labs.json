@@ -1,0 +1,158 @@
+[
+  {
+    "id": "normalize-capability-type",
+    "topic_id": "mcp",
+    "title": "Capability Type Normalizer",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `normalize_capability_type(value)`.\n\nAccepted values (case-insensitive): `tool`, `resource`, `prompt`.\nReturn normalized lowercase value when valid, else return `None`.",
+    "starter": "def normalize_capability_type(value):\n    pass\n",
+    "tests": [
+      {
+        "label": "tool",
+        "call": "normalize_capability_type('Tool')",
+        "expected": "tool"
+      },
+      {
+        "label": "resource",
+        "call": "normalize_capability_type('resource')",
+        "expected": "resource"
+      },
+      {
+        "label": "invalid",
+        "call": "normalize_capability_type('action')",
+        "expected": null
+      }
+    ],
+    "hint": "Use a set of allowed lowercase values.",
+    "solution": "def normalize_capability_type(value):\n    if not isinstance(value, str):\n        return None\n    v = value.strip().lower()\n    if v in {'tool', 'resource', 'prompt'}:\n        return v\n    return None\n",
+    "explanation": "Clear capability typing is foundational for MCP interoperability."
+  },
+  {
+    "id": "discover-enabled-capabilities",
+    "topic_id": "mcp",
+    "title": "Capability Discovery Filter",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `discover_enabled(items)`.\n\nEach item is a dict with keys `name` and `enabled`.\nReturn a list of names for enabled items only, preserving order.",
+    "starter": "def discover_enabled(items):\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed list",
+        "call": "discover_enabled([{'name': 'search', 'enabled': True}, {'name': 'delete', 'enabled': False}, {'name': 'read_doc', 'enabled': True}])",
+        "expected": [
+          "search",
+          "read_doc"
+        ]
+      },
+      {
+        "label": "none enabled",
+        "call": "discover_enabled([{'name': 'x', 'enabled': False}])",
+        "expected": []
+      }
+    ],
+    "hint": "Loop and append when `item.get('enabled')` is truthy.",
+    "solution": "def discover_enabled(items):\n    result = []\n    for item in items:\n        if item.get('enabled'):\n            result.append(item.get('name'))\n    return result\n",
+    "explanation": "Clients should discover what is enabled rather than assuming all declared capabilities are available."
+  },
+  {
+    "id": "validate-tool-call-contract",
+    "topic_id": "mcp",
+    "title": "Tool Contract Validator",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `validate_tool_call(call, required_keys)`.\n\nRules:\n- `call` must be dict with string key `tool` and dict key `args`.\n- All `required_keys` must exist in `call['args']`.\n- Return `(True, 'ok')` or `(False, '<reason>')` with reasons:\n  - `invalid_shape`\n  - `missing_required_arg`",
+    "starter": "def validate_tool_call(call, required_keys):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid call",
+        "call": "validate_tool_call({'tool': 'search', 'args': {'query': 'python'}}, ['query'])",
+        "expected": [
+          true,
+          "ok"
+        ]
+      },
+      {
+        "label": "missing arg",
+        "call": "validate_tool_call({'tool': 'search', 'args': {}}, ['query'])",
+        "expected": [
+          false,
+          "missing_required_arg"
+        ]
+      },
+      {
+        "label": "bad shape",
+        "call": "validate_tool_call({'tool': 'search'}, ['query'])",
+        "expected": [
+          false,
+          "invalid_shape"
+        ]
+      }
+    ],
+    "hint": "Validate structure first, required fields second.",
+    "solution": "def validate_tool_call(call, required_keys):\n    if not isinstance(call, dict):\n        return [False, 'invalid_shape']\n    if not isinstance(call.get('tool'), str) or not isinstance(call.get('args'), dict):\n        return [False, 'invalid_shape']\n    args = call.get('args', {})\n    for key in required_keys:\n        if key not in args:\n            return [False, 'missing_required_arg']\n    return [True, 'ok']\n",
+    "explanation": "Tool invocation should be schema-validated before any side effects occur."
+  },
+  {
+    "id": "check-tool-permission",
+    "topic_id": "mcp",
+    "title": "Least Privilege Permission Check",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `is_allowed(role, tool_name, policy)`.\n\n`policy` maps tool names to allowed role lists.\nReturn True only when role is explicitly allowed for the tool.",
+    "starter": "def is_allowed(role, tool_name, policy):\n    pass\n",
+    "tests": [
+      {
+        "label": "allowed role",
+        "call": "is_allowed('admin', 'delete_ticket', {'delete_ticket': ['admin']})",
+        "expected": true
+      },
+      {
+        "label": "not allowed role",
+        "call": "is_allowed('analyst', 'delete_ticket', {'delete_ticket': ['admin']})",
+        "expected": false
+      },
+      {
+        "label": "unknown tool",
+        "call": "is_allowed('admin', 'reboot', {'delete_ticket': ['admin']})",
+        "expected": false
+      }
+    ],
+    "hint": "Fetch allowed roles from policy with `.get(tool_name, [])`.",
+    "solution": "def is_allowed(role, tool_name, policy):\n    allowed_roles = policy.get(tool_name, [])\n    return role in allowed_roles\n",
+    "explanation": "Explicit per-tool role checks are a core least-privilege practice."
+  },
+  {
+    "id": "build-audit-event",
+    "topic_id": "mcp",
+    "title": "Tool Call Audit Event",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `build_audit_event(actor, tool, ok, error=None)`.\n\nReturn a dict with keys:\n- `actor`\n- `tool`\n- `status` (`success` if ok else `failure`)\n- `error` (include only on failure)\n",
+    "starter": "def build_audit_event(actor, tool, ok, error=None):\n    pass\n",
+    "tests": [
+      {
+        "label": "success event",
+        "call": "build_audit_event('user-1', 'search', True)",
+        "expected": {
+          "actor": "user-1",
+          "tool": "search",
+          "status": "success"
+        }
+      },
+      {
+        "label": "failure event",
+        "call": "build_audit_event('user-1', 'delete_ticket', False, 'permission_denied')",
+        "expected": {
+          "actor": "user-1",
+          "tool": "delete_ticket",
+          "status": "failure",
+          "error": "permission_denied"
+        }
+      }
+    ],
+    "hint": "Create a base dict, then conditionally add `error`.",
+    "solution": "def build_audit_event(actor, tool, ok, error=None):\n    event = {\n        'actor': actor,\n        'tool': tool,\n        'status': 'success' if ok else 'failure',\n    }\n    if not ok:\n        event['error'] = error\n    return event\n",
+    "explanation": "Operational trust requires consistent audit records for every tool call."
+  }
+]

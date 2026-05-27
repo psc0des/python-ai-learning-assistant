@@ -1,0 +1,151 @@
+[
+  {
+    "id": "validate-config-required-keys",
+    "topic_id": "python-devops",
+    "title": "Validate Deployment Config",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `validate_config(config, required_keys)`.\nReturn a list of missing keys in original required order. Return empty list when all present.",
+    "starter": "def validate_config(config, required_keys):\n    pass\n",
+    "tests": [
+      {
+        "label": "all present",
+        "call": "validate_config({'service':'api','env':'prod'}, ['service','env'])",
+        "expected": []
+      },
+      {
+        "label": "missing env",
+        "call": "validate_config({'service':'api'}, ['service','env'])",
+        "expected": [
+          "env"
+        ]
+      }
+    ],
+    "hint": "Iterate required keys and collect missing ones.",
+    "solution": "def validate_config(config, required_keys):\n    missing = []\n    for key in required_keys:\n        if key not in config:\n            missing.append(key)\n    return missing\n",
+    "explanation": "Preflight config validation prevents risky partial execution."
+  },
+  {
+    "id": "build-dry-run-plan",
+    "topic_id": "python-devops",
+    "title": "Build Dry-Run Plan",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `build_plan(services)`.\n`services` is a list of service names.\nReturn plan list with strings: `would_restart:<service>` in same order.",
+    "starter": "def build_plan(services):\n    pass\n",
+    "tests": [
+      {
+        "label": "three services",
+        "call": "build_plan(['api','worker','db'])",
+        "expected": [
+          "would_restart:api",
+          "would_restart:worker",
+          "would_restart:db"
+        ]
+      },
+      {
+        "label": "empty",
+        "call": "build_plan([])",
+        "expected": []
+      }
+    ],
+    "hint": "A simple list comprehension is enough.",
+    "solution": "def build_plan(services):\n    return [f'would_restart:{name}' for name in services]\n",
+    "explanation": "Dry-run plans make intended actions explicit before execution."
+  },
+  {
+    "id": "simulate-command-results",
+    "topic_id": "python-devops",
+    "title": "Summarize Simulated Command Results",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `summarize_results(results)`.\nEach result dict has `name` and `returncode`.\nReturn dict with counts: `success`, `failed`.",
+    "starter": "def summarize_results(results):\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed",
+        "call": "summarize_results([{'name':'api','returncode':0},{'name':'db','returncode':1},{'name':'worker','returncode':0}])",
+        "expected": {
+          "success": 2,
+          "failed": 1
+        }
+      },
+      {
+        "label": "all success",
+        "call": "summarize_results([{'name':'x','returncode':0}])",
+        "expected": {
+          "success": 1,
+          "failed": 0
+        }
+      }
+    ],
+    "hint": "returncode == 0 means success.",
+    "solution": "def summarize_results(results):\n    summary = {'success': 0, 'failed': 0}\n    for item in results:\n        if item.get('returncode') == 0:\n            summary['success'] += 1\n        else:\n            summary['failed'] += 1\n    return summary\n",
+    "explanation": "Operational scripts should summarize outcomes clearly for operators."
+  },
+  {
+    "id": "idempotent-change-check",
+    "topic_id": "python-devops",
+    "title": "Idempotent Change Decision",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `needs_update(current, desired)`.\nReturn True only when a change is required.\nBoth are dicts with same keys.",
+    "starter": "def needs_update(current, desired):\n    pass\n",
+    "tests": [
+      {
+        "label": "same config",
+        "call": "needs_update({'replicas':2}, {'replicas':2})",
+        "expected": false
+      },
+      {
+        "label": "different config",
+        "call": "needs_update({'replicas':2}, {'replicas':3})",
+        "expected": true
+      }
+    ],
+    "hint": "Direct dict comparison is valid here.",
+    "solution": "def needs_update(current, desired):\n    return current != desired\n",
+    "explanation": "Idempotency starts with checking state before applying changes."
+  },
+  {
+    "id": "build-run-report",
+    "topic_id": "python-devops",
+    "title": "Build Structured Run Report",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `build_report(prechecks_ok, changed, failed_items)`.\nReturn dict with:\n- `status`: `ok` if prechecks_ok and no failures else `failed`\n- `changed`: changed\n- `failed_count`: number of failed_items\n",
+    "starter": "def build_report(prechecks_ok, changed, failed_items):\n    pass\n",
+    "tests": [
+      {
+        "label": "successful run",
+        "call": "build_report(True, 3, [])",
+        "expected": {
+          "status": "ok",
+          "changed": 3,
+          "failed_count": 0
+        }
+      },
+      {
+        "label": "failed run",
+        "call": "build_report(True, 1, ['db'])",
+        "expected": {
+          "status": "failed",
+          "changed": 1,
+          "failed_count": 1
+        }
+      },
+      {
+        "label": "precheck failure",
+        "call": "build_report(False, 0, [])",
+        "expected": {
+          "status": "failed",
+          "changed": 0,
+          "failed_count": 0
+        }
+      }
+    ],
+    "hint": "Status depends on both prechecks and failures.",
+    "solution": "def build_report(prechecks_ok, changed, failed_items):\n    failed_count = len(failed_items)\n    status = 'ok' if prechecks_ok and failed_count == 0 else 'failed'\n    return {\n        'status': status,\n        'changed': changed,\n        'failed_count': failed_count,\n    }\n",
+    "explanation": "Structured summaries are essential for operational handoff and auditing."
+  }
+]

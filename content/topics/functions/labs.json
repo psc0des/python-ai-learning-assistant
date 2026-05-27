@@ -1,0 +1,164 @@
+[
+  {
+    "id": "valid-email-basic",
+    "topic_id": "functions",
+    "title": "Basic Email Check",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `is_basic_email(value)` that returns True when the string has exactly one `@` and at least one dot after `@`.",
+    "starter": "def is_basic_email(value):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid",
+        "call": "is_basic_email('dev@example.com')",
+        "expected": true
+      },
+      {
+        "label": "missing dot",
+        "call": "is_basic_email('dev@example')",
+        "expected": false
+      },
+      {
+        "label": "two ats",
+        "call": "is_basic_email('a@b@example.com')",
+        "expected": false
+      },
+      {
+        "label": "empty string",
+        "call": "is_basic_email('')",
+        "expected": false
+      }
+    ],
+    "hint": "Split once around `@`, then inspect the domain part.",
+    "solution": "def is_basic_email(value):\n    if value.count('@') != 1:\n        return False\n    _, domain = value.split('@')\n    return '.' in domain\n",
+    "explanation": "count('@') checks for exactly one @. After splitting on @, we check if the domain part contains at least one dot."
+  },
+  {
+    "id": "clamp-value",
+    "topic_id": "functions",
+    "title": "Clamp a Value",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `clamp(value, low, high)` that returns `value` constrained between `low` and `high` (inclusive).",
+    "starter": "def clamp(value, low, high):\n    pass\n",
+    "tests": [
+      {
+        "label": "in range",
+        "call": "clamp(5, 1, 10)",
+        "expected": 5
+      },
+      {
+        "label": "below",
+        "call": "clamp(-3, 0, 100)",
+        "expected": 0
+      },
+      {
+        "label": "above",
+        "call": "clamp(150, 0, 100)",
+        "expected": 100
+      },
+      {
+        "label": "at boundary",
+        "call": "clamp(10, 10, 10)",
+        "expected": 10
+      }
+    ],
+    "hint": "Use `max()` and `min()` together.",
+    "solution": "def clamp(value, low, high):\n    return max(low, min(value, high))\n",
+    "explanation": "min(value, high) ensures the value does not exceed the upper bound. max(low, ...) then ensures it does not go below the lower bound."
+  },
+  {
+    "id": "append-safe",
+    "topic_id": "functions",
+    "title": "Append Safe With None Default",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `append_safe(item, bucket=None)` that returns a list containing previous items plus the new item. Do not leak state between calls.",
+    "starter": "def append_safe(item, bucket=None):\n    # avoid mutable default pitfall\n    pass\n",
+    "tests": [
+      {
+        "label": "new list when omitted",
+        "call": "append_safe('a')",
+        "expected": [
+          "a"
+        ]
+      },
+      {
+        "label": "second independent call",
+        "call": "append_safe('b')",
+        "expected": [
+          "b"
+        ]
+      },
+      {
+        "label": "provided bucket",
+        "call": "append_safe('x', ['start'])",
+        "expected": [
+          "start",
+          "x"
+        ]
+      }
+    ],
+    "hint": "Use `None` as default and create a new list inside the function.",
+    "solution": "def append_safe(item, bucket=None):\n    if bucket is None:\n        bucket = []\n    bucket.append(item)\n    return bucket\n",
+    "explanation": "Using `None` avoids shared mutable defaults across calls."
+  },
+  {
+    "id": "format-ticket",
+    "topic_id": "functions",
+    "title": "Format Ticket Label",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "Write `format_ticket(title, priority=3, owner='unassigned')` that returns `\"[P{priority}] {title} -> {owner}\"`.",
+    "starter": "def format_ticket(title, priority=3, owner='unassigned'):\n    pass\n",
+    "tests": [
+      {
+        "label": "default values",
+        "call": "format_ticket('CPU high')",
+        "expected": "[P3] CPU high -> unassigned"
+      },
+      {
+        "label": "keyword override",
+        "call": "format_ticket('Disk full', owner='nina', priority=1)",
+        "expected": "[P1] Disk full -> nina"
+      },
+      {
+        "label": "positional",
+        "call": "format_ticket('Latency spike', 2, 'devon')",
+        "expected": "[P2] Latency spike -> devon"
+      }
+    ],
+    "hint": "Use an f-string and keep parameter order consistent with the signature.",
+    "solution": "def format_ticket(title, priority=3, owner='unassigned'):\n    return f\"[P{priority}] {title} -> {owner}\"\n",
+    "explanation": "This lab reinforces defaults and keyword arguments while keeping output deterministic."
+  },
+  {
+    "id": "sum-selected",
+    "topic_id": "functions",
+    "title": "Sum Selected Keys",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `sum_selected(record, *keys)` that returns the numeric sum of values found in `record` for provided keys. Ignore missing keys.",
+    "starter": "def sum_selected(record, *keys):\n    pass\n",
+    "tests": [
+      {
+        "label": "two keys",
+        "call": "sum_selected({'cpu': 20, 'mem': 40, 'disk': 10}, 'cpu', 'mem')",
+        "expected": 60
+      },
+      {
+        "label": "missing key ignored",
+        "call": "sum_selected({'cpu': 20}, 'cpu', 'mem')",
+        "expected": 20
+      },
+      {
+        "label": "no keys",
+        "call": "sum_selected({'cpu': 20})",
+        "expected": 0
+      }
+    ],
+    "hint": "Iterate over `keys` and check membership in `record`.",
+    "solution": "def sum_selected(record, *keys):\n    total = 0\n    for key in keys:\n        if key in record:\n            total += record[key]\n    return total\n",
+    "explanation": "Variadic positional arguments (`*keys`) let callers pass any number of key names."
+  }
+]

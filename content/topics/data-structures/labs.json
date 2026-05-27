@@ -1,0 +1,208 @@
+[
+  {
+    "id": "count-frequency",
+    "topic_id": "data-structures",
+    "title": "Count Frequency",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `count_frequency(items)` that returns a dictionary counting how many times each item appears.",
+    "starter": "def count_frequency(items):\n    counts = {}\n    # update counts here\n    return counts\n",
+    "tests": [
+      {
+        "label": "numbers",
+        "call": "count_frequency([1, 2, 1, 3, 2, 1])",
+        "expected": {
+          "1": 3,
+          "2": 2,
+          "3": 1
+        }
+      },
+      {
+        "label": "words",
+        "call": "count_frequency(['api', 'ai', 'api'])",
+        "expected": {
+          "api": 2,
+          "ai": 1
+        }
+      },
+      {
+        "label": "empty list",
+        "call": "count_frequency([])",
+        "expected": {}
+      }
+    ],
+    "hint": "Use `str(item)` as the key so numbers and strings behave consistently when sent as JSON.",
+    "solution": "def count_frequency(items):\n    counts = {}\n    for item in items:\n        key = str(item)\n        counts[key] = counts.get(key, 0) + 1\n    return counts\n",
+    "explanation": "We use str(item) as the key because JSON serialization converts integer keys to strings. The dict.get() method returns a default value (0) when the key does not exist yet."
+  },
+  {
+    "id": "merge-dicts",
+    "topic_id": "data-structures",
+    "title": "Merge Dictionaries",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `merge_dicts(dict_a, dict_b)` that merges two dictionaries. If a key exists in both, use the value from dict_b.",
+    "starter": "def merge_dicts(dict_a, dict_b):\n    # merge and return\n    pass\n",
+    "tests": [
+      {
+        "label": "basic merge",
+        "call": "merge_dicts({'a': 1}, {'b': 2})",
+        "expected": {
+          "a": 1,
+          "b": 2
+        }
+      },
+      {
+        "label": "overlap",
+        "call": "merge_dicts({'a': 1, 'b': 2}, {'b': 3})",
+        "expected": {
+          "a": 1,
+          "b": 3
+        }
+      },
+      {
+        "label": "empty dicts",
+        "call": "merge_dicts({}, {})",
+        "expected": {}
+      }
+    ],
+    "hint": "You can use `{**dict_a, **dict_b}` or copy and update.",
+    "solution": "def merge_dicts(dict_a, dict_b):\n    result = {**dict_a, **dict_b}\n    return result\n",
+    "explanation": "The `**` operator unpacks dictionary items, and later keys overwrite earlier ones."
+  },
+  {
+    "id": "dedupe-preserve-order",
+    "topic_id": "data-structures",
+    "title": "Deduplicate While Preserving Order",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `dedupe_preserve_order(items)` that returns a new list with duplicates removed while keeping the first appearance order.",
+    "starter": "def dedupe_preserve_order(items):\n    # remove duplicates but keep order\n    pass\n",
+    "tests": [
+      {
+        "label": "basic duplicates",
+        "call": "dedupe_preserve_order(['api', 'db', 'api', 'cache', 'db'])",
+        "expected": [
+          "api",
+          "db",
+          "cache"
+        ]
+      },
+      {
+        "label": "already unique",
+        "call": "dedupe_preserve_order([1, 2, 3])",
+        "expected": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "label": "empty",
+        "call": "dedupe_preserve_order([])",
+        "expected": []
+      }
+    ],
+    "hint": "Track seen values in a set and append to result only once.",
+    "solution": "def dedupe_preserve_order(items):\n    seen = set()\n    result = []\n    for item in items:\n        if item not in seen:\n            seen.add(item)\n            result.append(item)\n    return result\n",
+    "explanation": "Set membership gives fast duplicate checks, while a separate result list preserves original order."
+  },
+  {
+    "id": "group-by-first-letter",
+    "topic_id": "data-structures",
+    "title": "Group by First Letter",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `group_by_first_letter(words)` that returns a dictionary where each key is the lowercase first letter and each value is a list of matching words in original order. Ignore empty strings.",
+    "starter": "def group_by_first_letter(words):\n    # build grouped dictionary\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed words",
+        "call": "group_by_first_letter(['API', 'app', 'Database', 'cache'])",
+        "expected": {
+          "a": [
+            "API",
+            "app"
+          ],
+          "d": [
+            "Database"
+          ],
+          "c": [
+            "cache"
+          ]
+        }
+      },
+      {
+        "label": "ignore empty values",
+        "call": "group_by_first_letter(['', 'Service', '', 'server'])",
+        "expected": {
+          "s": [
+            "Service",
+            "server"
+          ]
+        }
+      },
+      {
+        "label": "all empty",
+        "call": "group_by_first_letter(['', ''])",
+        "expected": {}
+      }
+    ],
+    "hint": "Use `dict.setdefault(key, [])` to initialize each bucket list.",
+    "solution": "def group_by_first_letter(words):\n    grouped = {}\n    for word in words:\n        if not word:\n            continue\n        key = word[0].lower()\n        grouped.setdefault(key, []).append(word)\n    return grouped\n",
+    "explanation": "A dictionary maps each first letter to a list. `setdefault` avoids manual existence checks before appending."
+  },
+  {
+    "id": "set-overlap-report",
+    "topic_id": "data-structures",
+    "title": "Set Overlap Report",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `overlap_report(team_a, team_b)` that returns a dictionary with sorted lists for `common`, `only_a`, and `only_b` values.",
+    "starter": "def overlap_report(team_a, team_b):\n    # use set operations and return sorted lists\n    pass\n",
+    "tests": [
+      {
+        "label": "partial overlap",
+        "call": "overlap_report(['api', 'db', 'cache'], ['db', 'queue'])",
+        "expected": {
+          "common": [
+            "db"
+          ],
+          "only_a": [
+            "api",
+            "cache"
+          ],
+          "only_b": [
+            "queue"
+          ]
+        }
+      },
+      {
+        "label": "full overlap",
+        "call": "overlap_report([1, 2], [2, 1])",
+        "expected": {
+          "common": [
+            1,
+            2
+          ],
+          "only_a": [],
+          "only_b": []
+        }
+      },
+      {
+        "label": "one side empty",
+        "call": "overlap_report([], ['x'])",
+        "expected": {
+          "common": [],
+          "only_a": [],
+          "only_b": [
+            "x"
+          ]
+        }
+      }
+    ],
+    "hint": "Convert lists to sets first, then use `&`, `-`, and `sorted()`.",
+    "solution": "def overlap_report(team_a, team_b):\n    set_a = set(team_a)\n    set_b = set(team_b)\n    return {\n        'common': sorted(set_a & set_b),\n        'only_a': sorted(set_a - set_b),\n        'only_b': sorted(set_b - set_a),\n    }\n",
+    "explanation": "Set operators express overlap and differences clearly. Sorting makes test output deterministic."
+  }
+]

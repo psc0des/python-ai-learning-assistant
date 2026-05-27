@@ -1,0 +1,201 @@
+[
+  {
+    "id": "status-code-meaning",
+    "topic_id": "fastapi",
+    "title": "HTTP Status Category Mapper",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `status_meaning(code)` that returns:\n- `success` for 2xx\n- `redirect` for 3xx\n- `client_error` for 4xx\n- `server_error` for 5xx\n- `unknown` otherwise",
+    "starter": "def status_meaning(code):\n    pass\n",
+    "tests": [
+      {
+        "label": "200",
+        "call": "status_meaning(200)",
+        "expected": "success"
+      },
+      {
+        "label": "302",
+        "call": "status_meaning(302)",
+        "expected": "redirect"
+      },
+      {
+        "label": "404",
+        "call": "status_meaning(404)",
+        "expected": "client_error"
+      },
+      {
+        "label": "503",
+        "call": "status_meaning(503)",
+        "expected": "server_error"
+      },
+      {
+        "label": "99",
+        "call": "status_meaning(99)",
+        "expected": "unknown"
+      }
+    ],
+    "hint": "Use `code // 100` to classify ranges.",
+    "solution": "def status_meaning(code):\n    category = code // 100\n    if category == 2:\n        return 'success'\n    if category == 3:\n        return 'redirect'\n    if category == 4:\n        return 'client_error'\n    if category == 5:\n        return 'server_error'\n    return 'unknown'\n",
+    "explanation": "Mapping status categories is the first step in designing meaningful API responses."
+  },
+  {
+    "id": "parse-path-and-query",
+    "topic_id": "fastapi",
+    "title": "Route + Query Parsing Simulation",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `parse_request(path_user_id, query)` where:\n- `path_user_id` should parse to int, else return `{'error': 'invalid_path'}`.\n- `query` is dict-like and may include `limit`.\n- `limit` defaults to 20 and must be positive int.\nReturn `{'user_id': int, 'limit': int}` when valid.",
+    "starter": "def parse_request(path_user_id, query):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid path/query",
+        "call": "parse_request('7', {'limit': '5'})",
+        "expected": {
+          "user_id": 7,
+          "limit": 5
+        }
+      },
+      {
+        "label": "default limit",
+        "call": "parse_request('3', {})",
+        "expected": {
+          "user_id": 3,
+          "limit": 20
+        }
+      },
+      {
+        "label": "invalid path",
+        "call": "parse_request('abc', {'limit': '2'})",
+        "expected": {
+          "error": "invalid_path"
+        }
+      },
+      {
+        "label": "invalid limit",
+        "call": "parse_request('3', {'limit': '0'})",
+        "expected": {
+          "error": "invalid_query"
+        }
+      }
+    ],
+    "hint": "Validate path first, then query.",
+    "solution": "def parse_request(path_user_id, query):\n    try:\n        user_id = int(path_user_id)\n    except (TypeError, ValueError):\n        return {'error': 'invalid_path'}\n\n    raw_limit = query.get('limit', 20)\n    try:\n        limit = int(raw_limit)\n    except (TypeError, ValueError):\n        return {'error': 'invalid_query'}\n    if limit <= 0:\n        return {'error': 'invalid_query'}\n\n    return {'user_id': user_id, 'limit': limit}\n",
+    "explanation": "This mirrors FastAPI behavior where path/query values are parsed and validated before business logic."
+  },
+  {
+    "id": "validate-create-body",
+    "topic_id": "fastapi",
+    "title": "Request Body Contract",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `validate_create_user(body)` that returns `[True, normalized_body]` on success or `[False, error_dict]` on failure.\n\nRules:\n- `name` required, non-empty string after strip\n- `email` required, must contain '@'\n- `active` optional, defaults to True\n- Normalize name by stripping spaces",
+    "starter": "def validate_create_user(body):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid body",
+        "call": "validate_create_user({'name': ' Ada ', 'email': 'ada@example.com'})",
+        "expected": [
+          true,
+          {
+            "name": "Ada",
+            "email": "ada@example.com",
+            "active": true
+          }
+        ]
+      },
+      {
+        "label": "missing email",
+        "call": "validate_create_user({'name': 'Ada'})",
+        "expected": [
+          false,
+          {
+            "field": "email",
+            "code": "required"
+          }
+        ]
+      },
+      {
+        "label": "bad email",
+        "call": "validate_create_user({'name': 'Ada', 'email': 'adaexample.com'})",
+        "expected": [
+          false,
+          {
+            "field": "email",
+            "code": "invalid"
+          }
+        ]
+      }
+    ],
+    "hint": "Return errors as structured dictionaries, not plain strings.",
+    "solution": "def validate_create_user(body):\n    name = body.get('name')\n    if not isinstance(name, str) or not name.strip():\n        return [False, {'field': 'name', 'code': 'required'}]\n\n    email = body.get('email')\n    if email is None:\n        return [False, {'field': 'email', 'code': 'required'}]\n    if not isinstance(email, str) or '@' not in email:\n        return [False, {'field': 'email', 'code': 'invalid'}]\n\n    active = body.get('active', True)\n    if not isinstance(active, bool):\n        return [False, {'field': 'active', 'code': 'invalid'}]\n\n    return [True, {'name': name.strip(), 'email': email, 'active': active}]\n",
+    "explanation": "Request-body validation should produce machine-readable errors and normalized output."
+  },
+  {
+    "id": "dependency-auth-check",
+    "topic_id": "fastapi",
+    "title": "Dependency Injection Simulation",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `require_role(user, allowed_roles)`.\n\nRules:\n- `user` is dict with key `role`.\n- If role is missing or not in allowed_roles, return `[False, 403]`.\n- Otherwise return `[True, 200]`.",
+    "starter": "def require_role(user, allowed_roles):\n    pass\n",
+    "tests": [
+      {
+        "label": "allowed",
+        "call": "require_role({'id': 'u1', 'role': 'admin'}, ['admin', 'lead'])",
+        "expected": [
+          true,
+          200
+        ]
+      },
+      {
+        "label": "not allowed",
+        "call": "require_role({'id': 'u2', 'role': 'viewer'}, ['admin'])",
+        "expected": [
+          false,
+          403
+        ]
+      },
+      {
+        "label": "missing role",
+        "call": "require_role({'id': 'u3'}, ['admin'])",
+        "expected": [
+          false,
+          403
+        ]
+      }
+    ],
+    "hint": "Extract role safely with `.get()`.",
+    "solution": "def require_role(user, allowed_roles):\n    role = user.get('role') if isinstance(user, dict) else None\n    if role in allowed_roles:\n        return [True, 200]\n    return [False, 403]\n",
+    "explanation": "Dependencies centralize cross-cutting checks like authorization."
+  },
+  {
+    "id": "build-api-response",
+    "topic_id": "fastapi",
+    "title": "Response Model Shape",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `build_user_response(record)`.\n\nInput record has `id`, `name`, `email`, `internal_note`.\nReturn only a public response dict with keys `id`, `name`, `email`.\nIf any public key is missing, return `{'error': 'invalid_record'}`.",
+    "starter": "def build_user_response(record):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid record",
+        "call": "build_user_response({'id': 1, 'name': 'Ada', 'email': 'ada@example.com', 'internal_note': 'vip'})",
+        "expected": {
+          "id": 1,
+          "name": "Ada",
+          "email": "ada@example.com"
+        }
+      },
+      {
+        "label": "missing email",
+        "call": "build_user_response({'id': 1, 'name': 'Ada'})",
+        "expected": {
+          "error": "invalid_record"
+        }
+      }
+    ],
+    "hint": "Whitelist output fields explicitly.",
+    "solution": "def build_user_response(record):\n    required = ('id', 'name', 'email')\n    for key in required:\n        if key not in record:\n            return {'error': 'invalid_record'}\n    return {\n        'id': record['id'],\n        'name': record['name'],\n        'email': record['email'],\n    }\n",
+    "explanation": "Response models prevent accidental leakage of internal fields and keep contracts stable."
+  }
+]

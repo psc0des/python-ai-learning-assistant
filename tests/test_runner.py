@@ -1,0 +1,134 @@
+"""Tests for the sandboxed code runner.
+
+Verifies that:
+- Valid code runs and returns correct results
+- Test harness parses results correctly
+- Timeouts are handled
+- Coach feedback is generated
+"""
+
+import pytest
+from content_loader import load_content
+from runner import (
+    run_user_code,
+    build_test_code,
+    parse_test_results,
+    strip_test_marker,
+    coach_feedback,
+    scan_for_dangerous_code,
+)
+
+EXERCISES = load_content().exercises
+
+
+class TestBuildTestCode:
+    def test_builds_valid_python(self):
+        code = build_test_code("x = 1", [{"call": "x", "expected": 1, "label": "check x"}])
+        assert "__PY_SKILL_LAB_RESULTS__" in code
+        assert "x = 1" in code
+
+    def test_empty_tests(self):
+        code = build_test_code("pass", [])
+        assert "__PY_SKILL_LAB_RESULTS__" in code
+
+
+class TestParseTestResults:
+    def test_parses_valid_results(self):
+        stdout = 'hello\n__PY_SKILL_LAB_RESULTS__[{"label":"a","passed":true}]'
+        results = parse_test_results(stdout)
+        assert len(results) == 1
+        assert results[0]["passed"] is True
+
+    def test_no_marker(self):
+        assert parse_test_results("just output") == []
+
+    def test_bad_json(self):
+        assert parse_test_results("__PY_SKILL_LAB_RESULTS__{invalid}") == []
+
+
+class TestStripTestMarker:
+    def test_strips_marker(self):
+        stdout = "hello\n__PY_SKILL_LAB_RESULTS__[...]"
+        assert strip_test_marker(stdout) == "hello"
+
+    def test_no_marker(self):
+        assert strip_test_marker("just output") == "just output"
+
+
+class TestCoachFeedback:
+    def test_all_tests_passed(self):
+        feedback = coach_feedback("def f(): return 1", "", "", [{"passed": True}])
+        assert any("correct" in f.lower() or "passed" in f.lower() for f in feedback)
+
+    def test_partial_pass(self):
+        tests = [{"passed": True}, {"passed": False}]
+        feedback = coach_feedback("def f(): return 1", "", "", tests)
+        assert any("1/2" in f for f in feedback)
+
+    def test_name_error_guidance(self):
+        feedback = coach_feedback("x = y", "", "NameError: name 'y' is not defined", [])
+        assert any("NameError" in f for f in feedback)
+
+    def test_type_error_guidance(self):
+        feedback = coach_feedback("x = 1 + 'a'", "", "TypeError: ...", [])
+        assert any("TypeError" in f for f in feedback)
+
+    def test_syntax_error(self):
+        feedback = coach_feedback("def f(\n", "", "", [])
+        assert any("syntax" in f.lower() for f in feedback)
+
+    def test_bare_except_warning(self):
+        code = "try:\n    pass\nexcept:\n    pass"
+        feedback = coach_feedback(code, "", "", [])
+        assert any("except" in f.lower() for f in feedback)
+
+    def test_no_function_warning(self):
+        feedback = coach_feedback("x = 1", "", "", [{"passed": False}])
+        assert any("function" in f.lower() for f in feedback)
+
+
+class TestRunUserCode:
+    def test_passing_exercise(self):
+        result = run_user_code(
+            {
+                "code": "def reverse_words(text):\n    return ' '.join(text.split()[::-1])\n",
+                "exercise_id": "reverse-words",
+            },
+            EXERCISES,
+        )
+        assert result["ok"] is True
+        assert all(t["passed"] for t in result["tests"])
+
+    def test_failing_exercise(self):
+        result = run_user_code(
+            {
+                "code": "def reverse_words(text):\n    return text\n",
+                "exercise_id": "reverse-words",
+            },
+            EXERCISES,
+        )
+        assert result["ok"] is False
+
+    def test_unknown_exercise(self):
+        result = run_user_code(
+            {"code": "print('hello')", "exercise_id": "nonexistent"},
+            EXERCISES,
+        )
+        # Should still run without crashing
+        assert "stdout" in result
+
+    def test_oversized_code(self):
+        result = run_user_code(
+            {"code": "x = 1\n" * 20001, "exercise_id": "reverse-words"},
+            EXERCISES,
+        )
+        assert result["ok"] is False
+        assert "too large" in result["stderr"].lower()
+
+    def test_timeout_code(self):
+        result = run_user_code(
+            {"code": "while True: pass", "exercise_id": "reverse-words"},
+            EXERCISES,
+        )
+        assert result["ok"] is False
+        assert "timed out" in result["stderr"].lower()

@@ -1,0 +1,180 @@
+[
+  {
+    "id": "next-node-transition",
+    "topic_id": "langgraph",
+    "title": "Graph Transition Table",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `next_node(current)` using this flow:\n`start -> classify -> retrieve -> draft -> review -> done`\nReturn `unknown` for any state not in the flow.",
+    "starter": "def next_node(current):\n    pass\n",
+    "tests": [
+      {
+        "label": "start",
+        "call": "next_node('start')",
+        "expected": "classify"
+      },
+      {
+        "label": "retrieve",
+        "call": "next_node('retrieve')",
+        "expected": "draft"
+      },
+      {
+        "label": "unknown",
+        "call": "next_node('x')",
+        "expected": "unknown"
+      }
+    ],
+    "hint": "Use a dictionary transition map.",
+    "solution": "def next_node(current):\n    transitions = {\n        'start': 'classify',\n        'classify': 'retrieve',\n        'retrieve': 'draft',\n        'draft': 'review',\n        'review': 'done',\n    }\n    return transitions.get(current, 'unknown')\n",
+    "explanation": "Explicit transitions make workflow control auditable and easier to test."
+  },
+  {
+    "id": "route-by-risk",
+    "topic_id": "langgraph",
+    "title": "Conditional Edge Routing",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `route_by_risk(score)`.\n\nRules:\n- score >= 8 -> `human_review`\n- score between 4 and 7 -> `safe_diagnostics`\n- score <= 3 -> `auto_answer`\n- invalid score -> `invalid`",
+    "starter": "def route_by_risk(score):\n    pass\n",
+    "tests": [
+      {
+        "label": "high risk",
+        "call": "route_by_risk(9)",
+        "expected": "human_review"
+      },
+      {
+        "label": "medium risk",
+        "call": "route_by_risk(5)",
+        "expected": "safe_diagnostics"
+      },
+      {
+        "label": "low risk",
+        "call": "route_by_risk(2)",
+        "expected": "auto_answer"
+      },
+      {
+        "label": "invalid type",
+        "call": "route_by_risk('5')",
+        "expected": "invalid"
+      }
+    ],
+    "hint": "Validate input type before range checks.",
+    "solution": "def route_by_risk(score):\n    if type(score) is not int:\n        return 'invalid'\n    if score >= 8:\n        return 'human_review'\n    if score >= 4:\n        return 'safe_diagnostics'\n    return 'auto_answer'\n",
+    "explanation": "Conditional edges should be explicit and deterministic for safety-sensitive workflows."
+  },
+  {
+    "id": "merge-workflow-state",
+    "topic_id": "langgraph",
+    "title": "Merge State Updates",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `merge_state(state, update)`.\n\nRules:\n- If both existing and incoming values are lists, append items.\n- Otherwise overwrite with incoming value.\n- Return a new dict.",
+    "starter": "def merge_state(state, update):\n    pass\n",
+    "tests": [
+      {
+        "label": "overwrite scalar",
+        "call": "merge_state({'status': 'draft'}, {'status': 'review'})",
+        "expected": {
+          "status": "review"
+        }
+      },
+      {
+        "label": "append lists",
+        "call": "merge_state({'events': ['a']}, {'events': ['b', 'c']})",
+        "expected": {
+          "events": [
+            "a",
+            "b",
+            "c"
+          ]
+        }
+      },
+      {
+        "label": "add key",
+        "call": "merge_state({'a': 1}, {'b': 2})",
+        "expected": {
+          "a": 1,
+          "b": 2
+        }
+      }
+    ],
+    "hint": "Start with a shallow copy and then apply update rules key-by-key.",
+    "solution": "def merge_state(state, update):\n    result = dict(state)\n    for key, value in update.items():\n        if isinstance(result.get(key), list) and isinstance(value, list):\n            result[key] = result[key] + value\n        else:\n            result[key] = value\n    return result\n",
+    "explanation": "This reducer-style pattern mirrors how node outputs are merged into graph state."
+  },
+  {
+    "id": "checkpoint-key",
+    "topic_id": "langgraph",
+    "title": "Checkpoint Key Builder",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `checkpoint_key(thread_id, step)`.\n\nRules:\n- If thread_id is empty/blank or step < 0, return None.\n- Else return `<thread_id>:<step>` with stripped thread_id.",
+    "starter": "def checkpoint_key(thread_id, step):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid key",
+        "call": "checkpoint_key(' run-1 ', 3)",
+        "expected": "run-1:3"
+      },
+      {
+        "label": "blank thread",
+        "call": "checkpoint_key('   ', 2)",
+        "expected": null
+      },
+      {
+        "label": "negative step",
+        "call": "checkpoint_key('run-2', -1)",
+        "expected": null
+      }
+    ],
+    "hint": "Normalize `thread_id` early using `strip()`.",
+    "solution": "def checkpoint_key(thread_id, step):\n    if not isinstance(thread_id, str):\n        return None\n    tid = thread_id.strip()\n    if not tid or not isinstance(step, int) or step < 0:\n        return None\n    return f'{tid}:{step}'\n",
+    "explanation": "Thread IDs are essential for persistence and resume semantics."
+  },
+  {
+    "id": "resume-command-check",
+    "topic_id": "langgraph",
+    "title": "Interrupt Resume Validator",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `validate_resume(command)` where command is a dict.\n\nRules:\n- Must include key `action` with one of: `approve`, `edit`, `reject`.\n- If action is `edit`, key `edited_text` must be a non-empty string.\n- Return `(True, 'ok')` when valid, else `(False, '<reason>')`.",
+    "starter": "def validate_resume(command):\n    pass\n",
+    "tests": [
+      {
+        "label": "approve valid",
+        "call": "validate_resume({'action': 'approve'})",
+        "expected": [
+          true,
+          "ok"
+        ]
+      },
+      {
+        "label": "edit missing text",
+        "call": "validate_resume({'action': 'edit'})",
+        "expected": [
+          false,
+          "missing_edit_text"
+        ]
+      },
+      {
+        "label": "edit valid",
+        "call": "validate_resume({'action': 'edit', 'edited_text': 'use safe mode'})",
+        "expected": [
+          true,
+          "ok"
+        ]
+      },
+      {
+        "label": "unknown action",
+        "call": "validate_resume({'action': 'run'})",
+        "expected": [
+          false,
+          "invalid_action"
+        ]
+      }
+    ],
+    "hint": "Validate command shape first, then action-specific rules.",
+    "solution": "def validate_resume(command):\n    if not isinstance(command, dict):\n        return [False, 'invalid_command']\n\n    action = command.get('action')\n    if action not in {'approve', 'edit', 'reject'}:\n        return [False, 'invalid_action']\n\n    if action == 'edit':\n        text = command.get('edited_text')\n        if not isinstance(text, str) or not text.strip():\n            return [False, 'missing_edit_text']\n\n    return [True, 'ok']\n",
+    "explanation": "Human-in-the-loop resumes should be validated like any other boundary input."
+  }
+]

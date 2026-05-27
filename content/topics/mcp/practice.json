@@ -1,0 +1,93 @@
+{
+  "topic_id": "mcp",
+  "questions": [
+    {
+      "question": "What is MCP primarily for?",
+      "options": [
+        "Standardizing AI client-server access to tools and context.",
+        "Training language models from scratch.",
+        "Replacing HTTP with a new network protocol.",
+        "Encrypting local files."
+      ],
+      "answer": 0,
+      "explanation": "MCP standardizes how assistants connect to external capabilities and context."
+    },
+    {
+      "question": "Which mapping is correct in MCP?",
+      "options": [
+        "Tool -> data, Resource -> action, Prompt -> database table.",
+        "Tool -> action, Resource -> readable data, Prompt -> reusable template.",
+        "Tool -> model, Resource -> API key, Prompt -> shell command.",
+        "All three mean the same thing."
+      ],
+      "answer": 1,
+      "explanation": "These three capability types serve different integration purposes."
+    },
+    {
+      "question": "Why should clients perform capability discovery?",
+      "options": [
+        "To disable permission checks.",
+        "To avoid logging requests.",
+        "Because available capabilities can vary by server/environment.",
+        "Because discovery is required only for frontend apps."
+      ],
+      "answer": 2,
+      "explanation": "Discovery avoids assumptions and supports dynamic interoperability."
+    },
+    {
+      "question": "What is least privilege in MCP server design?",
+      "options": [
+        "Disable all validation.",
+        "Give admin access to every tool by default.",
+        "Use only read-only prompts and no tools.",
+        "Expose only the minimum capabilities required for the task."
+      ],
+      "answer": 3,
+      "explanation": "Limiting scope reduces blast radius from mistakes or misuse."
+    },
+    {
+      "question": "What should happen before executing a tool call?",
+      "options": [
+        "Validate call shape and required arguments.",
+        "Execute first, validate after.",
+        "Skip validation for trusted users.",
+        "Convert all arguments to strings."
+      ],
+      "answer": 0,
+      "explanation": "Input validation is required to keep tool execution predictable and safe."
+    },
+    {
+      "question": "Why are audit logs important for MCP operations?",
+      "options": [
+        "They speed up embeddings.",
+        "They provide traceability for who called what and with what result.",
+        "They replace permission policies.",
+        "They remove the need for tests."
+      ],
+      "answer": 1,
+      "explanation": "Auditability supports debugging, governance, and incident review."
+    },
+    {
+      "question": "What is a safer rollout strategy for new MCP servers?",
+      "options": [
+        "Disable logs until production.",
+        "Expose all actions immediately for faster iteration.",
+        "Start read-only, then add guarded write actions with approval gates.",
+        "Skip schema design and rely on model intuition."
+      ],
+      "answer": 2,
+      "explanation": "Progressive rollout with guardrails lowers operational risk."
+    },
+    {
+      "question": "What does a clean MCP separation improve the most?",
+      "options": [
+        "Filesystem throughput.",
+        "GPU memory usage.",
+        "SQL query planning.",
+        "Maintainability and interoperability across hosts and tools."
+      ],
+      "answer": 3,
+      "explanation": "Clear role boundaries help teams build reusable, portable integrations."
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+[
+  {
+    "id": "safe-int",
+    "topic_id": "errors-testing",
+    "title": "Safe Integer Parser",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `safe_int(value, default=0)` that converts valid input to int and returns the default for invalid input.",
+    "starter": "def safe_int(value, default=0):\n    pass\n",
+    "tests": [
+      {
+        "label": "number string",
+        "call": "safe_int('42')",
+        "expected": 42
+      },
+      {
+        "label": "bad value",
+        "call": "safe_int('nope', default=-1)",
+        "expected": -1
+      },
+      {
+        "label": "None input",
+        "call": "safe_int(None, default=0)",
+        "expected": 0
+      },
+      {
+        "label": "float string",
+        "call": "safe_int('3.14', default=-1)",
+        "expected": -1
+      }
+    ],
+    "hint": "Catch `ValueError` and `TypeError` only.",
+    "solution": "def safe_int(value, default=0):\n    try:\n        return int(value)\n    except (ValueError, TypeError):\n        return default\n",
+    "explanation": "Catch expected conversion errors and return a fallback value instead of crashing."
+  },
+  {
+    "id": "divide-safely",
+    "topic_id": "errors-testing",
+    "title": "Safe Division",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `safe_divide(a, b)` that returns the result of `a / b`, or `None` if `b` is zero.",
+    "starter": "def safe_divide(a, b):\n    pass\n",
+    "tests": [
+      {
+        "label": "normal division",
+        "call": "safe_divide(10, 2)",
+        "expected": 5.0
+      },
+      {
+        "label": "zero divisor",
+        "call": "safe_divide(10, 0)",
+        "expected": null
+      },
+      {
+        "label": "zero numerator",
+        "call": "safe_divide(0, 5)",
+        "expected": 0.0
+      }
+    ],
+    "hint": "Either guard `b == 0` or catch `ZeroDivisionError`.",
+    "solution": "def safe_divide(a, b):\n    if b == 0:\n        return None\n    return a / b\n",
+    "explanation": "Guard clauses can handle expected invalid states explicitly."
+  },
+  {
+    "id": "parse-positive-int",
+    "topic_id": "errors-testing",
+    "title": "Parse Positive Integer",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `parse_positive_int(value)` that returns a positive integer, or `None` for invalid input (non-integer or value <= 0).",
+    "starter": "def parse_positive_int(value):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid numeric string",
+        "call": "parse_positive_int('7')",
+        "expected": 7
+      },
+      {
+        "label": "zero invalid",
+        "call": "parse_positive_int('0')",
+        "expected": null
+      },
+      {
+        "label": "invalid text",
+        "call": "parse_positive_int('abc')",
+        "expected": null
+      }
+    ],
+    "hint": "Convert with int() in a try/except block, then check positive range.",
+    "solution": "def parse_positive_int(value):\n    try:\n        parsed = int(value)\n    except (TypeError, ValueError):\n        return None\n    if parsed <= 0:\n        return None\n    return parsed\n",
+    "explanation": "This version keeps behavior deterministic for beginner labs: invalid inputs return None, while valid positive integers are returned."
+  },
+  {
+    "id": "first-failing-index",
+    "topic_id": "errors-testing",
+    "title": "Find First Failing Index",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `first_failing_index(values)` that returns the first index where value is not an int. Return -1 if all items are ints.",
+    "starter": "def first_failing_index(values):\n    pass\n",
+    "tests": [
+      {
+        "label": "all ints",
+        "call": "first_failing_index([1, 2, 3])",
+        "expected": -1
+      },
+      {
+        "label": "string in middle",
+        "call": "first_failing_index([1, 'x', 3])",
+        "expected": 1
+      },
+      {
+        "label": "first fails",
+        "call": "first_failing_index([None, 2, 3])",
+        "expected": 0
+      }
+    ],
+    "hint": "Use `enumerate(values)` and test with `isinstance(value, int)`.",
+    "solution": "def first_failing_index(values):\n    for idx, value in enumerate(values):\n        if not isinstance(value, int):\n            return idx\n    return -1\n",
+    "explanation": "This is a debugging-style scan: identify the first position where assumptions break."
+  },
+  {
+    "id": "test-result-summary",
+    "topic_id": "errors-testing",
+    "title": "Test Result Summary",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `summarize_checks(results)` where `results` is a list of booleans. Return a dict with counts for `passed`, `failed`, and `all_passed`.",
+    "starter": "def summarize_checks(results):\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed",
+        "call": "summarize_checks([True, False, True])",
+        "expected": {
+          "passed": 2,
+          "failed": 1,
+          "all_passed": false
+        }
+      },
+      {
+        "label": "all pass",
+        "call": "summarize_checks([True, True])",
+        "expected": {
+          "passed": 2,
+          "failed": 0,
+          "all_passed": true
+        }
+      },
+      {
+        "label": "empty list",
+        "call": "summarize_checks([])",
+        "expected": {
+          "passed": 0,
+          "failed": 0,
+          "all_passed": true
+        }
+      }
+    ],
+    "hint": "Count booleans with a loop or comprehensions, then derive `all_passed`.",
+    "solution": "def summarize_checks(results):\n    passed = sum(1 for item in results if item)\n    failed = sum(1 for item in results if not item)\n    return {\n        'passed': passed,\n        'failed': failed,\n        'all_passed': failed == 0,\n    }\n",
+    "explanation": "This lab reinforces deterministic result reporting used in test/debug workflows."
+  }
+]

@@ -1,0 +1,89 @@
+{
+  "id": "oop",
+  "track": "Python Core",
+  "title": "OOP",
+  "level": "Intermediate",
+  "intro": "Object-oriented programming groups related state and behavior so complex programs stay understandable. In Python, classes are most useful when a concept has data that changes over time plus operations that belong to that data. This topic teaches you how classes, instances, methods, and composition work in real code, and when a plain function is still the better choice.",
+  "mental_model": "A class defines a type of object. Each instance carries its own state, and methods operate on that state through `self`. Prefer small classes with clear responsibility. Use composition to combine objects, and use inheritance only when an `is-a` relationship is truly meaningful.",
+  "syntax": "class User:\n    def __init__(self, name):\n        self.name = name\n\n    def greet(self):\n        return f'Hi {self.name}'\n\nuser = User('Mina')\nprint(user.greet())\n",
+  "example": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        self.max_attempts = max_attempts\n\n    def should_retry(self, attempt_number):\n        return attempt_number < self.max_attempts\n\npolicy = RetryPolicy(3)\nprint(policy.should_retry(2))\n",
+  "must_know": [
+    "`__init__` initializes instance state for each new object.",
+    "`self` refers to the current instance inside instance methods.",
+    "Class variables are shared across instances; instance variables are per-object.",
+    "Composition is usually simpler than deep inheritance trees.",
+    "Dataclasses reduce boilerplate for classes that mostly hold data."
+  ],
+  "common_traps": [
+    "Forgetting `self` in method signatures.",
+    "Accidentally storing instance state as class variables.",
+    "Overusing inheritance for code reuse that composition could handle more clearly.",
+    "Creating classes for trivial one-step transformations better handled by functions.",
+    "Putting too many unrelated responsibilities in one class."
+  ],
+  "interview": [
+    "Explain the difference between class variables and instance variables.",
+    "Explain when to choose composition over inheritance.",
+    "Show a small class that encapsulates state plus behavior.",
+    "Use clear examples for `__init__`, instance methods, and object lifecycle."
+  ],
+  "docs": [
+    {
+      "label": "Python Tutorial: Classes",
+      "url": "https://docs.python.org/3/tutorial/classes.html"
+    },
+    {
+      "label": "Python Tutorial: Inheritance",
+      "url": "https://docs.python.org/3/tutorial/classes.html#inheritance"
+    },
+    {
+      "label": "Python Docs: dataclasses",
+      "url": "https://docs.python.org/3/library/dataclasses.html"
+    }
+  ],
+  "real_world": [
+    "Service monitoring code often models service state, health checks, and retry policies as classes so behavior stays close to the data it modifies.",
+    "API SDK clients commonly use small classes for auth config, request builders, and response parsing helpers."
+  ],
+  "outcome": "By the end of this topic, you should be able to design and implement small classes with clear responsibilities, distinguish shared versus per-instance state, and decide when OOP improves code clarity.",
+  "lesson_sections": [
+    {
+      "title": "1. Class Definitions and Instance Creation",
+      "body": "A class defines attributes and methods for objects of that type. Calling the class creates an instance. Treat class definitions as domain modeling tools: each class should represent a concept with a clear responsibility.",
+      "source_label": "Python Tutorial: Classes",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html"
+    },
+    {
+      "title": "2. __init__, Instance State, and self",
+      "body": "`__init__` sets up per-instance state. Inside instance methods, `self` points to the current object. Understanding this is essential for avoiding shared-state bugs and writing predictable methods.",
+      "source_label": "Python Tutorial: Class Definition Syntax",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html#class-definition-syntax"
+    },
+    {
+      "title": "3. Class Variables vs Instance Variables",
+      "body": "Class variables are shared across all instances, while instance variables belong to each object. Mixing them up can cause subtle bugs where one object's change affects every object unexpectedly.",
+      "source_label": "Python Tutorial: Class and Instance Variables",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables"
+    },
+    {
+      "title": "4. Methods, Encapsulation, and API Shape",
+      "body": "Methods should expose a clean interface and keep object internals manageable. Encapsulation does not mean hiding everything; it means presenting operations that keep object state valid and understandable.",
+      "source_label": "Python Tutorial: Instance Objects",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html#instance-objects"
+    },
+    {
+      "title": "5. Inheritance vs Composition",
+      "body": "Inheritance is useful when subclasses genuinely specialize a base class contract. Composition is usually safer for assembling behavior from smaller pieces. Start with composition unless inheritance expresses a natural relationship.",
+      "source_label": "Python Tutorial: Inheritance",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html#inheritance"
+    },
+    {
+      "title": "6. Dataclasses for Data-Centric Models",
+      "body": "When a class mainly stores structured data, dataclasses reduce boilerplate while preserving clarity. They are especially useful for configuration and record-like objects that still benefit from type hints and defaults.",
+      "source_label": "Python Docs: dataclasses",
+      "source_url": "https://docs.python.org/3/library/dataclasses.html"
+    }
+  ],
+  "lesson_path": "content/topics/oop/lesson.md",
+  "quality_status": "reference"
+}

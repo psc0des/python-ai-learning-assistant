@@ -1,0 +1,212 @@
+[
+  {
+    "id": "coerce-priority-lax",
+    "topic_id": "pydantic",
+    "title": "Lax Coercion for Priority",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `coerce_priority_lax(value)`.\n\nRules:\n- If `value` is an int from 1 to 5, return it.\n- If `value` is a numeric string like `'3'`, convert and return int if in range.\n- Otherwise return `None`.",
+    "starter": "def coerce_priority_lax(value):\n    pass\n",
+    "tests": [
+      {
+        "label": "int in range",
+        "call": "coerce_priority_lax(4)",
+        "expected": 4
+      },
+      {
+        "label": "string int",
+        "call": "coerce_priority_lax('2')",
+        "expected": 2
+      },
+      {
+        "label": "string with spaces",
+        "call": "coerce_priority_lax(' 5 ')",
+        "expected": 5
+      },
+      {
+        "label": "out of range",
+        "call": "coerce_priority_lax('9')",
+        "expected": null
+      },
+      {
+        "label": "invalid text",
+        "call": "coerce_priority_lax('high')",
+        "expected": null
+      }
+    ],
+    "hint": "Attempt conversion in a try/except path, then apply the 1..5 constraint.",
+    "solution": "def coerce_priority_lax(value):\n    candidate = value\n    if isinstance(candidate, str):\n        candidate = candidate.strip()\n    try:\n        parsed = int(candidate)\n    except (TypeError, ValueError):\n        return None\n    if 1 <= parsed <= 5:\n        return parsed\n    return None\n",
+    "explanation": "This simulates lax parsing behavior: parse where safe, then enforce domain constraints."
+  },
+  {
+    "id": "coerce-priority-strict",
+    "topic_id": "pydantic",
+    "title": "Strict Priority Validation",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `coerce_priority_strict(value)`.\n\nRules:\n- Accept only real ints from 1 to 5.\n- Do not coerce strings.\n- Return `None` for invalid values.",
+    "starter": "def coerce_priority_strict(value):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid int",
+        "call": "coerce_priority_strict(1)",
+        "expected": 1
+      },
+      {
+        "label": "string should fail",
+        "call": "coerce_priority_strict('1')",
+        "expected": null
+      },
+      {
+        "label": "bool should fail",
+        "call": "coerce_priority_strict(True)",
+        "expected": null
+      },
+      {
+        "label": "out of range",
+        "call": "coerce_priority_strict(8)",
+        "expected": null
+      }
+    ],
+    "hint": "Use `type(value) is int` to exclude booleans.",
+    "solution": "def coerce_priority_strict(value):\n    if type(value) is not int:\n        return None\n    if 1 <= value <= 5:\n        return value\n    return None\n",
+    "explanation": "Strict validation rejects string-to-int coercion and preserves explicit type boundaries."
+  },
+  {
+    "id": "build-ticket-output",
+    "topic_id": "pydantic",
+    "title": "Build Validated Ticket Output",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `build_ticket_output(payload)` that returns a normalized dict when valid, else `None`.\n\nRules:\n- Required: `title` must be a non-empty string after strip.\n- Required: `priority` must be coercible to int in range 1..5.\n- Optional: `owner` defaults to `'unassigned'` if missing.\n- Optional: `owner` may be `None`.\n- Return dict with keys: `title`, `priority`, `owner`.",
+    "starter": "def build_ticket_output(payload):\n    pass\n",
+    "tests": [
+      {
+        "label": "fully valid",
+        "call": "build_ticket_output({'title': ' CPU high ', 'priority': '3', 'owner': 'alice'})",
+        "expected": {
+          "title": "CPU high",
+          "priority": 3,
+          "owner": "alice"
+        }
+      },
+      {
+        "label": "owner default",
+        "call": "build_ticket_output({'title': 'Disk full', 'priority': 2})",
+        "expected": {
+          "title": "Disk full",
+          "priority": 2,
+          "owner": "unassigned"
+        }
+      },
+      {
+        "label": "owner none allowed",
+        "call": "build_ticket_output({'title': 'OOM', 'priority': 1, 'owner': None})",
+        "expected": {
+          "title": "OOM",
+          "priority": 1,
+          "owner": null
+        }
+      },
+      {
+        "label": "blank title invalid",
+        "call": "build_ticket_output({'title': '   ', 'priority': 2})",
+        "expected": null
+      },
+      {
+        "label": "bad priority invalid",
+        "call": "build_ticket_output({'title': 'ok', 'priority': 'high'})",
+        "expected": null
+      }
+    ],
+    "hint": "Validate each field one by one and stop early on invalid values.",
+    "solution": "def build_ticket_output(payload):\n    if not isinstance(payload, dict):\n        return None\n\n    title = payload.get('title')\n    if not isinstance(title, str):\n        return None\n    title = title.strip()\n    if not title:\n        return None\n\n    raw_priority = payload.get('priority')\n    try:\n        priority = int(raw_priority)\n    except (TypeError, ValueError):\n        return None\n    if not (1 <= priority <= 5):\n        return None\n\n    owner = payload.get('owner', 'unassigned')\n    if owner is not None and not isinstance(owner, str):\n        return None\n\n    return {\n        'title': title,\n        'priority': priority,\n        'owner': owner,\n    }\n",
+    "explanation": "This mirrors a model-validate flow: parse at the boundary, enforce constraints, then return trusted normalized output."
+  },
+  {
+    "id": "collect-validation-errors",
+    "topic_id": "pydantic",
+    "title": "Collect Field Validation Errors",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `collect_ticket_errors(payload)` that returns a list of error dictionaries.\n\nEach error should have `field` and `code`.\nRules:\n- title missing/not str/blank => code `title_invalid`\n- priority missing/not int-coercible/out of range => code `priority_invalid`\n- owner present but not str/None => code `owner_invalid`\nReturn errors in the order: title, priority, owner.",
+    "starter": "def collect_ticket_errors(payload):\n    pass\n",
+    "tests": [
+      {
+        "label": "no errors",
+        "call": "collect_ticket_errors({'title': 'CPU high', 'priority': '3', 'owner': 'sam'})",
+        "expected": []
+      },
+      {
+        "label": "title and priority invalid",
+        "call": "collect_ticket_errors({'title': '', 'priority': 'x'})",
+        "expected": [
+          {
+            "field": "title",
+            "code": "title_invalid"
+          },
+          {
+            "field": "priority",
+            "code": "priority_invalid"
+          }
+        ]
+      },
+      {
+        "label": "owner invalid",
+        "call": "collect_ticket_errors({'title': 'ok', 'priority': 1, 'owner': 99})",
+        "expected": [
+          {
+            "field": "owner",
+            "code": "owner_invalid"
+          }
+        ]
+      }
+    ],
+    "hint": "Build an `errors` list and append each issue as a separate dict.",
+    "solution": "def collect_ticket_errors(payload):\n    errors = []\n    if not isinstance(payload, dict):\n        return [\n            {'field': 'title', 'code': 'title_invalid'},\n            {'field': 'priority', 'code': 'priority_invalid'},\n        ]\n\n    title = payload.get('title')\n    if not isinstance(title, str) or not title.strip():\n        errors.append({'field': 'title', 'code': 'title_invalid'})\n\n    raw_priority = payload.get('priority')\n    try:\n        parsed_priority = int(raw_priority)\n        priority_ok = 1 <= parsed_priority <= 5\n    except (TypeError, ValueError):\n        priority_ok = False\n    if not priority_ok:\n        errors.append({'field': 'priority', 'code': 'priority_invalid'})\n\n    if 'owner' in payload:\n        owner = payload.get('owner')\n        if owner is not None and not isinstance(owner, str):\n            errors.append({'field': 'owner', 'code': 'owner_invalid'})\n\n    return errors\n",
+    "explanation": "Structured field errors are easier to debug and map directly to API validation responses."
+  },
+  {
+    "id": "dump-ticket-for-response",
+    "topic_id": "pydantic",
+    "title": "Serialize Ticket for Response",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `dump_ticket(ticket, include_none=False)`.\n\nInput `ticket` is a dict with keys: title, priority, owner, tags.\nRules:\n- Always include `title` and `priority`.\n- Include `owner` only if not None, unless `include_none=True`.\n- Include `tags` only if it is a non-empty list.\nReturn the new dict (do not mutate input).",
+    "starter": "def dump_ticket(ticket, include_none=False):\n    pass\n",
+    "tests": [
+      {
+        "label": "exclude none owner",
+        "call": "dump_ticket({'title': 'A', 'priority': 1, 'owner': None, 'tags': []})",
+        "expected": {
+          "title": "A",
+          "priority": 1
+        }
+      },
+      {
+        "label": "include none owner",
+        "call": "dump_ticket({'title': 'A', 'priority': 1, 'owner': None, 'tags': []}, include_none=True)",
+        "expected": {
+          "title": "A",
+          "priority": 1,
+          "owner": null
+        }
+      },
+      {
+        "label": "include owner and tags",
+        "call": "dump_ticket({'title': 'B', 'priority': 4, 'owner': 'mia', 'tags': ['urgent']})",
+        "expected": {
+          "title": "B",
+          "priority": 4,
+          "owner": "mia",
+          "tags": [
+            "urgent"
+          ]
+        }
+      }
+    ],
+    "hint": "Create a new dict and add optional keys conditionally.",
+    "solution": "def dump_ticket(ticket, include_none=False):\n    result = {\n        'title': ticket.get('title'),\n        'priority': ticket.get('priority'),\n    }\n\n    owner = ticket.get('owner')\n    if owner is not None or include_none:\n        result['owner'] = owner\n\n    tags = ticket.get('tags')\n    if isinstance(tags, list) and len(tags) > 0:\n        result['tags'] = list(tags)\n\n    return result\n",
+    "explanation": "This mirrors serialization controls like include/exclude behavior used when exporting validated models."
+  }
+]

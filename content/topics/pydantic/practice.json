@@ -1,0 +1,93 @@
+{
+  "topic_id": "pydantic",
+  "questions": [
+    {
+      "question": "What is the best description of a Pydantic model in application architecture?",
+      "options": [
+        "A schema contract that validates and shapes boundary data.",
+        "A database migration script.",
+        "A replacement for HTTP status codes.",
+        "A task scheduler for async workers."
+      ],
+      "answer": 0,
+      "explanation": "Pydantic models define expected data shape and validation rules at boundaries."
+    },
+    {
+      "question": "According to Pydantic docs, what does validation guarantee?",
+      "options": [
+        "The original raw input was perfectly typed already.",
+        "The resulting model output conforms to declared types and constraints.",
+        "All fields are always optional by default.",
+        "Validation never performs parsing or coercion."
+      ],
+      "answer": 1,
+      "explanation": "Validation is an output guarantee after parsing/validation, not a claim about raw input quality."
+    },
+    {
+      "question": "What does `Field(ge=1, le=5)` mean for an integer field?",
+      "options": [
+        "The field becomes optional.",
+        "Only 1 and 5 are valid values.",
+        "Accepted values must be between 1 and 5 inclusive.",
+        "The field is converted to string."
+      ],
+      "answer": 2,
+      "explanation": "ge/le apply numeric boundary constraints, inclusive on both ends."
+    },
+    {
+      "question": "Which statement correctly distinguishes Optional and default values?",
+      "options": [
+        "Optional[T] makes the field required.",
+        "Optional[T] and default are exactly the same.",
+        "A default always forbids None.",
+        "Optional[T] allows None; a default allows omission."
+      ],
+      "answer": 3,
+      "explanation": "Optional controls nullability, while defaults control whether the field may be omitted."
+    },
+    {
+      "question": "When should strict mode be preferred over default coercion?",
+      "options": [
+        "When exact type safety matters more than convenience.",
+        "Never; strict mode is always an anti-pattern.",
+        "Only when returning JSON responses.",
+        "Only in unit tests, not in runtime code."
+      ],
+      "answer": 0,
+      "explanation": "Strict mode is useful for high-risk fields where silent coercion is undesirable."
+    },
+    {
+      "question": "What is the primary value of `ValidationError` in APIs?",
+      "options": [
+        "It retries failed requests automatically.",
+        "It provides structured field-level error details.",
+        "It bypasses schema checks for performance.",
+        "It converts all values to strings."
+      ],
+      "answer": 1,
+      "explanation": "ValidationError supports precise client feedback and easier debugging."
+    },
+    {
+      "question": "Which method is the standard way to serialize model data to a Python dict in Pydantic v2?",
+      "options": [
+        "to_python()",
+        "as_dict()",
+        "model_dump()",
+        "serialize()"
+      ],
+      "answer": 2,
+      "explanation": "model_dump() is the standard export method in Pydantic v2."
+    },
+    {
+      "question": "What is a good production pattern for handling external payloads?",
+      "options": [
+        "Use print statements instead of structured validation errors.",
+        "Skip validation for performance and fix errors later.",
+        "Validate only after writing raw payload to the database.",
+        "Validate at the boundary, then pass model output to business logic."
+      ],
+      "answer": 3,
+      "explanation": "Boundary validation keeps downstream logic cleaner and safer."
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Py
+      - generic [ref=e6]:
+        - heading "Python Skill Lab" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Learn · Practice · Build Skills
+    - searchbox "Search topics" [ref=e10]
+    - navigation "Learning topics" [ref=e11]:
+      - generic [ref=e12]: Python Core
+      - button "Python Basics" [ref=e13] [cursor=pointer]
+      - button "Lists, Dicts, Sets, Tuples" [ref=e14] [cursor=pointer]
+      - button "Functions and Clean Code" [ref=e15] [cursor=pointer]
+      - button "OOP" [ref=e16] [cursor=pointer]
+      - generic [ref=e17]: Engineering Habits
+      - button "Errors, Debugging, and Testing" [ref=e18] [cursor=pointer]
+      - generic [ref=e19]: Backend
+      - button "FastAPI" [ref=e20] [cursor=pointer]
+      - button "Pydantic" [ref=e21] [cursor=pointer]
+      - button "Async Python" [ref=e22] [cursor=pointer]
+      - generic [ref=e23]: AI Apps
+      - button "LangChain" [ref=e24] [cursor=pointer]
+      - button "LangGraph" [ref=e25] [cursor=pointer]
+      - button "MCP" [ref=e26] [cursor=pointer]
+      - button "RAG, Embeddings, and Vector DBs" [ref=e27] [cursor=pointer]
+      - generic [ref=e28]: DevOps
+      - button "Python for DevOps" [ref=e29] [cursor=pointer]
+      - generic [ref=e30]: Must-Know Extras
+      - button "SQL, HTTP, Git, and Linux Basics" [ref=e31] [cursor=pointer]
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - paragraph [ref=e36]: Backend
+          - heading "FastAPI" [level=2] [ref=e37]
+        - generic [ref=e38]: Intermediate
+      - tablist "Topic sections" [ref=e39]:
+        - button "Overview" [ref=e40] [cursor=pointer]
+        - button "Lesson" [ref=e41] [cursor=pointer]
+        - button "Labs" [ref=e42] [cursor=pointer]
+        - button "Practice Test" [ref=e43] [cursor=pointer]
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - paragraph [ref=e56]: Guided Lab
+            - heading "HTTP Status Category Mapper" [level=2] [ref=e57]
+          - combobox "Exercise" [ref=e58]:
+            - option "HTTP Status Category Mapper" [selected]
+            - option "Route + Query Parsing Simulation"
+            - option "Request Body Contract"
+            - option "Dependency Injection Simulation"
+            - option "Response Model Shape"
+        - paragraph [ref=e59]: "Write `status_meaning(code)` that returns: - `success` for 2xx - `redirect` for 3xx - `client_error` for 4xx - `server_error` for 5xx - `unknown` otherwise"
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - heading "Code Editor" [level=3] [ref=e64]
+                - paragraph [ref=e65]: Write your solution · Ctrl+Enter to run · Ctrl+S to save draft
+              - button "Reset" [ref=e66] [cursor=pointer]
+            - generic [ref=e68]:
+              - generic [ref=e70]:
+                - generic [ref=e71]: "1"
+                - generic [ref=e72]: "2"
+                - generic [ref=e73]: "3"
+              - textbox [ref=e74]:
+                - generic [ref=e75]: "def status_meaning(code):"
+                - generic [ref=e76]: pass
+            - generic [ref=e78]:
+              - button "▶ Run Tests" [ref=e79] [cursor=pointer]
+              - button "💡 Hint" [ref=e80] [cursor=pointer]
+              - button "Show Solution" [ref=e81] [cursor=pointer]
+            - generic [ref=e82]:
+              - strong [ref=e87]: Test Results
+              - generic [ref=e88]: "Tests: 0/5 passed FAIL 200 | expected \"success\", got null FAIL 302 | expected \"redirect\", got null FAIL 404 | expected \"client_error\", got null FAIL 503 | expected \"server_error\", got null FAIL 99 | expected \"unknown\", got null Coach: 💡 0/5 tests passed. Focus on the first failing test and compare expected vs actual output. 💡 Stuck? Here's a nudge: Use `code // 100` to classify ranges."
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - heading "AI Coach Chat" [level=3] [ref=e92]
+                - paragraph [ref=e93]: Ask about the lesson, your code, or test results.
+              - generic [ref=e94]: ollama / qwen3.5:latest
+            - generic [ref=e95]:
+              - generic [ref=e106]:
+                - strong [ref=e107]: Coach
+                - generic [ref=e108]: I can help you understand the lesson, review your code, explain test failures, or connect this topic to real-world work.
+              - generic [ref=e109]:
+                - strong [ref=e110]: You
+                - generic [ref=e111]: give me one hint
+              - strong [ref=e113]: Coach
+            - generic [ref=e99]:
+              - textbox "Ask the AI coach" [ref=e100]:
+                - /placeholder: "Ask: Why did my test fail? Explain this concept with a real-world example? (Ctrl+Enter to send)"
+              - generic [ref=e101]:
+                - button "Send" [disabled] [ref=e102]
+                - button "Explain Code" [disabled] [ref=e103]
+            - group [ref=e104]:
+              - generic "AI provider settings" [ref=e105] [cursor=pointer]
+              - option "Ollama" [selected]
+              - option "LM Studio"
+              - option "OpenAI"
+              - option "Anthropic"
+              - option "granite4.1:3b"
+              - option "qwen3.5:latest" [selected]
+              - option "nemotron-3-nano:4b"

@@ -1,0 +1,198 @@
+[
+  {
+    "id": "chunk-by-word-window",
+    "topic_id": "rag-vectors",
+    "title": "Chunk Text by Word Window",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `chunk_words(text, size)` that splits text into ordered chunks of `size` words each.\nReturn an empty list for empty text or invalid size.",
+    "starter": "def chunk_words(text, size):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic chunks",
+        "call": "chunk_words('a b c d e', 2)",
+        "expected": [
+          "a b",
+          "c d",
+          "e"
+        ]
+      },
+      {
+        "label": "single chunk",
+        "call": "chunk_words('python rag', 10)",
+        "expected": [
+          "python rag"
+        ]
+      },
+      {
+        "label": "invalid size",
+        "call": "chunk_words('a b', 0)",
+        "expected": []
+      }
+    ],
+    "hint": "Use `range(0, len(words), size)` and join slices.",
+    "solution": "def chunk_words(text, size):\n    if not isinstance(size, int) or size <= 0:\n        return []\n    words = text.split()\n    if not words:\n        return []\n    chunks = []\n    for i in range(0, len(words), size):\n        chunks.append(' '.join(words[i:i + size]))\n    return chunks\n",
+    "explanation": "Chunking is the first major RAG quality lever."
+  },
+  {
+    "id": "attach-chunk-metadata",
+    "topic_id": "rag-vectors",
+    "title": "Attach Metadata to Chunks",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `build_chunk_records(chunks, source_id)`.\nReturn list of dicts with keys: `chunk_id`, `source_id`, `text`.\n`chunk_id` format: `<source_id>#<index>` starting at 1.",
+    "starter": "def build_chunk_records(chunks, source_id):\n    pass\n",
+    "tests": [
+      {
+        "label": "two chunks",
+        "call": "build_chunk_records(['a b', 'c d'], 'doc-1')",
+        "expected": [
+          {
+            "chunk_id": "doc-1#1",
+            "source_id": "doc-1",
+            "text": "a b"
+          },
+          {
+            "chunk_id": "doc-1#2",
+            "source_id": "doc-1",
+            "text": "c d"
+          }
+        ]
+      },
+      {
+        "label": "empty chunks",
+        "call": "build_chunk_records([], 'doc-2')",
+        "expected": []
+      }
+    ],
+    "hint": "Use `enumerate(chunks, start=1)`.",
+    "solution": "def build_chunk_records(chunks, source_id):\n    result = []\n    for idx, text in enumerate(chunks, start=1):\n        result.append({\n            'chunk_id': f'{source_id}#{idx}',\n            'source_id': source_id,\n            'text': text,\n        })\n    return result\n",
+    "explanation": "Source metadata enables filtering, traceability, and citation output."
+  },
+  {
+    "id": "filter-by-metadata",
+    "topic_id": "rag-vectors",
+    "title": "Metadata Filter Stage",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `filter_records(records, filters)` that keeps records matching all key-value filters.\nIf filters is empty, return all records unchanged.",
+    "starter": "def filter_records(records, filters):\n    pass\n",
+    "tests": [
+      {
+        "label": "single filter",
+        "call": "filter_records([{'source':'a','team':'core'},{'source':'b','team':'ops'}], {'team':'core'})",
+        "expected": [
+          {
+            "source": "a",
+            "team": "core"
+          }
+        ]
+      },
+      {
+        "label": "multi filter",
+        "call": "filter_records([{'source':'a','team':'core','year':2026},{'source':'a','team':'ops','year':2026}], {'source':'a','team':'core'})",
+        "expected": [
+          {
+            "source": "a",
+            "team": "core",
+            "year": 2026
+          }
+        ]
+      },
+      {
+        "label": "empty filters",
+        "call": "filter_records([{'x':1}], {})",
+        "expected": [
+          {
+            "x": 1
+          }
+        ]
+      }
+    ],
+    "hint": "Use `all(record.get(k) == v for k, v in filters.items())`.",
+    "solution": "def filter_records(records, filters):\n    if not filters:\n        return list(records)\n    result = []\n    for record in records:\n        if all(record.get(k) == v for k, v in filters.items()):\n            result.append(record)\n    return result\n",
+    "explanation": "Filtering controls retrieval scope and prevents cross-domain context leakage."
+  },
+  {
+    "id": "rerank-candidates",
+    "topic_id": "rag-vectors",
+    "title": "Rerank Retrieved Candidates",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `rerank(candidates)`.\nEach candidate dict has `vector_score` and `keyword_hits`.\nCompute final score as `vector_score + 0.1 * keyword_hits`.\nReturn candidates sorted descending by final score.",
+    "starter": "def rerank(candidates):\n    pass\n",
+    "tests": [
+      {
+        "label": "rerank order",
+        "call": "rerank([{'id':'a','vector_score':0.80,'keyword_hits':0},{'id':'b','vector_score':0.75,'keyword_hits':2},{'id':'c','vector_score':0.78,'keyword_hits':0}])",
+        "expected": [
+          {
+            "id": "b",
+            "vector_score": 0.75,
+            "keyword_hits": 2
+          },
+          {
+            "id": "a",
+            "vector_score": 0.8,
+            "keyword_hits": 0
+          },
+          {
+            "id": "c",
+            "vector_score": 0.78,
+            "keyword_hits": 0
+          }
+        ]
+      },
+      {
+        "label": "fallback zeros",
+        "call": "rerank([{'id':'x'},{'id':'y','vector_score':0.1,'keyword_hits':0}])",
+        "expected": [
+          {
+            "id": "y",
+            "vector_score": 0.1,
+            "keyword_hits": 0
+          },
+          {
+            "id": "x"
+          }
+        ]
+      }
+    ],
+    "hint": "Use `sorted(..., key=..., reverse=True)` and keep original objects.",
+    "solution": "def rerank(candidates):\n    return sorted(\n        candidates,\n        key=lambda c: c.get('vector_score', 0) + 0.1 * c.get('keyword_hits', 0),\n        reverse=True,\n    )\n",
+    "explanation": "Reranking helps improve final context relevance beyond raw similarity."
+  },
+  {
+    "id": "build-cited-answer",
+    "topic_id": "rag-vectors",
+    "title": "Answer with Citations",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `build_answer(text, used_chunks)`.\n\nReturn dict with keys:\n- `answer`: the text\n- `citations`: list of unique chunk ids in original order\n",
+    "starter": "def build_answer(text, used_chunks):\n    pass\n",
+    "tests": [
+      {
+        "label": "dedupe citations",
+        "call": "build_answer('Use retries', ['doc1#1', 'doc1#2', 'doc1#1'])",
+        "expected": {
+          "answer": "Use retries",
+          "citations": [
+            "doc1#1",
+            "doc1#2"
+          ]
+        }
+      },
+      {
+        "label": "empty citations",
+        "call": "build_answer('No evidence', [])",
+        "expected": {
+          "answer": "No evidence",
+          "citations": []
+        }
+      }
+    ],
+    "hint": "Track a `seen` set while preserving order in output list.",
+    "solution": "def build_answer(text, used_chunks):\n    citations = []\n    seen = set()\n    for cid in used_chunks:\n        if cid not in seen:\n            seen.add(cid)\n            citations.append(cid)\n    return {\n        'answer': text,\n        'citations': citations,\n    }\n",
+    "explanation": "Citations make grounded answers verifiable and debuggable."
+  }
+]

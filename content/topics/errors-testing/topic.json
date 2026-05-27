@@ -1,0 +1,89 @@
+{
+  "id": "errors-testing",
+  "track": "Engineering Habits",
+  "title": "Errors, Debugging, and Testing",
+  "level": "Beginner",
+  "intro": "Reliable software comes from reading failures clearly and preventing repeats. In this topic you will learn how Python exceptions communicate failure, how to handle expected errors without hiding bugs, and how tests lock in behavior so refactors stay safe. The focus is practical debugging discipline, not fear-driven trial and error.",
+  "mental_model": "Exceptions are signals that normal flow broke. Tracebacks show where and why. Error handling should recover from expected failures and surface unexpected ones. Tests convert assumptions into repeatable checks. Debugging is a loop: reproduce, inspect, hypothesize, change one thing, verify.",
+  "syntax": "def parse_port(text):\n    try:\n        value = int(text)\n    except ValueError:\n        return None\n\n    if value <= 0:\n        raise ValueError('port must be positive')\n    return value\n",
+  "example": "def safe_ratio(a, b):\n    if b == 0:\n        return None\n    return a / b\n\n\ndef test_safe_ratio():\n    assert safe_ratio(10, 2) == 5\n    assert safe_ratio(10, 0) is None\n",
+  "must_know": [
+    "Read traceback bottom-up: exception type/message, then your line, then call path.",
+    "Catch specific exceptions rather than using bare `except:`.",
+    "Raise clear exceptions when input violates function contracts.",
+    "Use finally or context managers for cleanup paths.",
+    "Test both normal and edge cases so debugging starts from stable expectations."
+  ],
+  "common_traps": [
+    "Swallowing unexpected exceptions and losing debugging signals.",
+    "Testing only happy-path input.",
+    "Changing multiple things at once while debugging.",
+    "Writing assertions without meaningful error intent.",
+    "Confusing temporary print-debugging with lasting test coverage."
+  ],
+  "interview": [
+    "Explain why bare `except` is risky in production systems.",
+    "Walk through a traceback and identify first actionable line.",
+    "Design tests for boundary, invalid, and empty input cases.",
+    "Explain when to raise versus return sentinel values like None."
+  ],
+  "docs": [
+    {
+      "label": "Python Tutorial: Errors and Exceptions",
+      "url": "https://docs.python.org/3/tutorial/errors.html"
+    },
+    {
+      "label": "Python Tutorial: Handling Exceptions",
+      "url": "https://docs.python.org/3/tutorial/errors.html#handling-exceptions"
+    },
+    {
+      "label": "Python Docs: unittest",
+      "url": "https://docs.python.org/3/library/unittest.html"
+    }
+  ],
+  "real_world": [
+    "Automation scripts should surface actionable errors for missing config, malformed data, and command failures, not silently continue.",
+    "Backend teams rely on tests to prevent regressions when parser logic or validation rules evolve."
+  ],
+  "outcome": "By the end of this topic, you should be able to read tracebacks, handle expected exceptions safely, raise clear errors for invalid states, and write focused tests that protect critical behavior.",
+  "lesson_sections": [
+    {
+      "title": "1. Reading Tracebacks Effectively",
+      "body": "Tracebacks list call frames leading to failure. Start at the exception type and message, then locate the first line in your own code. This habit helps you avoid random changes and move directly to root-cause analysis.",
+      "source_label": "Python Tutorial: Errors and Exceptions",
+      "source_url": "https://docs.python.org/3/tutorial/errors.html"
+    },
+    {
+      "title": "2. Handling Expected Exceptions",
+      "body": "Use try/except for failures you expect and can recover from. Catch specific exception classes, not everything. This keeps normal failure paths safe while preserving visibility for unexpected bugs.",
+      "source_label": "Python Tutorial: Handling Exceptions",
+      "source_url": "https://docs.python.org/3/tutorial/errors.html#handling-exceptions"
+    },
+    {
+      "title": "3. Raising Exceptions with Clear Messages",
+      "body": "When input or state violates a function contract, raise an appropriate exception with a useful message. Good error messages shorten debugging time and improve API behavior for callers.",
+      "source_label": "Python Tutorial: Raising Exceptions",
+      "source_url": "https://docs.python.org/3/tutorial/errors.html#raising-exceptions"
+    },
+    {
+      "title": "4. Cleanup Paths: finally and Context Managers",
+      "body": "Some resources must be cleaned up even when errors happen. Use finally blocks or context managers (`with`) to ensure cleanup runs consistently. This prevents hidden leaks and inconsistent state.",
+      "source_label": "Python Tutorial: Defining Clean-up Actions",
+      "source_url": "https://docs.python.org/3/tutorial/errors.html#defining-clean-up-actions"
+    },
+    {
+      "title": "5. Assertions and Test Structure",
+      "body": "Assertions encode expected behavior. A useful test suite includes normal cases, edge cases, invalid input, and boundary values. Prefer deterministic tests with clear failure messages over ad-hoc prints.",
+      "source_label": "Python Docs: unittest",
+      "source_url": "https://docs.python.org/3/library/unittest.html"
+    },
+    {
+      "title": "6. Debugging Workflow You Can Repeat",
+      "body": "A reliable debugging loop is: reproduce the bug, narrow input, inspect state, form a hypothesis, apply one change, rerun tests, and confirm outcome. This process scales better than random edits under pressure.",
+      "source_label": "Python Tutorial: Handling Exceptions",
+      "source_url": "https://docs.python.org/3/tutorial/errors.html#handling-exceptions"
+    }
+  ],
+  "lesson_path": "content/topics/errors-testing/lesson.md",
+  "quality_status": "reference"
+}

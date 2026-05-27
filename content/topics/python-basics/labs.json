@@ -1,0 +1,189 @@
+[
+  {
+    "id": "calculate-receipt-total",
+    "topic_id": "python-basics",
+    "title": "Calculate Receipt Total",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `calculate_total(prices, tax_rate)` that returns the rounded total for a list of prices after tax. This practices numbers, assignment, `sum()`, multiplication, and returning values.",
+    "starter": "def calculate_total(prices, tax_rate):\n    # subtotal is the sum of all prices\n    # tax is subtotal * tax_rate\n    # return the total rounded to 2 decimals\n    pass\n",
+    "tests": [
+      {
+        "label": "two items",
+        "call": "calculate_total([10, 20], 0.1)",
+        "expected": 33.0
+      },
+      {
+        "label": "round cents",
+        "call": "calculate_total([19.99, 5.50], 0.08)",
+        "expected": 27.53
+      },
+      {
+        "label": "no tax",
+        "call": "calculate_total([3, 7], 0)",
+        "expected": 10
+      },
+      {
+        "label": "empty cart",
+        "call": "calculate_total([], 0.2)",
+        "expected": 0
+      }
+    ],
+    "hint": "Build the calculation in named steps: subtotal, tax, total.",
+    "solution": "def calculate_total(prices, tax_rate):\n    subtotal = sum(prices)\n    tax = subtotal * tax_rate\n    total = subtotal + tax\n    return round(total, 2)\n",
+    "explanation": "This mirrors Python's calculator-style basics: expressions produce values, names store intermediate results, and return gives the final value back to the caller."
+  },
+  {
+    "id": "make-display-name",
+    "topic_id": "python-basics",
+    "title": "Make Display Name",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `make_display_name(first, last)` that trims extra spaces and returns a title-cased full name. This practices strings, methods, concatenation, and return values.",
+    "starter": "def make_display_name(first, last):\n    # clean first and last, then return the display name\n    pass\n",
+    "tests": [
+      {
+        "label": "basic name",
+        "call": "make_display_name('ada', 'lovelace')",
+        "expected": "Ada Lovelace"
+      },
+      {
+        "label": "extra spaces",
+        "call": "make_display_name('  grace ', ' hopper  ')",
+        "expected": "Grace Hopper"
+      },
+      {
+        "label": "mixed case",
+        "call": "make_display_name('aLAN', 'tURing')",
+        "expected": "Alan Turing"
+      },
+      {
+        "label": "one letter",
+        "call": "make_display_name(' k ', ' d ')",
+        "expected": "K D"
+      }
+    ],
+    "hint": "Use `strip()` to remove outer spaces and `title()` to normalize words.",
+    "solution": "def make_display_name(first, last):\n    clean_first = first.strip().title()\n    clean_last = last.strip().title()\n    return clean_first + ' ' + clean_last\n",
+    "explanation": "Strings are immutable, so methods such as strip() and title() return new strings. We store those new values and build the final result."
+  },
+  {
+    "id": "first-and-last",
+    "topic_id": "python-basics",
+    "title": "First and Last Items",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `first_and_last(items)` that returns a two-item list containing the first and last values. If the input is empty, return an empty list. This practices lists, indexing, and guarding against IndexError.",
+    "starter": "def first_and_last(items):\n    # return [first, last], or [] for an empty list\n    pass\n",
+    "tests": [
+      {
+        "label": "numbers",
+        "call": "first_and_last([10, 20, 30])",
+        "expected": [
+          10,
+          30
+        ]
+      },
+      {
+        "label": "strings",
+        "call": "first_and_last(['api', 'worker'])",
+        "expected": [
+          "api",
+          "worker"
+        ]
+      },
+      {
+        "label": "single item",
+        "call": "first_and_last(['only'])",
+        "expected": [
+          "only",
+          "only"
+        ]
+      },
+      {
+        "label": "empty",
+        "call": "first_and_last([])",
+        "expected": []
+      }
+    ],
+    "hint": "Check for an empty list before using indexes 0 and -1.",
+    "solution": "def first_and_last(items):\n    if not items:\n        return []\n    return [items[0], items[-1]]\n",
+    "explanation": "Indexing an empty list would raise IndexError. The guard handles that case before we read the first and last positions."
+  },
+  {
+    "id": "reverse-words",
+    "topic_id": "python-basics",
+    "title": "Reverse Words",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "Write `reverse_words(text)` that returns the words in reverse order. Extra spaces should not create empty words.",
+    "starter": "def reverse_words(text):\n    # return the words in reverse order\n    pass\n",
+    "tests": [
+      {
+        "label": "simple sentence",
+        "call": "reverse_words('python is fun')",
+        "expected": "fun is python"
+      },
+      {
+        "label": "extra spaces",
+        "call": "reverse_words('  hello   world  ')",
+        "expected": "world hello"
+      },
+      {
+        "label": "single word",
+        "call": "reverse_words('hello')",
+        "expected": "hello"
+      },
+      {
+        "label": "empty string",
+        "call": "reverse_words('')",
+        "expected": ""
+      }
+    ],
+    "hint": "Use `split()` without arguments, then reverse the list.",
+    "solution": "def reverse_words(text):\n    words = text.split()\n    return ' '.join(reversed(words))\n",
+    "explanation": "split() without arguments splits on any whitespace and removes empty strings. reversed() gives us the words in reverse order, and join() puts them back together."
+  },
+  {
+    "id": "even-odd-filter",
+    "topic_id": "python-basics",
+    "title": "Even/Odd Filter",
+    "difficulty": "Beginner",
+    "difficulty_order": 5,
+    "prompt": "Write `filter_even(numbers)` that returns a list containing only the even numbers from the input list.",
+    "starter": "def filter_even(numbers):\n    # return only even numbers\n    pass\n",
+    "tests": [
+      {
+        "label": "mixed numbers",
+        "call": "filter_even([1, 2, 3, 4, 5, 6])",
+        "expected": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "label": "all odd",
+        "call": "filter_even([1, 3, 5])",
+        "expected": []
+      },
+      {
+        "label": "empty list",
+        "call": "filter_even([])",
+        "expected": []
+      },
+      {
+        "label": "negatives",
+        "call": "filter_even([-2, -1, 0, 1, 2])",
+        "expected": [
+          -2,
+          0,
+          2
+        ]
+      }
+    ],
+    "hint": "A number is even when `number % 2 == 0`.",
+    "solution": "def filter_even(numbers):\n    return [n for n in numbers if n % 2 == 0]\n",
+    "explanation": "The modulo operator (%) returns the remainder of division. Even numbers have a remainder of 0 when divided by 2. A list comprehension filters them in one line."
+  }
+]

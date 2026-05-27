@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Python Skill Lab — Learn Python from Basics to AI</title>
+    <meta name="description" content="A free, local Python learning app covering basics, data structures, OOP, FastAPI, async, LangChain, RAG, and more. Practice with guided labs, AI coaching, and progress tracking." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/styles.css?v=warm-notebook" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- CodeMirror 6: loaded as ES module from CDN, gracefully degrades to textarea if unavailable -->
+    <script type="module" src="/codemirror-init.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">Py</span>
+          <div>
+            <h1>Python Skill Lab</h1>
+            <p>Learn · Practice · Build Skills</p>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <input id="search" type="search" placeholder="Search topics..." aria-label="Search topics" />
+        </div>
+        <nav id="topicList" class="topic-list" aria-label="Learning topics"></nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="topic-shell">
+          <div class="lesson-heading">
+            <div>
+              <p id="track" class="eyebrow"></p>
+              <h2 id="title"></h2>
+            </div>
+            <span id="level" class="level-pill"></span>
+          </div>
+
+          <div class="mode-tabs" role="tablist" aria-label="Topic sections">
+            <button class="mode-button active" type="button" data-section="overviewSection">Overview</button>
+            <button class="mode-button" type="button" data-section="lessonSection">Lesson</button>
+            <button class="mode-button" type="button" data-section="labsSection">Labs</button>
+            <button class="mode-button" type="button" data-section="testSection">Practice Test</button>
+          </div>
+
+          <section id="overviewSection" class="topic-section active">
+            <p id="intro" class="intro"></p>
+            <section class="study-note">
+              <h3>Mental Model</h3>
+              <p id="mentalModel"></p>
+            </section>
+            <section class="study-note">
+              <h3>Learning Outcome</h3>
+              <p id="learningOutcome"></p>
+            </section>
+          </section>
+
+          <section id="lessonSection" class="topic-section">
+            <div id="lessonSections" class="lesson-sections"></div>
+
+            <div class="lesson-grid">
+              <article>
+                <h3>Syntax</h3>
+                <pre><code id="syntax"></code></pre>
+              </article>
+              <article>
+                <h3>Example</h3>
+                <pre><code id="example"></code></pre>
+              </article>
+            </div>
+
+            <div class="study-grid">
+              <section class="interview-box">
+                <h3>Real-World Implementation</h3>
+                <ul id="realWorld"></ul>
+              </section>
+
+              <section class="interview-box">
+                <h3>Must Know</h3>
+                <ul id="mustKnow"></ul>
+              </section>
+
+              <section class="interview-box">
+                <h3>Common Traps</h3>
+                <ul id="commonTraps"></ul>
+              </section>
+
+              <section class="interview-box">
+                <h3>Career Readiness</h3>
+                <ul id="interview"></ul>
+              </section>
+
+              <section class="interview-box">
+                <h3>Official Citations</h3>
+                <ul id="docs"></ul>
+              </section>
+            </div>
+          </section>
+
+          <section id="labsSection" class="topic-section">
+            <section class="practice-panel">
+              <div class="practice-header">
+                <div>
+                  <p class="eyebrow">Guided Lab</p>
+                  <h2 id="exerciseTitle"></h2>
+                </div>
+                <select id="exerciseSelect" aria-label="Exercise"></select>
+              </div>
+
+              <p id="exercisePrompt" class="prompt"></p>
+
+              <div class="practice-grid">
+                <section class="code-card">
+                  <div class="card-heading">
+                    <div>
+                      <h3>Code Editor</h3>
+                      <p>Write your solution · Ctrl+Enter to run · Ctrl+S to save draft</p>
+                    </div>
+                    <button id="resetBtn" type="button" class="secondary">Reset</button>
+                  </div>
+                  <textarea id="editor" aria-label="Code editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"></textarea>
+                  <div class="editor-toolbar">
+                    <button id="runBtn" type="button">▶ Run Tests</button>
+                    <button id="hintBtn" type="button" class="secondary">💡 Hint</button>
+                    <button id="solutionBtn" type="button" class="secondary">Show Solution</button>
+                  </div>
+                  <div class="terminal under-editor">
+                    <div class="terminal-bar">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <strong>Test Results</strong>
+                    </div>
+                    <div id="testOutput" class="terminal-body">No test run yet. Press Run Tests or Ctrl+Enter.</div>
+                  </div>
+                </section>
+
+                <section class="coach-card">
+                  <div class="coach-heading">
+                    <div>
+                      <h3>AI Coach Chat</h3>
+                      <p>Ask about the lesson, your code, or test results.</p>
+                    </div>
+                    <span id="coachStatus" class="coach-status">Provider ready</span>
+                  </div>
+
+                  <div id="aiOutput" class="coach-transcript"></div>
+
+                  <div class="coach-composer">
+                    <textarea id="coachInput" rows="3" placeholder="Ask: Why did my test fail? Explain this concept with a real-world example? (Ctrl+Enter to send)" aria-label="Ask the AI coach"></textarea>
+                    <div class="coach-actions">
+                      <button id="aiBtn" type="button">Send</button>
+                      <button id="explainBtn" type="button" class="secondary">Explain Code</button>
+                    </div>
+                  </div>
+
+                  <details class="ai-settings">
+                    <summary>AI provider settings</summary>
+                    <div class="settings-grid">
+                      <label>
+                        Provider
+                        <select id="provider">
+                          <option value="ollama">Ollama</option>
+                          <option value="lmstudio">LM Studio</option>
+                          <option value="openai">OpenAI</option>
+                          <option value="anthropic">Anthropic</option>
+                        </select>
+                      </label>
+                      <label>
+                        Model
+                        <select id="model"></select>
+                      </label>
+                      <button id="refreshModelsBtn" type="button" class="secondary model-refresh">Refresh models</button>
+                      <label>
+                        Endpoint
+                        <input id="endpoint" type="text" value="http://127.0.0.1:11434" />
+                      </label>
+                      <label>
+                        API key
+                        <input id="apiKey" type="password" placeholder="Only needed for hosted APIs" />
+                      </label>
+                    </div>
+                  </details>
+                </section>
+              </div>
+            </section>
+          </section>
+
+          <section id="testSection" class="topic-section">
+            <section class="test-card">
+              <div class="card-heading">
+                <div>
+                  <h3>Practice Test</h3>
+                  <p>Quick checkpoint before you move on.</p>
+                </div>
+                <button id="checkTestBtn" type="button">Check Answers</button>
+              </div>
+              <div id="practiceQuestions" class="practice-questions"></div>
+              <div id="testResult" class="test-result">Choose an answer, then check your result.</div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

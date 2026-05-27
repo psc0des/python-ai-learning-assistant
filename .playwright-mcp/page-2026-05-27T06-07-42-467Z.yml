@@ -1,0 +1,49 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Py
+      - generic [ref=e6]:
+        - heading "Python Skill Lab" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Learn · Practice · Build Skills
+    - searchbox "Search topics" [ref=e10]
+    - navigation "Learning topics" [ref=e11]:
+      - generic [ref=e12]: Python Core
+      - button "Python Basics" [ref=e13] [cursor=pointer]
+      - button "Lists, Dicts, Sets, Tuples" [ref=e14] [cursor=pointer]
+      - button "Functions and Clean Code" [ref=e15] [cursor=pointer]
+      - button "OOP" [ref=e16] [cursor=pointer]
+      - generic [ref=e17]: Engineering Habits
+      - button "Errors, Debugging, and Testing" [ref=e18] [cursor=pointer]
+      - generic [ref=e19]: Backend
+      - button "FastAPI" [ref=e20] [cursor=pointer]
+      - button "Pydantic" [ref=e21] [cursor=pointer]
+      - button "Async Python" [ref=e22] [cursor=pointer]
+      - generic [ref=e23]: AI Apps
+      - button "LangChain" [ref=e24] [cursor=pointer]
+      - button "LangGraph" [ref=e25] [cursor=pointer]
+      - button "MCP" [ref=e26] [cursor=pointer]
+      - button "RAG, Embeddings, and Vector DBs" [ref=e27] [cursor=pointer]
+      - generic [ref=e28]: DevOps
+      - button "Python for DevOps" [ref=e29] [cursor=pointer]
+      - generic [ref=e30]: Must-Know Extras
+      - button "SQL, HTTP, Git, and Linux Basics" [ref=e31] [cursor=pointer]
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - paragraph [ref=e36]: Python Core
+          - heading "Python Basics" [level=2] [ref=e37]
+        - generic [ref=e38]: Beginner
+      - tablist "Topic sections" [ref=e39]:
+        - button "Overview" [ref=e40] [cursor=pointer]
+        - button "Lesson" [ref=e41] [cursor=pointer]
+        - button "Labs" [ref=e42] [cursor=pointer]
+        - button "Practice Test" [ref=e43] [cursor=pointer]
+      - generic [ref=e44]:
+        - paragraph [ref=e45]: "Python Basics is where you learn how Python actually behaves while code is running. You will start small: evaluate expressions, store values in variables, work with strings and lists, make decisions with if/elif/else, repeat work with loops, and package logic inside functions. This topic is not about memorizing syntax lines. It is about building a mental picture of execution so you can read code, debug confidently, and write clean small programs that do what you expect."
+        - generic [ref=e46]:
+          - heading "Mental Model" [level=3] [ref=e47]
+          - paragraph [ref=e48]: Think of a Python file as a sequence of steps. Python runs from top to bottom, one statement at a time. Expressions create values. Assignment gives those values names. Indentation marks which lines belong to the same block. Conditions choose one path. Loops repeat a block across items. Functions let you bundle steps into reusable units and return results.
+        - generic [ref=e49]:
+          - heading "Learning Outcome" [level=3] [ref=e50]
+          - paragraph [ref=e51]: By the end of this topic, you should be able to read a short Python script and explain what each line does, what each variable currently holds, and why a branch or loop behaves the way it does. You should also be able to write and test small functions, and fix common beginner issues like NameError, IndexError, and indentation mistakes.

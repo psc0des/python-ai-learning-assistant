@@ -1,0 +1,147 @@
+[
+  {
+    "id": "retry-policy",
+    "topic_id": "oop",
+    "title": "Retry Policy Class",
+    "difficulty": "Intermediate",
+    "difficulty_order": 1,
+    "prompt": "Create a `RetryPolicy` class. It should accept `max_attempts` and have `should_retry(attempt_number)` returning True if the attempt is below the limit.",
+    "starter": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        pass\n\n    def should_retry(self, attempt_number):\n        pass\n",
+    "tests": [
+      {
+        "label": "retry before limit",
+        "call": "RetryPolicy(3).should_retry(2)",
+        "expected": true
+      },
+      {
+        "label": "stop at limit",
+        "call": "RetryPolicy(3).should_retry(3)",
+        "expected": false
+      },
+      {
+        "label": "first attempt",
+        "call": "RetryPolicy(1).should_retry(0)",
+        "expected": true
+      },
+      {
+        "label": "single attempt exhausted",
+        "call": "RetryPolicy(1).should_retry(1)",
+        "expected": false
+      }
+    ],
+    "hint": "Store `max_attempts` on `self` and compare attempt to it.",
+    "solution": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        self.max_attempts = max_attempts\n\n    def should_retry(self, attempt_number):\n        return attempt_number < self.max_attempts\n",
+    "explanation": "The class encapsulates retry state (`max_attempts`) and behavior (`should_retry`)."
+  },
+  {
+    "id": "counter-class",
+    "topic_id": "oop",
+    "title": "Simple Counter",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Create a `Counter` class with `increment()`, `decrement()`, and `value()` methods. Start at 0.",
+    "starter": "class Counter:\n    def __init__(self):\n        pass\n\n    def increment(self):\n        pass\n\n    def decrement(self):\n        pass\n\n    def value(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "initial value",
+        "call": "Counter().value()",
+        "expected": 0
+      },
+      {
+        "label": "increment",
+        "call": "(lambda c: (c.increment(), c.value())[-1])(Counter())",
+        "expected": 1
+      },
+      {
+        "label": "decrement",
+        "call": "(lambda c: (c.decrement(), c.value())[-1])(Counter())",
+        "expected": -1
+      }
+    ],
+    "hint": "Keep instance state in `self.count`.",
+    "solution": "class Counter:\n    def __init__(self):\n        self.count = 0\n\n    def increment(self):\n        self.count += 1\n\n    def decrement(self):\n        self.count -= 1\n\n    def value(self):\n        return self.count\n",
+    "explanation": "Each instance manages its own state through instance attributes."
+  },
+  {
+    "id": "inventory-item-class",
+    "topic_id": "oop",
+    "title": "Inventory Item Value",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Create an `InventoryItem` class with `name`, `quantity`, and `unit_price`. Add `total_value()` that returns `quantity * unit_price`.",
+    "starter": "class InventoryItem:\n    def __init__(self, name, quantity, unit_price):\n        pass\n\n    def total_value(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "basic value",
+        "call": "InventoryItem('SSD', 3, 50).total_value()",
+        "expected": 150
+      },
+      {
+        "label": "zero quantity",
+        "call": "InventoryItem('RAM', 0, 70).total_value()",
+        "expected": 0
+      },
+      {
+        "label": "float price",
+        "call": "InventoryItem('Cable', 4, 2.5).total_value()",
+        "expected": 10.0
+      }
+    ],
+    "hint": "Store constructor args on `self` and multiply in the method.",
+    "solution": "class InventoryItem:\n    def __init__(self, name, quantity, unit_price):\n        self.name = name\n        self.quantity = quantity\n        self.unit_price = unit_price\n\n    def total_value(self):\n        return self.quantity * self.unit_price\n",
+    "explanation": "This models data plus behavior in one object and avoids loose dict manipulation."
+  },
+  {
+    "id": "service-health-class",
+    "topic_id": "oop",
+    "title": "Service Health Object",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Create a `ServiceHealth` class with `service_name` and `errors`. Add methods `record_error()` to increment errors and `is_healthy()` returning True when errors is 0.",
+    "starter": "class ServiceHealth:\n    def __init__(self, service_name):\n        pass\n\n    def record_error(self):\n        pass\n\n    def is_healthy(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "new service healthy",
+        "call": "ServiceHealth('api').is_healthy()",
+        "expected": true
+      },
+      {
+        "label": "after one error unhealthy",
+        "call": "(lambda s: (s.record_error(), s.is_healthy())[-1])(ServiceHealth('worker'))",
+        "expected": false
+      },
+      {
+        "label": "error counter increments",
+        "call": "(lambda s: (s.record_error(), s.record_error(), s.errors)[-1])(ServiceHealth('db'))",
+        "expected": 2
+      }
+    ],
+    "hint": "Initialize `errors` in `__init__`, increment in `record_error`.",
+    "solution": "class ServiceHealth:\n    def __init__(self, service_name):\n        self.service_name = service_name\n        self.errors = 0\n\n    def record_error(self):\n        self.errors += 1\n\n    def is_healthy(self):\n        return self.errors == 0\n",
+    "explanation": "This class encapsulates health state transitions in methods instead of scattered logic."
+  },
+  {
+    "id": "class-vs-instance-counter",
+    "topic_id": "oop",
+    "title": "Class Variable Tracker",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Create a `Session` class with class variable `created_count` starting at 0. Every new instance should increment it. Add `count()` class method returning `created_count`.",
+    "starter": "class Session:\n    created_count = 0\n\n    def __init__(self):\n        pass\n\n    @classmethod\n    def count(cls):\n        pass\n",
+    "tests": [
+      {
+        "label": "count after one",
+        "call": "(lambda: (Session(), Session.count())[-1])()",
+        "expected": 1
+      },
+      {
+        "label": "count after three total",
+        "call": "(lambda: (Session(), Session(), Session.count())[-1])()",
+        "expected": 3
+      }
+    ],
+    "hint": "Update `Session.created_count` through `type(self)` or the class in `__init__`.",
+    "solution": "class Session:\n    created_count = 0\n\n    def __init__(self):\n        type(self).created_count += 1\n\n    @classmethod\n    def count(cls):\n        return cls.created_count\n",
+    "explanation": "This lab reinforces shared class state versus per-instance state."
+  }
+]

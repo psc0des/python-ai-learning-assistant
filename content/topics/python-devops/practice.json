@@ -1,0 +1,93 @@
+{
+  "topic_id": "python-devops",
+  "questions": [
+    {
+      "question": "What is the best first step before making infrastructure changes?",
+      "options": [
+        "Run validation and generate a dry-run plan.",
+        "Execute commands immediately.",
+        "Skip config checks for speed.",
+        "Ignore return codes."
+      ],
+      "answer": 0,
+      "explanation": "Preflight checks and dry runs reduce risk before side effects."
+    },
+    {
+      "question": "Why is `subprocess.run([...])` generally safer than shell strings?",
+      "options": [
+        "Shell strings are always required on Windows.",
+        "Argument lists avoid shell injection and quoting issues.",
+        "It hides command failures.",
+        "It prevents timeout usage."
+      ],
+      "answer": 1,
+      "explanation": "List arguments bypass shell parsing and are more predictable."
+    },
+    {
+      "question": "What does idempotent automation mean?",
+      "options": [
+        "Scripts cannot read config files.",
+        "Scripts must run only once.",
+        "Repeated runs converge to the same desired state safely.",
+        "All commands must return zero."
+      ],
+      "answer": 2,
+      "explanation": "Idempotency avoids duplicate unintended changes."
+    },
+    {
+      "question": "Why separate planning logic from execution logic?",
+      "options": [
+        "It prevents use of config files.",
+        "It increases complexity without benefit.",
+        "It removes need for logging.",
+        "It improves testability and allows safe dry-run behavior."
+      ],
+      "answer": 3,
+      "explanation": "Separation supports safer design and easier verification."
+    },
+    {
+      "question": "What should a run summary include?",
+      "options": [
+        "What changed, what failed, and status of checks/actions.",
+        "Only the script name.",
+        "Only successful actions.",
+        "No output to keep logs small."
+      ],
+      "answer": 0,
+      "explanation": "Operators need complete outcome visibility."
+    },
+    {
+      "question": "Which path-handling approach is most robust in Python automation?",
+      "options": [
+        "Concatenate strings with slash manually.",
+        "Use pathlib objects and explicit joins.",
+        "Hardcode absolute paths for all environments.",
+        "Use random temporary directories."
+      ],
+      "answer": 1,
+      "explanation": "pathlib helps keep path logic portable and less error-prone."
+    },
+    {
+      "question": "When should automation fail fast?",
+      "options": [
+        "Never; always continue.",
+        "Only after all write actions complete.",
+        "When required config or safety preconditions are not met.",
+        "Only for network errors."
+      ],
+      "answer": 2,
+      "explanation": "Failing fast on precondition issues prevents unsafe execution."
+    },
+    {
+      "question": "Why are logs crucial in DevOps scripts?",
+      "options": [
+        "They remove need for permission checks.",
+        "They replace all tests.",
+        "They improve model quality directly.",
+        "They provide auditability and support debugging during incidents."
+      ],
+      "answer": 3,
+      "explanation": "Logs are the evidence trail for operational behavior."
+    }
+  ]
+}

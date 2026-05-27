@@ -1,0 +1,464 @@
+{
+  "src.docs.python.org.3.tutorial.index.html": {
+    "title": "Python Tutorial",
+    "url": "https://docs.python.org/3/tutorial/index.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.introduction.html": {
+    "title": "Python Tutorial: Informal Introduction",
+    "url": "https://docs.python.org/3/tutorial/introduction.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html": {
+    "title": "Python Tutorial: Control Flow",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.introduction.html.numbers": {
+    "title": "Python Tutorial: Numbers",
+    "url": "https://docs.python.org/3/tutorial/introduction.html#numbers",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.introduction.html.text": {
+    "title": "Python Tutorial: Text",
+    "url": "https://docs.python.org/3/tutorial/introduction.html#text",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.introduction.html.lists": {
+    "title": "Python Tutorial: Lists",
+    "url": "https://docs.python.org/3/tutorial/introduction.html#lists",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html.defining-functions": {
+    "title": "Python Tutorial: Defining Functions",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html.more-on-defining-functions": {
+    "title": "Python Tutorial: More on Defining Functions",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html.default-argument-values": {
+    "title": "Python Tutorial: Default Argument Values",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html#default-argument-values",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html.keyword-arguments": {
+    "title": "Python Tutorial: Keyword Arguments",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html.special-parameters": {
+    "title": "Python Tutorial: Special Parameters",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html#special-parameters",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.controlflow.html.function-annotations": {
+    "title": "Python Tutorial: Function Annotations",
+    "url": "https://docs.python.org/3/tutorial/controlflow.html#function-annotations",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html": {
+    "title": "Python Tutorial: Data Structures",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html.more-on-lists": {
+    "title": "Python Tutorial: More on Lists",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html.list-comprehensions": {
+    "title": "Python Tutorial: List Comprehensions",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html.tuples-and-sequences": {
+    "title": "Python Tutorial: Tuples and Sequences",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html.sets": {
+    "title": "Python Tutorial: Sets",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html#sets",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html.dictionaries": {
+    "title": "Python Tutorial: Dictionaries",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html#dictionaries",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.datastructures.html.looping-techniques": {
+    "title": "Python Tutorial: Looping Techniques",
+    "url": "https://docs.python.org/3/tutorial/datastructures.html#looping-techniques",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.typing.html": {
+    "title": "Python Docs: Typing",
+    "url": "https://docs.python.org/3/library/typing.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.classes.html": {
+    "title": "Python Tutorial: Classes",
+    "url": "https://docs.python.org/3/tutorial/classes.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.classes.html.class-definition-syntax": {
+    "title": "Python Tutorial: Class Definition Syntax",
+    "url": "https://docs.python.org/3/tutorial/classes.html#class-definition-syntax",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.classes.html.class-and-instance-variables": {
+    "title": "Python Tutorial: Class and Instance Variables",
+    "url": "https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.classes.html.instance-objects": {
+    "title": "Python Tutorial: Instance Objects",
+    "url": "https://docs.python.org/3/tutorial/classes.html#instance-objects",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.dataclasses.html": {
+    "title": "Python Docs: dataclasses",
+    "url": "https://docs.python.org/3/library/dataclasses.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.errors.html": {
+    "title": "Python Tutorial: Errors and Exceptions",
+    "url": "https://docs.python.org/3/tutorial/errors.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.errors.html.handling-exceptions": {
+    "title": "Python Tutorial: Handling Exceptions",
+    "url": "https://docs.python.org/3/tutorial/errors.html#handling-exceptions",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.errors.html.raising-exceptions": {
+    "title": "Python Tutorial: Raising Exceptions",
+    "url": "https://docs.python.org/3/tutorial/errors.html#raising-exceptions",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.tutorial.errors.html.defining-clean-up-actions": {
+    "title": "Python Tutorial: Defining Clean-up Actions",
+    "url": "https://docs.python.org/3/tutorial/errors.html#defining-clean-up-actions",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.unittest.html": {
+    "title": "Python Docs: unittest",
+    "url": "https://docs.python.org/3/library/unittest.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.fastapi.tiangolo.com.tutorial": {
+    "title": "FastAPI Tutorial",
+    "url": "https://fastapi.tiangolo.com/tutorial/",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.fastapi.tiangolo.com.tutorial.body-multiple-params": {
+    "title": "FastAPI: Body - Multiple Parameters",
+    "url": "https://fastapi.tiangolo.com/tutorial/body-multiple-params/",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.fastapi.tiangolo.com.tutorial.path-params": {
+    "title": "FastAPI Path Parameters",
+    "url": "https://fastapi.tiangolo.com/tutorial/path-params/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.fastapi.tiangolo.com.tutorial.query-params": {
+    "title": "FastAPI Query Parameters",
+    "url": "https://fastapi.tiangolo.com/tutorial/query-params/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.fastapi.tiangolo.com.tutorial.body": {
+    "title": "FastAPI Request Body",
+    "url": "https://fastapi.tiangolo.com/tutorial/body/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.fastapi.tiangolo.com.tutorial.response-model": {
+    "title": "FastAPI Response Model",
+    "url": "https://fastapi.tiangolo.com/tutorial/response-model/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.fastapi.tiangolo.com.tutorial.dependencies": {
+    "title": "FastAPI Dependencies",
+    "url": "https://fastapi.tiangolo.com/tutorial/dependencies/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.fastapi.tiangolo.com.tutorial.handling-errors": {
+    "title": "FastAPI Handling Errors",
+    "url": "https://fastapi.tiangolo.com/tutorial/handling-errors/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.pydantic.dev.latest.concepts.models": {
+    "title": "Pydantic: Models",
+    "url": "https://docs.pydantic.dev/latest/concepts/models/",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.pydantic.dev.latest.concepts.fields": {
+    "title": "Pydantic: Fields",
+    "url": "https://docs.pydantic.dev/latest/concepts/fields/",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.pydantic.dev.latest.concepts.strict-mode": {
+    "title": "Pydantic: Strict Mode",
+    "url": "https://docs.pydantic.dev/latest/concepts/strict_mode/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.pydantic.dev.latest.concepts.validators": {
+    "title": "Pydantic: Validators",
+    "url": "https://docs.pydantic.dev/latest/concepts/validators/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.pydantic.dev.latest.concepts.serialization": {
+    "title": "Pydantic: Serialization",
+    "url": "https://docs.pydantic.dev/latest/concepts/serialization/",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.python.org.3.library.asyncio.html": {
+    "title": "Python Docs: asyncio",
+    "url": "https://docs.python.org/3/library/asyncio.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.asyncio-task.html": {
+    "title": "Python Docs: Coroutines and Tasks",
+    "url": "https://docs.python.org/3/library/asyncio-task.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.asyncio-task.html.running-tasks-concurrently": {
+    "title": "Python Docs: Running Tasks Concurrently",
+    "url": "https://docs.python.org/3/library/asyncio-task.html#running-tasks-concurrently",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.asyncio-task.html.task-cancellation": {
+    "title": "Python Docs: Task Cancellation",
+    "url": "https://docs.python.org/3/library/asyncio-task.html#task-cancellation",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.langchain.com.oss.python": {
+    "title": "LangChain Python Docs",
+    "url": "https://docs.langchain.com/oss/python",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.langchain.com.oss.python.langchain.overview": {
+    "title": "LangChain Overview",
+    "url": "https://docs.langchain.com/oss/python/langchain/overview",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.concepts.providers-and-models": {
+    "title": "LangChain Providers and Models",
+    "url": "https://docs.langchain.com/oss/python/concepts/providers-and-models",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.langchain.com.oss.python.langchain.agents": {
+    "title": "LangChain Agents",
+    "url": "https://docs.langchain.com/oss/python/langchain/agents",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langchain.tools": {
+    "title": "LangChain Tools",
+    "url": "https://docs.langchain.com/oss/python/langchain/tools",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langchain.structured-output": {
+    "title": "LangChain Structured Output",
+    "url": "https://docs.langchain.com/oss/python/langchain/structured-output",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langchain.retrieval": {
+    "title": "LangChain Retrieval",
+    "url": "https://docs.langchain.com/oss/python/langchain/retrieval",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langgraph.overview": {
+    "title": "LangGraph Overview",
+    "url": "https://docs.langchain.com/oss/python/langgraph/overview",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.langchain.com.oss.python.langgraph.quickstart": {
+    "title": "LangGraph Quickstart",
+    "url": "https://docs.langchain.com/oss/python/langgraph/quickstart",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langgraph.persistence": {
+    "title": "LangGraph Persistence",
+    "url": "https://docs.langchain.com/oss/python/langgraph/persistence",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langgraph.streaming": {
+    "title": "LangGraph Streaming",
+    "url": "https://docs.langchain.com/oss/python/langgraph/streaming",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langgraph.human-in-the-loop": {
+    "title": "LangGraph Human-in-the-Loop",
+    "url": "https://docs.langchain.com/oss/python/langgraph/human-in-the-loop",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.langgraph.workflows-agents": {
+    "title": "LangGraph Workflows and Agents",
+    "url": "https://docs.langchain.com/oss/python/langgraph/workflows-agents",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.langchain.com.oss.python.concepts.products": {
+    "title": "LangChain Product Concepts",
+    "url": "https://docs.langchain.com/oss/python/concepts/products",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.modelcontextprotocol.io.docs.learn": {
+    "title": "Model Context Protocol: Learn",
+    "url": "https://modelcontextprotocol.io/docs/learn",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.modelcontextprotocol.io.docs.learn.architecture": {
+    "title": "MCP Learn: Architecture",
+    "url": "https://modelcontextprotocol.io/docs/learn/architecture",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.modelcontextprotocol.io.docs.learn.server-concepts": {
+    "title": "MCP Learn: Server Concepts",
+    "url": "https://modelcontextprotocol.io/docs/learn/server-concepts",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.modelcontextprotocol.io.specification.2024-11-05.basic.index": {
+    "title": "MCP Specification Overview",
+    "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/index",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.modelcontextprotocol.io.specification.2024-11-05.basic.lifecycle": {
+    "title": "MCP Specification: Lifecycle",
+    "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.platform.openai.com.docs.guides.embeddings": {
+    "title": "OpenAI Embeddings Guide",
+    "url": "https://platform.openai.com/docs/guides/embeddings",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.langchain.com.oss.python.concepts.retrieval": {
+    "title": "LangChain Retrieval Concepts",
+    "url": "https://docs.langchain.com/oss/python/concepts/retrieval",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.subprocess.html": {
+    "title": "Python Docs: subprocess",
+    "url": "https://docs.python.org/3/library/subprocess.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.pathlib.html": {
+    "title": "Python Docs: pathlib",
+    "url": "https://docs.python.org/3/library/pathlib.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.python.org.3.library.logging.html": {
+    "title": "Python Docs: logging",
+    "url": "https://docs.python.org/3/library/logging.html",
+    "official": true,
+    "checked_at": "2026-05-27"
+  },
+  "src.docs.docker.com.reference.api.engine.sdk": {
+    "title": "Docker Docs: Engine SDKs",
+    "url": "https://docs.docker.com/reference/api/engine/sdk/",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.docs.ansible.com.projects.ansible-core.devel.playbook_guide.playbooks_intro.html": {
+    "title": "Ansible Docs: Playbooks",
+    "url": "https://docs.ansible.com/projects/ansible-core/devel/playbook_guide/playbooks_intro.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.developer.mozilla.org.en-us.docs.web.http.reference": {
+    "title": "MDN HTTP Reference",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.git-scm.com.book.en.v2": {
+    "title": "Git Book",
+    "url": "https://git-scm.com/book/en/v2",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.www.postgresql.org.docs.current.tutorial.html": {
+    "title": "PostgreSQL Tutorial",
+    "url": "https://www.postgresql.org/docs/current/tutorial.html",
+    "official": true,
+    "checked_at": "2026-05-26"
+  },
+  "src.gnu.org.software.bash.manual.bash.html": {
+    "title": "GNU Bash Manual",
+    "url": "https://www.gnu.org/software/bash/manual/bash.html",
+    "official": true,
+    "checked_at": "2026-05-27"
+  }
+}

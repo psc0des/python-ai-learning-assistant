@@ -1,0 +1,104 @@
+{
+  "id": "langgraph",
+  "track": "AI Apps",
+  "title": "LangGraph",
+  "level": "Intermediate",
+  "intro": "LangGraph is built for stateful, multi-step agent workflows that need control, persistence, and recovery. It is useful when you need branching decisions, retries, pauses for human approval, and long-running execution that can resume safely after interruption.",
+  "mental_model": "A graph run moves through nodes connected by edges while updating shared state. Conditional routing decides next steps. Checkpoints persist progress by thread ID. Interrupts pause execution for external decisions. Streaming emits live updates while the workflow runs.",
+  "syntax": "from langgraph.graph import StateGraph\n\n# build nodes + edges\n# compile with checkpointer\n# invoke with config={'configurable': {'thread_id': 'abc-1'}}",
+  "example": "An incident workflow can classify an alert, gather logs, draft diagnosis, pause for human approval, execute safe remediation, and produce a final report while preserving state checkpoints for audit and replay.",
+  "must_know": [
+    "State carries evolving workflow data across nodes.",
+    "Nodes are focused units of work that return partial state updates.",
+    "Conditional edges implement branching and control flow decisions.",
+    "Persistence/checkpointing enables pause, resume, and fault tolerance.",
+    "Interrupts support human-in-the-loop decisions before risky actions.",
+    "Streaming surfaces real-time workflow progress and model output."
+  ],
+  "common_traps": [
+    "Using LangGraph for trivial single-step tasks where a simple chain is enough.",
+    "Letting state become unstructured and hard to reason about.",
+    "Combining too many responsibilities in one node.",
+    "Skipping checkpoint strategy and losing recoverability.",
+    "Executing high-impact actions without interrupt-based approval."
+  ],
+  "interview": [
+    "Explain state, nodes, edges, and conditional routing in one workflow example.",
+    "Describe how thread IDs and checkpoints enable resume semantics.",
+    "Compare deterministic chains, agents, and LangGraph workflows.",
+    "Explain interrupts and human-in-the-loop safety patterns.",
+    "Discuss why observability and replay are critical for agent systems."
+  ],
+  "docs": [
+    {
+      "label": "LangGraph Overview",
+      "url": "https://docs.langchain.com/oss/python/langgraph/overview"
+    },
+    {
+      "label": "LangGraph Quickstart",
+      "url": "https://docs.langchain.com/oss/python/langgraph/quickstart"
+    },
+    {
+      "label": "LangGraph Persistence",
+      "url": "https://docs.langchain.com/oss/python/langgraph/persistence"
+    },
+    {
+      "label": "LangGraph Streaming",
+      "url": "https://docs.langchain.com/oss/python/langgraph/streaming"
+    },
+    {
+      "label": "LangGraph Human-in-the-Loop",
+      "url": "https://docs.langchain.com/oss/python/langgraph/human-in-the-loop"
+    },
+    {
+      "label": "LangGraph Workflows and Agents",
+      "url": "https://docs.langchain.com/oss/python/langgraph/workflows-agents"
+    }
+  ],
+  "real_world": [
+    "Operations copilots use LangGraph to orchestrate alert triage flows where each step is explicit, auditable, and resumable.",
+    "Human approval interrupts are used before actions like service restarts, ticket escalations, or configuration changes.",
+    "Checkpointed thread history allows teams to replay failures and debug why a run made a specific decision."
+  ],
+  "outcome": "By the end of this topic, you should be able to design a small LangGraph workflow with clear state schema, branching, checkpoints, and human approval interrupts for risky steps.",
+  "lesson_sections": [
+    {
+      "title": "1. Why LangGraph",
+      "body": "LangGraph is designed for long-running, stateful agent workflows where simple prompt chains are not enough. It adds explicit control flow and runtime capabilities like interrupts and persistence.",
+      "source_label": "LangGraph Overview",
+      "source_url": "https://docs.langchain.com/oss/python/langgraph/overview"
+    },
+    {
+      "title": "2. State, Nodes, and Edges",
+      "body": "Workflows are modeled as nodes that read and update shared state, connected by edges that determine progression. Designing a clear state schema is crucial because it becomes your workflow contract.",
+      "source_label": "LangGraph Quickstart",
+      "source_url": "https://docs.langchain.com/oss/python/langgraph/quickstart"
+    },
+    {
+      "title": "3. Conditional Routing and Workflow Control",
+      "body": "Conditional edges let the graph branch based on risk, confidence, policy checks, or missing data. This makes decision points explicit and testable instead of hiding control flow inside one giant prompt.",
+      "source_label": "LangGraph Workflows and Agents",
+      "source_url": "https://docs.langchain.com/oss/python/langgraph/workflows-agents"
+    },
+    {
+      "title": "4. Persistence and Thread IDs",
+      "body": "Persistence saves checkpoints as workflow execution proceeds. A thread ID identifies which run history to load and resume. This enables fault tolerance, replay, and multi-turn continuation.",
+      "source_label": "LangGraph Persistence",
+      "source_url": "https://docs.langchain.com/oss/python/langgraph/persistence"
+    },
+    {
+      "title": "5. Interrupts and Human-in-the-Loop",
+      "body": "Interrupts pause execution and wait for external input before continuing. This is the preferred pattern for human approval before high-impact actions. Combined with checkpoints, it allows safe pause/resume behavior.",
+      "source_label": "LangGraph Human-in-the-Loop",
+      "source_url": "https://docs.langchain.com/oss/python/langgraph/human-in-the-loop"
+    },
+    {
+      "title": "6. Streaming and Observability",
+      "body": "Streaming emits progress and partial outputs in real time, improving UX and debugging. Observing node-by-node state evolution helps diagnose failures faster than relying only on final answers.",
+      "source_label": "LangGraph Streaming",
+      "source_url": "https://docs.langchain.com/oss/python/langgraph/streaming"
+    }
+  ],
+  "lesson_path": "content/topics/langgraph/lesson.md",
+  "quality_status": "reference"
+}

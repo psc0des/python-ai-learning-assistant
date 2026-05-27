@@ -1,0 +1,93 @@
+{
+  "topic_id": "langchain",
+  "questions": [
+    {
+      "question": "Why do teams adopt LangChain in production LLM apps?",
+      "options": [
+        "To compose models, tools, retrieval, and parsing with reusable interfaces.",
+        "To avoid writing any tests.",
+        "To replace HTTP APIs entirely.",
+        "To make prompts unnecessary."
+      ],
+      "answer": 0,
+      "explanation": "LangChain provides reusable orchestration building blocks and interfaces."
+    },
+    {
+      "question": "When is a deterministic chain usually better than an agent?",
+      "options": [
+        "When there are many unknown tool choices at runtime.",
+        "When workflow steps are fixed and predictable.",
+        "When you need human-in-the-loop pauses.",
+        "When every request must branch differently."
+      ],
+      "answer": 1,
+      "explanation": "Deterministic chains are simpler and easier to test for fixed workflows."
+    },
+    {
+      "question": "What is a primary purpose of tools in LangChain?",
+      "options": [
+        "Convert SQL to Python syntax.",
+        "Replace retrieval systems.",
+        "Allow model-driven calls to external capabilities.",
+        "Store vector embeddings automatically."
+      ],
+      "answer": 2,
+      "explanation": "Tools expose callable actions like search, APIs, or business operations."
+    },
+    {
+      "question": "Which issue most directly causes weak RAG answers?",
+      "options": [
+        "Adding structured output.",
+        "Having too many status codes.",
+        "Using a typed language.",
+        "Retrieving irrelevant or stale context chunks."
+      ],
+      "answer": 3,
+      "explanation": "RAG quality depends heavily on retrieval quality."
+    },
+    {
+      "question": "Why is structured output important?",
+      "options": [
+        "It yields predictable machine-usable fields instead of brittle text parsing.",
+        "It eliminates all model errors.",
+        "It removes the need for validation.",
+        "It works only with one provider."
+      ],
+      "answer": 0,
+      "explanation": "Structured outputs make integration and validation more reliable."
+    },
+    {
+      "question": "What should observability logs include for debugging LLM workflows?",
+      "options": [
+        "Only final answers.",
+        "Prompts, retrieved context, tool calls, outputs, and errors.",
+        "Only latency numbers.",
+        "Only model name and temperature."
+      ],
+      "answer": 1,
+      "explanation": "End-to-end tracing is needed to locate root causes across components."
+    },
+    {
+      "question": "What is a common safety practice for tool-enabled agents?",
+      "options": [
+        "Skip input schemas for faster execution.",
+        "Grant full write access by default.",
+        "Limit tool scope and enforce permission policies.",
+        "Disable error handling to expose raw traces."
+      ],
+      "answer": 2,
+      "explanation": "Tool guardrails reduce risk from incorrect or unsafe model decisions."
+    },
+    {
+      "question": "How should provider changes be handled in a LangChain app?",
+      "options": [
+        "Remove retrieval before migrating providers.",
+        "Hardcode one provider forever.",
+        "Switch providers without retesting.",
+        "Use shared interfaces and evaluate behavior changes with tests and traces."
+      ],
+      "answer": 3,
+      "explanation": "Shared interfaces help portability, but behavior must still be evaluated."
+    }
+  ]
+}

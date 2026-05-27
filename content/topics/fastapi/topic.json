@@ -1,0 +1,108 @@
+{
+  "id": "fastapi",
+  "track": "Backend",
+  "title": "FastAPI",
+  "level": "Intermediate",
+  "intro": "FastAPI is a modern Python web framework for building HTTP APIs with clear contracts. You define routes with decorators, describe input/output models using type hints and Pydantic, and get automatic OpenAPI docs. For interviews and real projects, the key is understanding how requests are parsed, validated, routed, and returned with correct status codes.",
+  "mental_model": "A request enters the app with method, path, headers, query values, and optional body. FastAPI finds the route, parses parameters by type hints, validates body models, executes the handler, and serializes the response. Dependencies supply shared concerns like auth or database sessions. OpenAPI docs are generated from this same typed contract.",
+  "syntax": "from fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass UserCreate(BaseModel):\n    name: str\n    email: str\n\n@app.post('/users', status_code=201)\ndef create_user(user: UserCreate):\n    if '@' not in user.email:\n        raise HTTPException(status_code=422, detail='invalid email')\n    return {'id': 1, 'name': user.name, 'email': user.email}",
+  "example": "from fastapi import Depends, FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass TicketIn(BaseModel):\n    title: str\n    priority: int\n\ndef get_current_user():\n    return {'id': 'u-101', 'role': 'engineer'}\n\n@app.post('/tickets', status_code=201)\ndef create_ticket(payload: TicketIn, user=Depends(get_current_user)):\n    return {\n        'ticket_id': 't-1',\n        'created_by': user['id'],\n        'title': payload.title,\n        'priority': payload.priority,\n    }",
+  "must_know": [
+    "Path parameters identify resources, query parameters filter requests, and body models carry structured payloads.",
+    "Pydantic models validate request/response data and power API schema generation.",
+    "Status codes must reflect outcome semantics, not just success/failure strings.",
+    "Dependencies are the standard way to inject shared concerns (auth, DB sessions, config).",
+    "HTTPException is used for explicit API errors with meaningful status codes and detail.",
+    "OpenAPI docs are auto-generated and should stay aligned with your route contracts."
+  ],
+  "common_traps": [
+    "Returning status code 200 for create/update/delete outcomes that need clearer semantics.",
+    "Mixing business logic directly into route handlers until they become untestable.",
+    "Ignoring 422 validation details and returning generic error messages.",
+    "Blocking inside async handlers with synchronous I/O calls.",
+    "Creating endpoints without consistent request/response models."
+  ],
+  "interview": [
+    "Explain the difference between path, query, and body parameters with examples.",
+    "Show how Pydantic validation and FastAPI 422 responses work together.",
+    "Discuss route design with clear status codes and error handling.",
+    "Describe how dependencies improve testability and code organization.",
+    "Explain how OpenAPI docs are generated and why that matters for teams."
+  ],
+  "docs": [
+    {
+      "label": "FastAPI Tutorial",
+      "url": "https://fastapi.tiangolo.com/tutorial/"
+    },
+    {
+      "label": "FastAPI Path Parameters",
+      "url": "https://fastapi.tiangolo.com/tutorial/path-params/"
+    },
+    {
+      "label": "FastAPI Query Parameters",
+      "url": "https://fastapi.tiangolo.com/tutorial/query-params/"
+    },
+    {
+      "label": "FastAPI Request Body",
+      "url": "https://fastapi.tiangolo.com/tutorial/body/"
+    },
+    {
+      "label": "FastAPI Handling Errors",
+      "url": "https://fastapi.tiangolo.com/tutorial/handling-errors/"
+    },
+    {
+      "label": "FastAPI Dependencies",
+      "url": "https://fastapi.tiangolo.com/tutorial/dependencies/"
+    },
+    {
+      "label": "FastAPI Response Model",
+      "url": "https://fastapi.tiangolo.com/tutorial/response-model/"
+    }
+  ],
+  "real_world": [
+    "A service endpoint such as `/incidents/{id}` combines path parameters, query flags, and validated body updates while returning clear HTTP codes for each outcome.",
+    "Teams use dependencies to inject auth, request-scoped database sessions, and settings so route functions stay small and easy to test.",
+    "Auto-generated OpenAPI docs reduce integration friction for frontend, QA, and other backend consumers."
+  ],
+  "outcome": "By the end of this topic, you should be able to design and explain a FastAPI route from request parsing to validated response, choose correct status codes, handle errors cleanly, and structure routes using dependencies and models.",
+  "lesson_sections": [
+    {
+      "title": "1. FastAPI Request Lifecycle",
+      "body": "Each request carries method, URL path, query string, headers, and optional body. FastAPI matches the route, parses typed parameters, validates body models, calls your handler, and serializes the result. Understanding this lifecycle helps you debug 404, 422, and response-shape issues quickly.",
+      "source_label": "FastAPI Tutorial",
+      "source_url": "https://fastapi.tiangolo.com/tutorial/"
+    },
+    {
+      "title": "2. Path and Query Parameters",
+      "body": "Path parameters identify which resource is targeted (`/users/{user_id}`), while query parameters modify or filter behavior (`?limit=20&active=true`). FastAPI converts and validates these values using type hints, so invalid inputs are caught before business logic runs.",
+      "source_label": "FastAPI Path Parameters",
+      "source_url": "https://fastapi.tiangolo.com/tutorial/path-params/"
+    },
+    {
+      "title": "3. Request Body with Pydantic",
+      "body": "For structured payloads, define Pydantic models and use them as function parameters. FastAPI parses JSON into model instances and returns structured validation errors when input is invalid. This gives you trustworthy data objects inside handlers.",
+      "source_label": "FastAPI Request Body",
+      "source_url": "https://fastapi.tiangolo.com/tutorial/body/"
+    },
+    {
+      "title": "4. Response Models and Status Codes",
+      "body": "A good API makes responses predictable. Use response models to control output structure and `status_code` to communicate outcomes clearly (for example, 201 for creation, 404 for missing resources). Consistency here improves API usability and testability.",
+      "source_label": "FastAPI Response Model",
+      "source_url": "https://fastapi.tiangolo.com/tutorial/response-model/"
+    },
+    {
+      "title": "5. Dependencies for Shared Concerns",
+      "body": "Dependencies let you reuse logic for authentication, database sessions, and configuration without duplicating code in every route. This keeps handlers focused on request intent and business workflow rather than setup boilerplate.",
+      "source_label": "FastAPI Dependencies",
+      "source_url": "https://fastapi.tiangolo.com/tutorial/dependencies/"
+    },
+    {
+      "title": "6. Error Handling and OpenAPI Docs",
+      "body": "Use HTTPException for explicit API errors with clear status and detail. FastAPI also generates OpenAPI documentation from routes, models, and metadata, so design choices in code directly shape your API contract for consumers.",
+      "source_label": "FastAPI Handling Errors",
+      "source_url": "https://fastapi.tiangolo.com/tutorial/handling-errors/"
+    }
+  ],
+  "lesson_path": "content/topics/fastapi/lesson.md",
+  "quality_status": "reference"
+}

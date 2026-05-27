@@ -1,0 +1,100 @@
+{
+  "id": "python-devops",
+  "track": "DevOps",
+  "title": "Python for DevOps",
+  "level": "Intermediate",
+  "intro": "Python for DevOps is about building safe, repeatable automation for operational workflows. Scripts should validate input, inspect current state, plan changes, and report actions clearly. This topic focuses on automation design habits that work in real environments, not only toy scripts.",
+  "mental_model": "Treat automation as a controlled pipeline: load config -> validate -> inspect environment -> compute plan -> execute or dry-run -> record results -> fail safely. Operational code must be observable, idempotent where possible, and careful with side effects.",
+  "syntax": "from pathlib import Path\nimport json\nimport subprocess\n\ncfg = json.loads(Path('deploy.json').read_text())\ncmd = ['python', '--version']\nresult = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False)\nprint(result.returncode)",
+  "example": "A deployment helper can parse environment config, validate required keys, produce a dry-run action list, and execute only approved steps. After execution it emits a structured summary with successes, skips, and failures.",
+  "must_know": [
+    "Use structured config parsing instead of ad-hoc string parsing where possible.",
+    "Use subprocess with argument lists, explicit timeouts, return-code checks, and captured output.",
+    "Use pathlib for cross-platform path handling.",
+    "Design scripts for idempotency and dry-run planning before write actions.",
+    "Log decisions and outcomes so operators can audit behavior.",
+    "Separate planning logic from execution logic for testability and safety."
+  ],
+  "common_traps": [
+    "Concatenating shell commands with untrusted input.",
+    "Running destructive actions without dry-run or confirmation path.",
+    "Assuming environment variables or files always exist.",
+    "Ignoring partial failures in multi-step automation.",
+    "Hardcoding secrets or environment-specific paths."
+  ],
+  "interview": [
+    "Explain safe subprocess usage and why list arguments matter.",
+    "Describe idempotency and dry-run patterns with concrete examples.",
+    "Show how to validate config before running actions.",
+    "Explain how to log and summarize operational outcomes.",
+    "Discuss when Python automation is better than shell scripts."
+  ],
+  "docs": [
+    {
+      "label": "Python Docs: subprocess",
+      "url": "https://docs.python.org/3/library/subprocess.html"
+    },
+    {
+      "label": "Python Docs: pathlib",
+      "url": "https://docs.python.org/3/library/pathlib.html"
+    },
+    {
+      "label": "Python Docs: logging",
+      "url": "https://docs.python.org/3/library/logging.html"
+    },
+    {
+      "label": "Docker Docs: Engine SDKs",
+      "url": "https://docs.docker.com/reference/api/engine/sdk/"
+    },
+    {
+      "label": "Ansible Docs: Playbooks",
+      "url": "https://docs.ansible.com/projects/ansible-core/devel/playbook_guide/playbooks_intro.html"
+    }
+  ],
+  "real_world": [
+    "Release automation often builds a plan first, runs prechecks, then executes approved steps with detailed logs and rollback hints.",
+    "Operations teams prefer idempotent scripts because repeated runs should converge safely rather than duplicate risky actions.",
+    "Python automation is often paired with CI/CD pipelines to validate config and environment assumptions before deployment."
+  ],
+  "outcome": "By the end of this topic, you should be able to design a small but production-minded automation flow with validation, dry-run behavior, controlled execution, and structured reporting.",
+  "lesson_sections": [
+    {
+      "title": "1. Operational Automation Mindset",
+      "body": "Operational scripts should be predictable under stress. Design with clear inputs, explicit outputs, and visible failure behavior. Automation should reduce risk, not hide it.",
+      "source_label": "Python Docs: logging",
+      "source_url": "https://docs.python.org/3/library/logging.html"
+    },
+    {
+      "title": "2. Configuration and Path Handling",
+      "body": "Use structured config files and environment variables deliberately. Path handling with pathlib avoids OS-specific bugs and fragile string concatenation patterns.",
+      "source_label": "Python Docs: pathlib",
+      "source_url": "https://docs.python.org/3/library/pathlib.html"
+    },
+    {
+      "title": "3. Safe Command Execution",
+      "body": "subprocess.run with argument lists, timeouts, and return-code checks is a baseline safety pattern. Avoid unchecked shell execution and ensure command outcomes are captured for diagnostics.",
+      "source_label": "Python Docs: subprocess",
+      "source_url": "https://docs.python.org/3/library/subprocess.html"
+    },
+    {
+      "title": "4. Idempotency and Dry Run Design",
+      "body": "Good automation can run repeatedly without causing unintended duplicate effects. Dry-run mode should show planned actions before changes happen, especially for high-impact workflows.",
+      "source_label": "Ansible Docs: Playbooks",
+      "source_url": "https://docs.ansible.com/projects/ansible-core/devel/playbook_guide/playbooks_intro.html"
+    },
+    {
+      "title": "5. Integrating with Infrastructure Tools",
+      "body": "Python scripts often orchestrate APIs and tools such as Docker engines, cloud services, and CI jobs. Keep integration layers narrow, validated, and well logged.",
+      "source_label": "Docker Docs: Engine SDKs",
+      "source_url": "https://docs.docker.com/reference/api/engine/sdk/"
+    },
+    {
+      "title": "6. Observability and Failure Reporting",
+      "body": "Record what was checked, what changed, what failed, and why. Structured summaries make handoffs easier and reduce confusion during incident response and deployment reviews.",
+      "source_label": "Python Docs: logging",
+      "source_url": "https://docs.python.org/3/library/logging.html"
+    }
+  ],
+  "lesson_path": "content/topics/python-devops/lesson.md",
+  "quality_status": "reference"
+}

@@ -1,0 +1,93 @@
+{
+  "id": "rag-vectors",
+  "track": "AI Apps",
+  "title": "RAG, Embeddings, and Vector DBs",
+  "level": "Intermediate",
+  "intro": "Retrieval-Augmented Generation (RAG) improves answer quality by grounding model responses in retrieved context. You index documents as embeddings, retrieve relevant chunks for each query, then generate answers using that evidence. Good RAG is not only about vector search; it also depends on chunking strategy, metadata filters, reranking, citation discipline, and systematic evaluation.",
+  "mental_model": "Pipeline view: ingest documents -> chunk text -> create embeddings -> store vectors + metadata -> embed query -> retrieve candidate chunks -> rerank/filter -> build grounded prompt -> generate answer with citations -> evaluate retrieval and answer quality.",
+  "syntax": "documents -> chunks -> embeddings -> vector index\nquery -> embedding -> top-k retrieval -> rerank/filter -> context pack\ncontext + question -> model -> answer + citations",
+  "example": "A policy assistant can index onboarding documents and incident runbooks. At query time it retrieves top-k chunks with metadata filters (team, date, source), reranks by relevance, and returns an answer with source references and confidence notes.",
+  "must_know": [
+    "Embeddings map text meaning into numeric vectors for semantic similarity search.",
+    "Chunking strategy controls retrieval granularity, context coherence, and token cost.",
+    "Metadata fields (source, section, date, product) are critical for filtering and citations.",
+    "Top-k vector similarity is a candidate set, not always the final best context.",
+    "Reranking can improve final context quality before generation.",
+    "RAG reduces hallucination risk but does not eliminate it.",
+    "Evaluation must measure both retrieval quality and answer quality."
+  ],
+  "common_traps": [
+    "Using arbitrary chunk sizes without measuring retrieval outcomes.",
+    "Not storing source metadata, making citation and debugging difficult.",
+    "Assuming high cosine similarity always means useful answer context.",
+    "Skipping reranking when retrieved chunks are noisy.",
+    "Evaluating only fluent answers instead of checking evidence correctness."
+  ],
+  "interview": [
+    "Explain the full RAG pipeline from ingestion to grounded generation.",
+    "Discuss chunk-size tradeoffs and metadata design.",
+    "Describe retrieval debugging steps when answers are wrong.",
+    "Explain why reranking can outperform raw top-k similarity.",
+    "Show how you would evaluate RAG with benchmark queries and expected sources."
+  ],
+  "docs": [
+    {
+      "label": "OpenAI Embeddings Guide",
+      "url": "https://platform.openai.com/docs/guides/embeddings"
+    },
+    {
+      "label": "LangChain Retrieval Concepts",
+      "url": "https://docs.langchain.com/oss/python/concepts/retrieval"
+    },
+    {
+      "label": "LangChain Retrieval",
+      "url": "https://docs.langchain.com/oss/python/langchain/retrieval"
+    }
+  ],
+  "real_world": [
+    "Internal support assistants use metadata filters to avoid mixing documents from different products or outdated policy versions.",
+    "Teams track retrieval hit rate and citation correctness because polished prose can still be factually wrong.",
+    "Production RAG systems often add reranking and fallback prompts when retrieval confidence is weak."
+  ],
+  "outcome": "By the end of this topic, you should be able to design a RAG workflow with sensible chunking and metadata strategy, explain how retrieval influences answer quality, and evaluate failures with evidence-focused debugging.",
+  "lesson_sections": [
+    {
+      "title": "1. What RAG Adds to LLM Workflows",
+      "body": "RAG injects external context at inference time. Instead of relying only on model pretraining, the system retrieves relevant passages from your indexed corpus and grounds responses in that evidence.",
+      "source_label": "LangChain Retrieval Concepts",
+      "source_url": "https://docs.langchain.com/oss/python/concepts/retrieval"
+    },
+    {
+      "title": "2. Embeddings and Semantic Search",
+      "body": "Embeddings represent semantic content as vectors, enabling similarity-based retrieval. Query and document chunks are embedded in the same vector space so nearest-neighbor search can identify likely relevant context.",
+      "source_label": "OpenAI Embeddings Guide",
+      "source_url": "https://platform.openai.com/docs/guides/embeddings"
+    },
+    {
+      "title": "3. Chunking and Metadata Design",
+      "body": "Chunking controls how information is segmented for retrieval. Good chunks preserve local meaning and include metadata for source tracing, filtering, and citation. Poor chunking can break context continuity or add noise.",
+      "source_label": "LangChain Retrieval",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/retrieval"
+    },
+    {
+      "title": "4. Retrieval, Filters, and Reranking",
+      "body": "Initial vector search returns candidates, not guaranteed best answers. Metadata filters narrow scope, and reranking improves ordering by query intent. This step often determines whether final responses are trustworthy.",
+      "source_label": "LangChain Retrieval Concepts",
+      "source_url": "https://docs.langchain.com/oss/python/concepts/retrieval"
+    },
+    {
+      "title": "5. Grounded Generation and Citations",
+      "body": "Generated answers should be tied to retrieved evidence. Citation-aware prompting and response formatting help users verify claims and help developers debug unsupported statements.",
+      "source_label": "LangChain Retrieval",
+      "source_url": "https://docs.langchain.com/oss/python/langchain/retrieval"
+    },
+    {
+      "title": "6. Evaluation and Failure Analysis",
+      "body": "Evaluate RAG with benchmark questions, expected sources, and answer scoring. When answers fail, inspect retrieval candidates, chunk boundaries, metadata filters, and prompt instructions before changing model settings.",
+      "source_label": "LangChain Retrieval Concepts",
+      "source_url": "https://docs.langchain.com/oss/python/concepts/retrieval"
+    }
+  ],
+  "lesson_path": "content/topics/rag-vectors/lesson.md",
+  "quality_status": "reference"
+}

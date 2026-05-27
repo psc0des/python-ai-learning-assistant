@@ -1,0 +1,105 @@
+{
+  "id": "python-basics",
+  "track": "Python Core",
+  "title": "Python Basics",
+  "level": "Beginner",
+  "intro": "Python is popular because it is approachable, expressive, and practical for real work. Its high-level data structures, readable syntax, dynamic typing, and interpreted workflow make it strong for scripting and rapid development. Python Basics is where you build the execution mental model that makes all of that usable: expressions, assignment, control flow, sequences, and functions. This foundation is what makes later topics like APIs, automation, and AI tooling understandable rather than overwhelming.",
+  "mental_model": "A Python program runs statement by statement from top to bottom. Expressions produce values. Assignment binds names to those values. Indentation defines which statements belong to each block. Conditionals choose one path. Loops repeat a block. Functions create reusable units with local scope and optional return values. If this execution model is clear, debugging becomes much easier.",
+  "syntax": "price = 100.50\ntax_rate = 12.5 / 100\ntotal = round(price + price * tax_rate, 2)\n\nname = 'Ada Lovelace'\ninitials = name[0] + name[4]\n\nscores = [72, 88, 91]\nscores.append(95)\n\nif total > 100:\n    label = 'review'\nelif total == 100:\n    label = 'exact'\nelse:\n    label = 'ok'\n\nfor score in scores:\n    print(score)\n\nfor index in range(len(scores)):\n    scores[index] = scores[index] + 1\n\ndef passed(score, cutoff=60):\n    return score >= cutoff",
+  "example": "def summarize_cart(prices, tax_rate):\n    subtotal = sum(prices)\n    tax = subtotal * tax_rate\n    total = round(subtotal + tax, 2)\n\n    if total >= 100:\n        status = 'manager_review'\n    else:\n        status = 'approved'\n\n    return {\n        'item_count': len(prices),\n        'subtotal': subtotal,\n        'tax': round(tax, 2),\n        'total': total,\n        'status': status,\n    }\n\nprint(summarize_cart([19.99, 35.50, 12.00], 0.08))",
+  "must_know": [
+    "The interpreter can evaluate expressions immediately; this is useful for learning, debugging, and checking assumptions.",
+    "`/` returns a float, `//` performs floor division, `%` returns a remainder, and `**` performs exponentiation.",
+    "`=` binds a name to a value. Reading a name before assignment raises `NameError`.",
+    "Strings are immutable sequences. You can index and slice them, but you create a new string when you need a changed value.",
+    "Lists are mutable sequences. Indexing returns an item, slicing returns a new list, and methods like `append()` change the list.",
+    "`if`, `elif`, and `else` select a path. `for` loops iterate over the items of a sequence or other iterable.",
+    "`range()` creates an iterable progression of numbers. Its stop value is excluded.",
+    "`def` creates a function object. Function bodies are indented, parameters become local names, and `return` sends a value back to the caller."
+  ],
+  "common_traps": [
+    "Assuming `17 / 3` returns an integer. In Python, `/` returns a float; use `//` for floor division.",
+    "Trying to modify a character inside a string. Strings are immutable, so build a new string instead.",
+    "Using an index that is outside the sequence length, which raises `IndexError`.",
+    "Changing a collection while iterating over the same collection without understanding the side effects.",
+    "Forgetting that `range(5)` produces 0, 1, 2, 3, 4 and does not include 5.",
+    "Printing inside a function when the caller or test expects a returned value."
+  ],
+  "interview": [
+    "Explain assignment as name binding, not as a permanently typed container.",
+    "Trace code by hand: current values, branch conditions, and loop iterations.",
+    "Distinguish immutable operations (new value) from mutable operations (in-place change).",
+    "Use `return` for reusable logic and tests; use `print()` for display/debug visibility.",
+    "Explain common beginner errors in plain language and how to fix them step by step."
+  ],
+  "docs": [
+    {
+      "label": "Python.org",
+      "url": "https://www.python.org/"
+    },
+    {
+      "label": "Python Tutorial",
+      "url": "https://docs.python.org/3/tutorial/index.html"
+    },
+    {
+      "label": "Informal Introduction: Numbers, Text, Lists",
+      "url": "https://docs.python.org/3/tutorial/introduction.html"
+    },
+    {
+      "label": "Control Flow Tools",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html"
+    }
+  ],
+  "real_world": [
+    "A log-processing script reads lines, parses values, skips malformed entries, and builds a summary report. This depends directly on loops, conditions, string handling, and safe defaults.",
+    "A small API helper validates user input, transforms text and numbers, and returns structured results to callers. The same basics control correctness and readability.",
+    "Many production bugs come from basics: wrong index assumptions, mutable-state side effects, or unclear function return behavior."
+  ],
+  "outcome": "By the end of this topic, you should be able to read and explain a short Python script line by line, predict branch and loop behavior, write small testable functions, and fix common beginner mistakes such as NameError, IndexError, indentation issues, and return-vs-print confusion.",
+  "lesson_sections": [
+    {
+      "title": "1. Why Python and How to Approach This Tutorial",
+      "body": "Python is widely used because it combines readability with practical power. The official tutorial positions it as suitable for scripting and fast application development, and notes that the interpreter and standard library are freely available for major platforms. It also clarifies an expectation: this tutorial assumes basic programming familiarity. The best way to learn is hands-on with an interpreter nearby.",
+      "source_label": "Python Tutorial",
+      "source_url": "https://docs.python.org/3/tutorial/index.html"
+    },
+    {
+      "title": "2. Start in the Interpreter",
+      "body": "The official tutorial starts with interpreter usage for a reason: you learn faster by executing one small line at a time and checking results immediately. This builds strong debugging instincts early. Comments begin with # and are ignored by Python unless # appears inside a string literal.",
+      "source_label": "Python Tutorial: Informal Introduction",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html"
+    },
+    {
+      "title": "3. Numbers, Operators, and Variables",
+      "body": "Arithmetic looks familiar, but details matter: / returns float, // is floor division, % returns remainder, and ** is exponentiation. Assignment with = binds names to values. If a name is read before assignment, Python raises NameError. These rules explain many beginner bugs.",
+      "source_label": "Python Tutorial: Numbers",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html#numbers"
+    },
+    {
+      "title": "4. Strings: Read, Slice, Rebuild",
+      "body": "Strings are text sequences. Indexing reads one character; slicing reads a range. Strings are immutable, so updates create new values rather than changing characters in place. Understanding this immutability rule prevents many confusing errors.",
+      "source_label": "Python Tutorial: Text",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html#text"
+    },
+    {
+      "title": "5. Lists: Store and Update Collections",
+      "body": "Lists are ordered, mutable sequences. You can append, replace, and remove elements. Because lists are mutable, a function can change a list object that was passed in. This is useful but can also create side effects if you are not careful.",
+      "source_label": "Python Tutorial: Lists",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html#lists"
+    },
+    {
+      "title": "6. Control Flow: Branches and Loops",
+      "body": "Control flow defines execution path. if/elif/else selects branches. for loops iterate items, and range() provides numeric iteration where stop is excluded. break exits the loop, continue skips to next iteration, and pass is a placeholder statement.",
+      "source_label": "Python Tutorial: Control Flow",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html"
+    },
+    {
+      "title": "7. Functions: Write Once, Reuse Many Times",
+      "body": "Functions package reusable logic with clear inputs and outputs. Parameters receive arguments at call time. return sends results to the caller; without return, Python returns None. For maintainable code and reliable testing, prefer returning values instead of relying only on print output.",
+      "source_label": "Python Tutorial: Defining Functions",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"
+    }
+  ],
+  "lesson_path": "content/topics/python-basics/lesson.md",
+  "quality_status": "reference"
+}

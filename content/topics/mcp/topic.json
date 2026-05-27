@@ -1,0 +1,96 @@
+{
+  "id": "mcp",
+  "track": "AI Apps",
+  "title": "MCP",
+  "level": "Intermediate",
+  "intro": "Model Context Protocol (MCP) is a standard for connecting AI applications to external tools and data in a controlled way. Instead of building custom integrations for every assistant, MCP defines common patterns for discovery, requests, responses, and capability boundaries.",
+  "mental_model": "There is a host application, one or more MCP clients, and MCP servers. Servers expose capabilities such as tools, resources, and prompts. Clients discover what is available, request only needed capabilities, and execute through protocol-defined message flows and permission boundaries.",
+  "syntax": "Host app -> MCP client -> MCP server\n\nCapability types:\n- Tool: callable action with input schema\n- Resource: readable data object\n- Prompt: reusable prompt template\n\nFlow:\ninitialize -> discover capabilities -> call tool/read resource -> receive result",
+  "example": "A local coding assistant can connect to an MCP server that exposes a read-only repository search tool, a documentation resource list, and a structured bug-report prompt. The assistant can retrieve context and propose changes without direct unrestricted filesystem access.",
+  "must_know": [
+    "MCP separates host, client, and server responsibilities.",
+    "Tools are executable actions; resources are data reads; prompts are reusable templates.",
+    "Capability discovery is explicit, not assumed.",
+    "Transport and protocol messages define how requests and responses are exchanged.",
+    "Least privilege and approval flows are required for risky capabilities.",
+    "Logging and auditing tool calls are part of safe production operation."
+  ],
+  "common_traps": [
+    "Treating MCP as a model provider rather than an integration protocol.",
+    "Exposing broad write/delete actions without safeguards.",
+    "Skipping input validation for tool arguments.",
+    "Not tracking which tool call produced which output.",
+    "Combining all permissions into one high-privilege server."
+  ],
+  "interview": [
+    "Explain host vs client vs server roles clearly.",
+    "Differentiate tools, resources, and prompts with practical examples.",
+    "Discuss least privilege and approval gates for dangerous actions.",
+    "Describe how capability discovery improves interoperability.",
+    "Show one real MCP server design you would trust in production."
+  ],
+  "docs": [
+    {
+      "label": "MCP Learn: Architecture",
+      "url": "https://modelcontextprotocol.io/docs/learn/architecture"
+    },
+    {
+      "label": "MCP Learn: Server Concepts",
+      "url": "https://modelcontextprotocol.io/docs/learn/server-concepts"
+    },
+    {
+      "label": "MCP Specification Overview",
+      "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/index"
+    },
+    {
+      "label": "MCP Specification: Lifecycle",
+      "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle"
+    }
+  ],
+  "real_world": [
+    "An enterprise assistant can use separate MCP servers for ticketing, documentation, and inventory, each with different permission profiles.",
+    "Security teams can audit tool invocation logs to review who requested actions, which server executed them, and what outputs were returned.",
+    "Teams can swap host applications while keeping the same MCP servers because protocol contracts stay consistent."
+  ],
+  "outcome": "By the end of this topic, you should be able to explain MCP architecture, design a safe capability surface, and reason about how an assistant discovers and executes tools and resources through protocol contracts.",
+  "lesson_sections": [
+    {
+      "title": "1. MCP Architecture and Roles",
+      "body": "MCP defines how hosts, clients, and servers interact. The host application manages user experience, the client speaks protocol, and the server exposes capabilities. This separation keeps integrations modular and easier to secure.",
+      "source_label": "MCP Learn: Architecture",
+      "source_url": "https://modelcontextprotocol.io/docs/learn/architecture"
+    },
+    {
+      "title": "2. Capability Types: Tools, Resources, Prompts",
+      "body": "Tools run actions, resources provide read access to data, and prompts provide reusable task templates. Understanding these three capability types helps you design integrations with clear intent and predictable behavior.",
+      "source_label": "MCP Learn: Server Concepts",
+      "source_url": "https://modelcontextprotocol.io/docs/learn/server-concepts"
+    },
+    {
+      "title": "3. Initialization and Capability Discovery",
+      "body": "Clients should initialize connections and explicitly discover server capabilities before usage. This allows dynamic integration and safer fallback behavior when capabilities differ across environments.",
+      "source_label": "MCP Specification: Lifecycle",
+      "source_url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle"
+    },
+    {
+      "title": "4. Request/Response Contracts",
+      "body": "MCP operations follow structured message contracts. Tool inputs should match schema expectations, and responses should be machine-parseable for reliable automation. Contract-first design improves interoperability across hosts and SDKs.",
+      "source_label": "MCP Specification Overview",
+      "source_url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/index"
+    },
+    {
+      "title": "5. Security: Least Privilege and Validation",
+      "body": "Each server should expose only necessary capabilities. Validate tool arguments, isolate sensitive operations, and require approval for high-impact actions. Security in MCP is a design choice, not an afterthought.",
+      "source_label": "MCP Learn: Server Concepts",
+      "source_url": "https://modelcontextprotocol.io/docs/learn/server-concepts"
+    },
+    {
+      "title": "6. Observability and Operational Trust",
+      "body": "Reliable MCP usage needs logs for capability discovery, tool calls, failures, and outputs. Good observability allows debugging model behavior and proving that operations stayed within approved boundaries.",
+      "source_label": "MCP Learn: Architecture",
+      "source_url": "https://modelcontextprotocol.io/docs/learn/architecture"
+    }
+  ],
+  "lesson_path": "content/topics/mcp/lesson.md",
+  "quality_status": "reference"
+}

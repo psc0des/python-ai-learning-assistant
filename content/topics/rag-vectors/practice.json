@@ -1,0 +1,93 @@
+{
+  "topic_id": "rag-vectors",
+  "questions": [
+    {
+      "question": "What is the core purpose of embeddings in RAG?",
+      "options": [
+        "Represent semantic meaning for similarity retrieval.",
+        "Encrypt document text.",
+        "Replace all model prompts.",
+        "Generate SQL queries directly."
+      ],
+      "answer": 0,
+      "explanation": "Embeddings enable semantic nearest-neighbor retrieval."
+    },
+    {
+      "question": "Why does chunking strategy matter?",
+      "options": [
+        "It only affects storage size, not quality.",
+        "It impacts retrieval relevance, context coherence, and token cost.",
+        "Chunking is optional in all vector systems.",
+        "Smaller chunks are always best."
+      ],
+      "answer": 1,
+      "explanation": "Chunking controls both recall and precision behavior."
+    },
+    {
+      "question": "Which statement about top-k retrieval is most accurate?",
+      "options": [
+        "Top-k should never use metadata.",
+        "Top-k always returns perfect evidence.",
+        "Top-k gives candidates, which may still need reranking/filtering.",
+        "Top-k eliminates hallucinations fully."
+      ],
+      "answer": 2,
+      "explanation": "Candidate retrieval is one stage, not the final quality guarantee."
+    },
+    {
+      "question": "Why should metadata be stored with vectors?",
+      "options": [
+        "Because embeddings cannot be queried otherwise.",
+        "Only to improve model temperature.",
+        "To remove the need for citations.",
+        "For filtering, source attribution, and debugging retrieval."
+      ],
+      "answer": 3,
+      "explanation": "Metadata is essential for practical, trustworthy retrieval workflows."
+    },
+    {
+      "question": "What does reranking usually improve?",
+      "options": [
+        "Final ordering quality of retrieved evidence.",
+        "Database write throughput.",
+        "Prompt tokenization speed.",
+        "Model context window size."
+      ],
+      "answer": 0,
+      "explanation": "Reranking helps select better context from candidate hits."
+    },
+    {
+      "question": "Does RAG remove hallucinations completely?",
+      "options": [
+        "Yes, always.",
+        "No, it reduces risk but unsupported answers can still happen.",
+        "Only if top-k is 1.",
+        "Only with one specific model provider."
+      ],
+      "answer": 1,
+      "explanation": "Grounding helps but does not guarantee correctness."
+    },
+    {
+      "question": "What should RAG evaluation include?",
+      "options": [
+        "Only latency metrics.",
+        "Only subjective readability scores.",
+        "Expected sources, retrieval quality, and answer correctness checks.",
+        "Only model benchmark numbers."
+      ],
+      "answer": 2,
+      "explanation": "You need evidence-focused metrics, not just fluent outputs."
+    },
+    {
+      "question": "If answers are wrong, what is often the best first debug step?",
+      "options": [
+        "Rewrite the entire app.",
+        "Increase temperature.",
+        "Disable citations.",
+        "Inspect retrieved chunks and metadata filters before prompt tweaks."
+      ],
+      "answer": 3,
+      "explanation": "Many RAG failures originate in retrieval, not generation."
+    }
+  ]
+}

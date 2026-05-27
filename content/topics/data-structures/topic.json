@@ -1,0 +1,89 @@
+{
+  "id": "data-structures",
+  "track": "Python Core",
+  "title": "Lists, Dicts, Sets, Tuples",
+  "level": "Beginner",
+  "intro": "Data structures are how Python programs organize information so later code stays simple. In this topic you will work with lists for ordered data, dictionaries for key-value lookup, sets for uniqueness, and tuples for fixed records. The point is not memorizing container names. The point is learning which structure matches a job so your code is easier to read, test, and extend.",
+  "mental_model": "Choose the structure based on the operation you do most. Need ordered items and updates: list. Need fast lookup by key: dict. Need fast membership and uniqueness: set. Need fixed shape records: tuple. Better structure choices reduce loops, special cases, and bugs.",
+  "syntax": "items = [\"api\", \"worker\", \"db\"]\nitems.append(\"cache\")\n\ncounts = {}\nfor item in items:\n    counts[item] = counts.get(item, 0) + 1\n\nseen = {\"api\", \"db\"}\nneeds_alert = \"worker\" in seen\n\npoint = (12, 48)\n",
+  "example": "def summarize_events(events):\n    severity_count = {}\n    seen_services = set()\n\n    for event in events:\n        severity = event.get(\"severity\", \"unknown\")\n        service = event.get(\"service\", \"unknown\")\n\n        severity_count[severity] = severity_count.get(severity, 0) + 1\n        seen_services.add(service)\n\n    return {\n        \"severity_count\": severity_count,\n        \"services\": sorted(seen_services),\n        \"total\": len(events),\n    }\n",
+  "must_know": [
+    "Lists preserve order and can be changed in place with append, insert, pop, remove, sort, and reverse.",
+    "Dictionary keys must be hashable values, and dict lookups are the default tool for keyed data.",
+    "Sets remove duplicates and support membership checks plus union, intersection, and difference operations.",
+    "Tuples are immutable sequences and are useful when a record shape should not change.",
+    "List and dict comprehensions help express transforms and filtering clearly when used with readable conditions."
+  ],
+  "common_traps": [
+    "Using a list for repeated membership checks when a set is simpler and faster.",
+    "Mutating a list while iterating through that same list without a clear strategy.",
+    "Assuming set order is stable business logic.",
+    "Forgetting that dict key access with brackets raises KeyError when the key is missing.",
+    "Using mutable values carelessly when an immutable tuple would express intent better."
+  ],
+  "interview": [
+    "Explain why a set is usually better than a list for membership checks.",
+    "Use a dictionary for counting patterns and grouped aggregation.",
+    "Know when slicing creates a new list versus when methods mutate in place.",
+    "Explain practical tuple use cases, not only textbook definitions."
+  ],
+  "docs": [
+    {
+      "label": "Python Tutorial: Data Structures",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html"
+    },
+    {
+      "label": "Python Tutorial: More on Lists",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists"
+    },
+    {
+      "label": "Python Tutorial: Looping Techniques",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#looping-techniques"
+    }
+  ],
+  "real_world": [
+    "A monitoring job can use dictionaries for counts, sets for unique hosts, and lists for sorted timeline output.",
+    "API handlers often parse JSON into dict objects, then reshape data using list comprehensions and set cleanup."
+  ],
+  "outcome": "By the end of this topic, you should be able to choose the right core container for a task, write simple transformations with loops or comprehensions, and explain the tradeoffs behind your choice.",
+  "lesson_sections": [
+    {
+      "title": "1. Lists and Common List Methods",
+      "body": "Lists are ordered and mutable. Use them when item order matters or when you need to append, remove, or reorder values. Learn the most common methods first: append, extend, insert, remove, pop, clear, index, count, sort, reverse, and copy. Also learn which methods mutate the list versus return new values.",
+      "source_label": "Python Tutorial: More on Lists",
+      "source_url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists"
+    },
+    {
+      "title": "2. List Comprehensions and Nested Comprehensions",
+      "body": "List comprehensions let you transform or filter data in one readable expression. They are great for simple conversions, but readability still matters. Keep each comprehension short and explicit. For complex logic, write a normal loop with clear names.",
+      "source_label": "Python Tutorial: List Comprehensions",
+      "source_url": "https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions"
+    },
+    {
+      "title": "3. Tuples, Sequence Packing, and Unpacking",
+      "body": "Tuples are immutable sequences and often represent fixed-shape records. Python also supports packing and unpacking, which makes multiple assignments and returning grouped values clean. Use tuples when data should be stable and self-contained.",
+      "source_label": "Python Tutorial: Tuples and Sequences",
+      "source_url": "https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences"
+    },
+    {
+      "title": "4. Sets for Uniqueness and Membership",
+      "body": "Sets are built for uniqueness and fast membership tests. They also support math-like operations such as union, intersection, difference, and symmetric difference. When duplicate removal or membership checks dominate your logic, sets are usually the cleanest choice.",
+      "source_label": "Python Tutorial: Sets",
+      "source_url": "https://docs.python.org/3/tutorial/datastructures.html#sets"
+    },
+    {
+      "title": "5. Dictionaries for Keyed Data",
+      "body": "Dictionaries map keys to values and are the default structure for structured records, counters, and grouped data. Learn key access, updates, safe reads with get, and iteration through keys, values, and key-value pairs. Dict comprehensions help for predictable transforms.",
+      "source_label": "Python Tutorial: Dictionaries",
+      "source_url": "https://docs.python.org/3/tutorial/datastructures.html#dictionaries"
+    },
+    {
+      "title": "6. Looping Techniques and Comparison Behavior",
+      "body": "Python provides readable looping tools like enumerate, zip, sorted, and reversed. You should know when each helps clarity. You should also understand sequence comparison behavior, because comparing lists or tuples can be useful but surprising when types or order differ.",
+      "source_label": "Python Tutorial: Looping Techniques",
+      "source_url": "https://docs.python.org/3/tutorial/datastructures.html#looping-techniques"
+    }
+  ],
+  "lesson_path": "content/topics/data-structures/lesson.md",
+  "quality_status": "reference"
+}
