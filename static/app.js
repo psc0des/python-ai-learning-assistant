@@ -444,7 +444,7 @@ async function runCode() {
 // AI Coach
 // ---------------------------------------------------------------------------
 
-async function askAiCoach(questionOverride = "") {
+async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
   const question = questionOverride || els.coachInput.value.trim() || "Please review my current code and test result. Explain what I should learn next.";
   appendCoachMessage("user", question);
   els.coachInput.value = "";
@@ -453,7 +453,7 @@ async function askAiCoach(questionOverride = "") {
   els.explainBtn.disabled = true;
 
   let runResult = lastRunResult;
-  if (!runResult && selectedExercise) {
+  if (!runResult && selectedExercise && !skipAutoRun) {
     els.testOutput.textContent = "Running local tests before coach review...";
     const response = await fetch("/api/run", {
       method: "POST",
@@ -844,7 +844,7 @@ function _ensurePopover() {
     setActiveTopicSection("labsSection");
     setTimeout(() => {
       els.coachInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      askAiCoach(question);
+      askAiCoach(question, { skipAutoRun: true });
     }, 60);
   });
 
@@ -896,7 +896,7 @@ document.addEventListener("selectionchange", () => {
   }
 });
 
-window.addEventListener("scroll", _hideSelectionPopover, { passive: true });
+document.addEventListener("scroll", _hideSelectionPopover, { passive: true, capture: true });
 
 // ---------------------------------------------------------------------------
 // Init
