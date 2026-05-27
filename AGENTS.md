@@ -154,6 +154,8 @@ The AI Coach supports:
 
 Google AI Studio uses a non-OpenAI API format (`system_instruction` / `contents` / `generationConfig`). Grok and Groq are OpenAI-compatible.
 
+Each AI reply shows a stats line below the message content: model name, output token count, input token count, tok/s, and elapsed seconds. Ollama uses native `eval_duration` for accurate tok/s on CPU. Groq uses `usage.completion_time`. All others use server wall time.
+
 Selecting any text on the page (except inside the code editor or input fields) shows a floating Ask AI button. Clicking it switches to the Labs tab and sends the selected text as a question to the coach. The coach works without a loaded exercise in this mode — no code context is sent, just the topic and the question.
 
 The app should work without AI configured. Local tests and built-in feedback should remain useful even when no provider is connected.

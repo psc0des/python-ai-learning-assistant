@@ -231,6 +231,8 @@ Each topic is organized as:
 
 The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — clicking it switches to the Labs tab and sends the selection as a question to the coach.
 
+Each AI reply shows a small stats line below the response: model name, output tokens, input tokens, tok/s, and elapsed time. This is useful for comparing local Ollama speed against cloud providers.
+
 ## Theme Behavior
 
 Dark mode is currently disabled/removed. The UI runs in a single warm light theme so visual contrast and readability stay consistent across pages.
