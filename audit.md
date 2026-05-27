@@ -499,3 +499,60 @@ A topic is not done unless all of this is true:
 
 Your juniors have built a useful local learning shell, but they have not built a strong curriculum system yet. The current app passes tests because the tests are too forgiving. The next fix should not be "add more text to `curriculum.py`." The next fix should be to create a proper content architecture with source mapping, objective coverage, and quality gates, then upgrade topics one by one using Python Basics as the reference standard.
 
+---
+
+## Follow-Up: Content Enrichment Pass (2026-05-27)
+
+The P0 curriculum depth finding (shallow lesson sections) was addressed in a full content rewrite pass.
+
+**What changed:**
+
+- All 14 `content/topics/*/topic.json` files rewritten. Each topic now has 6 lesson sections following a consistent pattern: layman analogy → technical explanation → beginner code example → professional/production code example → key rules or traps.
+- All 14 `content/topics/*/lesson.md` files rewritten to match the enriched `topic.json` content with full markdown formatting.
+- `static/app.js` — added `renderLessonMarkdown()` function supporting code fences, inline code, bold, and paragraph breaks. `renderLessonSections()` now uses this renderer via `<div class="section-body">`.
+- `static/styles.css` — added `.section-body`, `.lesson-code` styles for multi-paragraph lesson cards.
+- `AGENTS.md` — updated "Current Content Status" to reflect all 14 topics at reference quality.
+
+**Findings still open (not addressed in this pass):**
+
+- Labs: most topics still have 2 labs (below the stated 5-lab minimum). Python Basics is the only topic at 5 labs.
+- Practice questions: most topics still have 5 questions (below the stated 8-question minimum). Python Basics has 8.
+- Content quality gates (test_content_quality.py) not yet implemented.
+- AI Coach is still not grounded in lesson section content or objectives.
+- Topic scope issues (sql-http-git, rag-vectors, python-devops being overly broad) are not resolved.
+- Source registry (sources.json) exists but section-level `source_refs` with objective mapping not yet implemented.
+
+**Next priority:** expand labs to 5+ per topic and practice questions to 8+ per topic, starting with the Python Core track.
+
+---
+
+## Follow-Up: Scratchpad, Popup, and Tone Pass (2026-05-28)
+
+**What changed:**
+
+**UI — Python Scratchpad:**
+- `static/index.html` — added `#scratchpad` collapsible panel inside `#lessonSection` (after the study-grid). Dark editor with traffic-light header bar; starts collapsed; toggle by clicking the header.
+- `static/app.js` — added `loadInScratchpad()`, `runScratchpad()` functions; scratchpad toggle/run/clear/Ctrl+Enter/Tab event handlers wired up.
+- `static/styles.css` — added `.scratchpad`, `.scratchpad-header`, `.scratchpad-editor`, `.scratchpad-toolbar`, `.scratchpad-output` styles plus notebook theme overrides.
+- Uses the existing `/api/run` endpoint with no `exercise_id` — zero new backend infrastructure.
+
+**UI — "▶ Try it" code popup:**
+- Every lesson code block now shows a `▶ Try it` button on hover (top-right corner of the block).
+- Clicking opens a fixed-position overlay in the bottom-right of the viewport — page position is fully preserved, no scroll.
+- `static/index.html` — added `#codePopup` element before `</body>`.
+- `static/app.js` — added `openCodePopup()`, `closeCodePopup()`, `runCodePopup()` functions; Escape to close; Tab/Ctrl+Enter keyboard shortcuts.
+- `static/styles.css` — added `.code-popup` and child styles plus notebook theme overrides.
+- `renderLessonMarkdown()` updated to wrap code blocks in `.lesson-code-wrap` with the try-it button embedded as `data-code` attribute.
+
+**Content — label removal:**
+- Stripped `# Layman example:` and `# Professional example:` comment lines from all 14 `topic.json` lesson_sections and `lesson.md` files. Only one stray label existed (in `functions`); the rest were already clean.
+
+**Content — tone refinement:**
+- `python-basics/topic.json` intro rewritten: was a generic "most popular... reads like plain English" opener. Now opens with a concrete automation scenario, names the dynamic-typing tradeoff explicitly, previews exactly what the topic covers.
+- `oop/topic.json` intro rewritten: was a soft "bundle the data and functions" framing. Now opens with a concrete failure scenario (disconnected functions as a codebase grows), explains what a class mechanically solves, and preserves the "when NOT to use it" nuance.
+- 12 other topic intros reviewed and kept unchanged (already at the right register).
+
+**Findings still open:**
+- Labs and practice question counts unchanged (still below 5-lab / 8-question minimum for most topics).
+- AI Coach grounding still not implemented.
+

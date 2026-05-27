@@ -378,9 +378,33 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 
 .lesson-section-card p {
   margin: 0;
-  padding: 12px 16px 10px;
-  line-height: 1.65;
+  padding: 8px 16px 4px;
+  line-height: 1.7;
   color: var(--ink-secondary);
+}
+
+.section-body {
+  padding: 4px 0 6px;
+}
+
+.section-body p:first-child {
+  padding-top: 12px;
+}
+
+.section-body p:last-child {
+  padding-bottom: 10px;
+}
+
+.lesson-code {
+  margin: 10px 16px 12px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 14px 16px;
 }
 
 .section-source {
@@ -395,6 +419,276 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 
 .section-source:hover {
   color: var(--accent-hover);
+}
+
+/* ========================================================================
+   Lesson scratchpad
+   ======================================================================== */
+
+.lesson-code-wrap {
+  position: relative;
+  margin: 10px 16px 12px;
+}
+
+.lesson-code-wrap .lesson-code {
+  margin: 0;
+}
+
+.lesson-try-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--code-ink);
+  cursor: pointer;
+  opacity: 0;
+  transform: none;
+  box-shadow: none;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.lesson-code-wrap:hover .lesson-try-btn,
+.lesson-try-btn:focus-visible {
+  opacity: 1;
+}
+
+.lesson-try-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: none;
+  box-shadow: none;
+}
+
+.scratchpad {
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.scratchpad-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.scratchpad-header:hover {
+  filter: brightness(1.1);
+}
+
+.scratchpad-dots {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.scratchpad-dots span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.scratchpad-dots span:nth-child(1) { background: var(--red); }
+.scratchpad-dots span:nth-child(2) { background: var(--amber); }
+.scratchpad-dots span:nth-child(3) { background: var(--green); }
+
+.scratchpad-label {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.scratchpad-hint {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  opacity: 0.45;
+  flex: 1;
+}
+
+.scratchpad-caret {
+  font-size: 14px;
+  opacity: 0.55;
+  transition: transform 0.2s ease;
+}
+
+.scratchpad-header[aria-expanded="true"] .scratchpad-caret {
+  transform: rotate(180deg);
+}
+
+.scratchpad-editor {
+  width: 100%;
+  min-height: 160px;
+  max-height: 380px;
+  resize: vertical;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 4;
+  display: block;
+}
+
+.scratchpad-editor:focus {
+  outline: none;
+}
+
+.scratchpad-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.scratchpad-toolbar button {
+  font-size: 13px;
+  padding: 5px 14px;
+}
+
+.scratchpad-output {
+  margin: 0;
+  min-height: 56px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 16px;
+  color: var(--code-ink);
+  opacity: 0.85;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  background: var(--code-bg);
+  border-radius: 0;
+}
+
+/* ========================================================================
+   Code try-it popup (fixed overlay)
+   ======================================================================== */
+
+.code-popup {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  z-index: 600;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: popupIn 0.16s ease;
+}
+
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.code-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.code-popup-title {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  opacity: 0.55;
+  flex: 1;
+}
+
+.code-popup-close {
+  padding: 2px 7px;
+  font-size: 13px;
+  font-weight: 400;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  color: var(--code-ink);
+  cursor: pointer;
+  opacity: 0.65;
+  line-height: 1.4;
+  transform: none;
+  box-shadow: none;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.code-popup-close:hover {
+  opacity: 1;
+  background: rgba(180, 40, 40, 0.35);
+  border-color: rgba(200, 60, 60, 0.5);
+  transform: none;
+  box-shadow: none;
+}
+
+.code-popup-editor {
+  width: 100%;
+  min-height: 130px;
+  max-height: 300px;
+  resize: vertical;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 12px 14px;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 4;
+  display: block;
+}
+
+.code-popup-editor:focus {
+  outline: none;
+}
+
+.code-popup-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 7px 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.code-popup-toolbar button {
+  font-size: 12.5px;
+  padding: 4px 12px;
+}
+
+.code-popup-output {
+  margin: 0;
+  min-height: 44px;
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 14px;
+  color: var(--code-ink);
+  opacity: 0.82;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--code-bg);
+  border-radius: 0;
 }
 
 pre {
@@ -1426,6 +1720,45 @@ article h3,
 
 .sidebar {
   padding: 24px;
+}
+
+.scratchpad {
+  border-color: var(--ink);
+  border-radius: 8px;
+}
+
+/* lesson-try-btn lives on dark code-bg — keep its own dark-surface styling */
+.lesson-try-btn,
+.lesson-try-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: var(--code-ink) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.lesson-code-wrap:hover .lesson-try-btn {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+/* code-popup lives on dark code-bg — keep its own dark styling */
+.code-popup {
+  border: 1px solid var(--ink);
+}
+
+.code-popup-close,
+.code-popup-close:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: var(--code-ink) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.code-popup-close:hover {
+  background: rgba(180, 40, 40, 0.35) !important;
+  border-color: rgba(200, 60, 60, 0.5) !important;
 }
 
 .topic-button {

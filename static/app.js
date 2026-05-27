@@ -43,6 +43,19 @@ const els = {
   practiceQuestions: document.querySelector("#practiceQuestions"),
   checkTestBtn: document.querySelector("#checkTestBtn"),
   testResult: document.querySelector("#testResult"),
+  scratchpad: document.querySelector("#scratchpad"),
+  scratchToggle: document.querySelector("#scratchToggle"),
+  scratchBody: document.querySelector("#scratchBody"),
+  scratchEditor: document.querySelector("#scratchEditor"),
+  scratchRunBtn: document.querySelector("#scratchRunBtn"),
+  scratchClearBtn: document.querySelector("#scratchClearBtn"),
+  scratchOutput: document.querySelector("#scratchOutput"),
+  codePopup: document.querySelector("#codePopup"),
+  codePopupClose: document.querySelector("#codePopupClose"),
+  codePopupEditor: document.querySelector("#codePopupEditor"),
+  codePopupRunBtn: document.querySelector("#codePopupRunBtn"),
+  codePopupClearBtn: document.querySelector("#codePopupClearBtn"),
+  codePopupOutput: document.querySelector("#codePopupOutput"),
 };
 
 let lastRunResult = null;
@@ -278,7 +291,7 @@ function renderLessonSections(sections) {
         return `
           <article class="lesson-section-card">
             <h3>${escapeHtml(section.title)}</h3>
-            <p>${escapeHtml(section.body)}</p>
+            <div class="section-body">${renderLessonMarkdown(section.body || '')}</div>
             ${sourceLink}
           </article>
         `;
@@ -689,6 +702,58 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+/** Markdown renderer for lesson section bodies — supports paragraphs, code blocks, inline code, bold. */
+function renderLessonMarkdown(text) {
+  if (!text) return '';
+  const segments = [];
+  const codeBlockRe = /```(?:\w+)?\n?([\s\S]*?)```/g;
+  let lastIdx = 0;
+  let m;
+  while ((m = codeBlockRe.exec(text)) !== null) {
+    if (m.index > lastIdx) segments.push({ type: 'text', content: text.slice(lastIdx, m.index) });
+    segments.push({ type: 'code', content: m[1].replace(/^\n/, '').replace(/\n$/, '') });
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < text.length) segments.push({ type: 'text', content: text.slice(lastIdx) });
+  if (!segments.length) segments.push({ type: 'text', content: text });
+
+  function inlineMarkdown(raw) {
+    let result = '';
+    let remaining = raw;
+    while (remaining.length > 0) {
+      const btIdx = remaining.indexOf('`');
+      const boldIdx = remaining.indexOf('**');
+      let nextIdx = -1, nextType = null;
+      if (btIdx !== -1 && (boldIdx === -1 || btIdx < boldIdx)) { nextIdx = btIdx; nextType = 'code'; }
+      else if (boldIdx !== -1) { nextIdx = boldIdx; nextType = 'bold'; }
+      if (nextIdx === -1) { result += escapeHtml(remaining); break; }
+      result += escapeHtml(remaining.slice(0, nextIdx));
+      remaining = remaining.slice(nextIdx);
+      if (nextType === 'code') {
+        const end = remaining.indexOf('`', 1);
+        if (end !== -1) { result += `<code class="inline-code">${escapeHtml(remaining.slice(1, end))}</code>`; remaining = remaining.slice(end + 1); }
+        else { result += escapeHtml(remaining[0]); remaining = remaining.slice(1); }
+      } else {
+        const end = remaining.indexOf('**', 2);
+        if (end !== -1) { result += `<strong>${escapeHtml(remaining.slice(2, end))}</strong>`; remaining = remaining.slice(end + 2); }
+        else { result += escapeHtml(remaining.slice(0, 2)); remaining = remaining.slice(2); }
+      }
+    }
+    return result;
+  }
+
+  let html = '';
+  for (const seg of segments) {
+    if (seg.type === 'code') {
+      html += `<div class="lesson-code-wrap"><pre class="lesson-code"><code>${escapeHtml(seg.content)}</code></pre><button type="button" class="lesson-try-btn" data-code="${escapeHtml(seg.content)}" title="Load in scratchpad">&#9654; Try it</button></div>`;
+    } else {
+      const paras = seg.content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+      for (const para of paras) html += `<p>${inlineMarkdown(para)}</p>`;
+    }
+  }
+  return html || `<p>${escapeHtml(text)}</p>`;
+}
+
 /** Simple markdown-like rendering for coach messages. */
 function renderMarkdown(text) {
   let html = escapeHtml(text);
@@ -703,6 +768,92 @@ function renderMarkdown(text) {
   // Line breaks
   html = html.replace(/\n/g, '<br>');
   return html;
+}
+
+// ---------------------------------------------------------------------------
+// Scratchpad
+// ---------------------------------------------------------------------------
+
+function loadInScratchpad(code) {
+  if (els.scratchBody.hidden) {
+    els.scratchBody.hidden = false;
+    els.scratchToggle.setAttribute("aria-expanded", "true");
+  }
+  els.scratchEditor.value = code;
+  els.scratchOutput.textContent = "Ready.";
+  els.scratchEditor.focus();
+  els.scratchpad.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function runScratchpad() {
+  const code = els.scratchEditor.value.trim();
+  if (!code) return;
+  els.scratchOutput.textContent = "Running…";
+  els.scratchRunBtn.disabled = true;
+  els.scratchRunBtn.textContent = "Running…";
+  try {
+    const response = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const result = await response.json();
+    const parts = [];
+    if (result.stdout) parts.push(result.stdout);
+    if (result.stderr) parts.push(`[stderr]\n${result.stderr}`);
+    if (result.error) parts.push(`[error] ${result.error}`);
+    els.scratchOutput.textContent = parts.join("\n").trimEnd() || "(no output)";
+  } catch (err) {
+    els.scratchOutput.textContent = `Could not reach runner: ${err}`;
+  } finally {
+    els.scratchRunBtn.disabled = false;
+    els.scratchRunBtn.textContent = "▶ Run";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Code try-it popup
+// ---------------------------------------------------------------------------
+
+function openCodePopup(code) {
+  els.codePopupEditor.value = code;
+  els.codePopupOutput.textContent = "Ready.";
+  els.codePopup.hidden = false;
+  // Force animation replay
+  els.codePopup.classList.remove("popup-animating");
+  void els.codePopup.offsetWidth;
+  els.codePopup.classList.add("popup-animating");
+  els.codePopupEditor.focus();
+}
+
+function closeCodePopup() {
+  els.codePopup.hidden = true;
+}
+
+async function runCodePopup() {
+  const code = els.codePopupEditor.value.trim();
+  if (!code) return;
+  els.codePopupOutput.textContent = "Running…";
+  els.codePopupRunBtn.disabled = true;
+  els.codePopupRunBtn.textContent = "Running…";
+  try {
+    const response = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const result = await response.json();
+    const parts = [];
+    if (result.stdout) parts.push(result.stdout);
+    if (result.stderr) parts.push(`[stderr]\n${result.stderr}`);
+    if (result.error) parts.push(`[error] ${result.error}`);
+    els.codePopupOutput.textContent = parts.join("\n").trimEnd() || "(no output)";
+  } catch (err) {
+    els.codePopupOutput.textContent = `Could not reach runner: ${err}`;
+  } finally {
+    els.codePopupRunBtn.disabled = false;
+    els.codePopupRunBtn.textContent = "▶ Run";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -847,6 +998,71 @@ els.coachInput.addEventListener("keydown", (event) => {
   }
 });
 
+// Scratchpad toggle
+els.scratchToggle.addEventListener("click", () => {
+  const expanding = els.scratchBody.hidden;
+  els.scratchBody.hidden = !expanding;
+  els.scratchToggle.setAttribute("aria-expanded", String(expanding));
+});
+els.scratchToggle.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); els.scratchToggle.click(); }
+});
+
+// Scratchpad editor keyboard shortcuts
+els.scratchEditor.addEventListener("keydown", (e) => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const s = els.scratchEditor.selectionStart;
+    const en = els.scratchEditor.selectionEnd;
+    els.scratchEditor.value = `${els.scratchEditor.value.slice(0, s)}    ${els.scratchEditor.value.slice(en)}`;
+    els.scratchEditor.selectionStart = els.scratchEditor.selectionEnd = s + 4;
+  }
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    runScratchpad();
+  }
+});
+
+els.scratchRunBtn.addEventListener("click", runScratchpad);
+els.scratchClearBtn.addEventListener("click", () => {
+  els.scratchEditor.value = "";
+  els.scratchOutput.textContent = "Ready.";
+  els.scratchEditor.focus();
+});
+
+// "Try it" delegation — opens popup in place, no page scroll
+els.lessonSections.addEventListener("click", (e) => {
+  const btn = e.target.closest(".lesson-try-btn");
+  if (!btn) return;
+  openCodePopup(btn.dataset.code);
+});
+
+// Popup controls
+els.codePopupClose.addEventListener("click", closeCodePopup);
+els.codePopupRunBtn.addEventListener("click", runCodePopup);
+els.codePopupClearBtn.addEventListener("click", () => {
+  els.codePopupEditor.value = "";
+  els.codePopupOutput.textContent = "Ready.";
+  els.codePopupEditor.focus();
+});
+els.codePopupEditor.addEventListener("keydown", (e) => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const s = els.codePopupEditor.selectionStart;
+    const en = els.codePopupEditor.selectionEnd;
+    els.codePopupEditor.value = `${els.codePopupEditor.value.slice(0, s)}    ${els.codePopupEditor.value.slice(en)}`;
+    els.codePopupEditor.selectionStart = els.codePopupEditor.selectionEnd = s + 4;
+  }
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    runCodePopup();
+  }
+  if (e.key === "Escape") {
+    e.preventDefault();
+    closeCodePopup();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // AI settings popup
 // ---------------------------------------------------------------------------
@@ -896,6 +1112,10 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !els.codePopup.hidden) {
+    closeCodePopup();
+    return;
+  }
   if (e.key === "Escape" && !_aiSettingsPanel.hidden) {
     _aiSettingsPanel.hidden = true;
     _aiSettingsBtn.focus();

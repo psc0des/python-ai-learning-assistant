@@ -59,8 +59,8 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 - `content/manifest.json`: topic ordering and schema metadata.
 - `content/sources.json`: official source registry with `checked_at`.
 - `content/topics/*`: per-topic authored content (`topic.json`, `lesson.md`, `labs.json`, `practice.json`).
-- `static/index.html`: app shell.
-- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover.
+- `static/index.html`: app shell. Includes the collapsible Python Scratchpad panel (bottom of Lesson tab) and the fixed try-it code popup overlay.
+- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover, scratchpad toggle/run/clear, code popup open/run/close, lesson code block "▶ Try it" delegation.
 - `static/styles.css`: warm notebook visual design.
 - `SETUP.md`: setup, local deployment, and AI provider notes.
 
@@ -103,15 +103,17 @@ When adding or rewriting lesson content:
 
 ## Current Content Status
 
-Python Basics has been rewritten as the first reference-quality topic:
+All 14 topics have been rewritten to reference quality:
 
-- richer overview wording;
-- official Python Tutorial citations;
-- 6 lesson sections;
-- 5 labs;
-- 8 practice questions.
+- richer `intro` and `mental_model` fields; `python-basics` and `oop` intros further refined for tone (direct, confident engineering-handbook register — see Async Python intro as the target standard);
+- official source citations at the section level (`source_label` / `source_url`);
+- 6 lesson sections per topic;
+- each section: one-sentence analogy opener → technical explanation → beginner code example → production/professional code example (no inline `# Layman example:` or `# Professional example:` labels — labels were removed as they read awkwardly in-context);
+- `lesson.md` files updated to match the rich content in each `topic.json`.
 
-Most other topics still need the same depth pass. Do not assume the curriculum is complete just because tests pass. Tests currently validate structure and exercise correctness, not full teaching quality.
+Topics at this level: `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `python-devops`, `sql-http-git`.
+
+Do not assume the curriculum is complete just because tests pass. Tests currently validate structure and exercise correctness, not full teaching quality. Labs (at least 5 per topic) and practice questions (at least 8 per topic) remain incomplete for most topics beyond Python Basics.
 
 ## UI Direction
 

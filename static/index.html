@@ -134,6 +134,23 @@
                 <ul id="docs"></ul>
               </section>
             </div>
+
+            <div id="scratchpad" class="scratchpad">
+              <div class="scratchpad-header" id="scratchToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="scratchBody">
+                <div class="scratchpad-dots"><span></span><span></span><span></span></div>
+                <span class="scratchpad-label">Python Scratchpad</span>
+                <span class="scratchpad-hint">Ctrl+Enter to run</span>
+                <span class="scratchpad-caret" aria-hidden="true">▾</span>
+              </div>
+              <div id="scratchBody" class="scratchpad-body" hidden>
+                <textarea id="scratchEditor" class="scratchpad-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" placeholder="# Type or paste Python here…"></textarea>
+                <div class="scratchpad-toolbar">
+                  <button id="scratchRunBtn" type="button">&#9654; Run</button>
+                  <button id="scratchClearBtn" type="button" class="secondary">Clear</button>
+                </div>
+                <pre id="scratchOutput" class="scratchpad-output">Ready.</pre>
+              </div>
+            </div>
           </section>
 
           <section id="labsSection" class="topic-section">
@@ -213,6 +230,21 @@
           </section>
         </section>
       </main>
+    </div>
+
+    <!-- Code try-it popup (fixed overlay — no page scroll) -->
+    <div id="codePopup" class="code-popup" hidden>
+      <div class="code-popup-header">
+        <div class="scratchpad-dots"><span></span><span></span><span></span></div>
+        <span class="code-popup-title">Try it · Ctrl+Enter to run</span>
+        <button id="codePopupClose" type="button" class="code-popup-close" aria-label="Close">✕</button>
+      </div>
+      <textarea id="codePopupEditor" class="code-popup-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false"></textarea>
+      <div class="code-popup-toolbar">
+        <button id="codePopupRunBtn" type="button">&#9654; Run</button>
+        <button id="codePopupClearBtn" type="button" class="secondary">Clear</button>
+      </div>
+      <pre id="codePopupOutput" class="code-popup-output">Ready.</pre>
     </div>
 
     <script src="/app.js"></script>
