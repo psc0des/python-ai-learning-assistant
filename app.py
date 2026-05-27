@@ -119,6 +119,17 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    def guess_type(self, path: Any) -> str:
+        mtype = super().guess_type(path)
+        # Ensure UTF-8 is declared for text-based assets so browsers never
+        # fall back to a platform default (e.g. Windows-1252) and mangle
+        # Unicode characters such as ✓ and ▶ in JS/CSS files.
+        if isinstance(mtype, str) and mtype in (
+            "application/javascript", "text/javascript", "text/css"
+        ) and "charset" not in mtype:
+            return mtype + "; charset=utf-8"
+        return mtype
+
     def do_GET(self) -> None:
         if self.path == "/api/curriculum":
             self.send_json({

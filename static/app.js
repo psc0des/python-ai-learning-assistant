@@ -428,7 +428,11 @@ async function runCode() {
 
     if (result.ok) {
       markExercisePassed(selectedExercise.id);
-      renderExercises(selectedTopicId); // Update checkmarks
+      // Update only the checkmark on this option — avoids selectExercise() resetting testOutput
+      const option = els.exerciseSelect.querySelector(`option[value="${selectedExercise.id}"]`);
+      if (option && !option.textContent.startsWith("✓ ")) {
+        option.textContent = "✓ " + option.textContent;
+      }
     } else {
       failedAttempts++;
     }
