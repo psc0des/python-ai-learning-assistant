@@ -874,9 +874,15 @@ _aiSettingsBtn.addEventListener("click", (e) => {
 document.querySelector("#aiSettingsSaveBtn").addEventListener("click", () => {
   saveAiSettings();
   loadModels();
-  _aiSettingsPanel.hidden = true;
-  _aiSettingsBtn.textContent = "✓ Saved";
-  setTimeout(() => _updateSettingsBtnLabel(), 1800);
+  const saveBtn = document.querySelector("#aiSettingsSaveBtn");
+  saveBtn.textContent = "✓ Saved";
+  saveBtn.disabled = true;
+  setTimeout(() => {
+    _aiSettingsPanel.hidden = true;
+    saveBtn.textContent = "Save & Apply";
+    saveBtn.disabled = false;
+    _updateSettingsBtnLabel();
+  }, 900);
 });
 
 document.addEventListener("click", (e) => {
