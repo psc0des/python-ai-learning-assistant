@@ -85,8 +85,10 @@ button, input, select, textarea {
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow: auto;
+  overflow: hidden;
   scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
@@ -160,6 +162,10 @@ button, input, select, textarea {
   display: grid;
   gap: 4px;
   margin-top: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .track-header {
@@ -602,6 +608,65 @@ button.secondary:hover {
   align-self: end;
 }
 
+/* --- Sidebar AI settings panel --- */
+.ai-settings-sidebar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.ai-settings-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
+}
+
+.ai-settings-sidebar .settings-grid {
+  grid-template-columns: 1fr;
+  padding: 0;
+  gap: 8px;
+}
+
+.model-select-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.model-select-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.model-select-row button {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.param-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.param-val {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin-top: 4px;
+}
+
 /* --- Code editor --- */
 #editor {
   width: 100%;
@@ -1010,10 +1075,15 @@ button.secondary:hover {
     height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+    overflow: auto;
+    display: block;
   }
 
   .topic-list {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    flex: none;
+    overflow-y: visible;
+    min-height: auto;
   }
 
   .practice-grid, .lesson-grid, .lesson-sections {

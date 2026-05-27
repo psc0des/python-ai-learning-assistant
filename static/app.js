@@ -40,6 +40,11 @@ const els = {
   refreshModelsBtn: document.querySelector("#refreshModelsBtn"),
   endpoint: document.querySelector("#endpoint"),
   apiKey: document.querySelector("#apiKey"),
+  temperature: document.querySelector("#temperature"),
+  temperatureVal: document.querySelector("#temperatureVal"),
+  topP: document.querySelector("#topP"),
+  topPVal: document.querySelector("#topPVal"),
+  topK: document.querySelector("#topK"),
   practiceQuestions: document.querySelector("#practiceQuestions"),
   checkTestBtn: document.querySelector("#checkTestBtn"),
   testResult: document.querySelector("#testResult"),
@@ -478,6 +483,9 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
         model: els.model.value,
         endpoint: els.endpoint.value,
         api_key: els.apiKey.value,
+        temperature: parseFloat(els.temperature.value),
+        top_p: parseFloat(els.topP.value),
+        top_k: parseInt(els.topK.value, 10),
         topic_id: selectedTopicId,
         exercise_id: selectedExercise ? selectedExercise.id : "",
         code: selectedExercise ? els.editor.value : "",
@@ -511,6 +519,9 @@ function saveAiSettings() {
       provider: els.provider.value,
       model: els.model.value,
       endpoint: els.endpoint.value,
+      temperature: els.temperature.value,
+      topP: els.topP.value,
+      topK: els.topK.value,
     })
   );
 }
@@ -524,6 +535,9 @@ function loadAiSettings() {
     if (settings.provider) els.provider.value = settings.provider;
     if (settings.model) preferredModel = settings.model;
     if (settings.endpoint) els.endpoint.value = settings.endpoint;
+    if (settings.temperature != null) { els.temperature.value = settings.temperature; els.temperatureVal.textContent = settings.temperature; }
+    if (settings.topP != null) { els.topP.value = settings.topP; els.topPVal.textContent = settings.topP; }
+    if (settings.topK != null) els.topK.value = settings.topK;
   } catch {
     localStorage.removeItem("pySkillLabSettings");
     localStorage.removeItem("pyInterviewAiSettings");
@@ -803,6 +817,15 @@ els.endpoint.addEventListener("change", saveAiSettings);
 els.endpoint.addEventListener("change", loadModels);
 els.apiKey.addEventListener("change", loadModels);
 els.refreshModelsBtn.addEventListener("click", loadModels);
+els.temperature.addEventListener("input", () => {
+  els.temperatureVal.textContent = parseFloat(els.temperature.value).toFixed(2);
+  saveAiSettings();
+});
+els.topP.addEventListener("input", () => {
+  els.topPVal.textContent = parseFloat(els.topP.value).toFixed(2);
+  saveAiSettings();
+});
+els.topK.addEventListener("change", saveAiSettings);
 document.querySelectorAll(".mode-button").forEach((button) => {
   button.addEventListener("click", () => setActiveTopicSection(button.dataset.section));
 });

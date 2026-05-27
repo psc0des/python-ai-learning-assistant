@@ -27,6 +27,43 @@
           <input id="search" type="search" placeholder="Search topics..." aria-label="Search topics" />
         </div>
         <nav id="topicList" class="topic-list" aria-label="Learning topics"></nav>
+
+        <div class="ai-settings-sidebar">
+          <p class="ai-settings-title">⚙ AI Settings</p>
+          <div class="settings-grid">
+            <label>Provider
+              <select id="provider">
+                <option value="ollama">Ollama</option>
+                <option value="lmstudio">LM Studio</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+              </select>
+            </label>
+            <label>Model
+              <div class="model-select-row">
+                <select id="model"></select>
+                <button id="refreshModelsBtn" type="button" class="secondary" title="Refresh models">↻</button>
+              </div>
+            </label>
+            <label>Endpoint
+              <input id="endpoint" type="text" value="http://127.0.0.1:11434" />
+            </label>
+            <label>API key
+              <input id="apiKey" type="password" placeholder="Only needed for hosted APIs" />
+            </label>
+            <label>
+              <span class="param-label">Temperature <span id="temperatureVal" class="param-val">0.2</span></span>
+              <input id="temperature" type="range" min="0" max="1" step="0.05" value="0.2" />
+            </label>
+            <label>
+              <span class="param-label">Top P <span id="topPVal" class="param-val">0.9</span></span>
+              <input id="topP" type="range" min="0" max="1" step="0.05" value="0.9" />
+            </label>
+            <label>Top K <small>(Ollama)</small>
+              <input id="topK" type="number" min="1" max="200" value="40" />
+            </label>
+          </div>
+        </div>
       </aside>
 
       <main class="workspace">
@@ -157,33 +194,6 @@
                     </div>
                   </div>
 
-                  <details class="ai-settings">
-                    <summary>AI provider settings</summary>
-                    <div class="settings-grid">
-                      <label>
-                        Provider
-                        <select id="provider">
-                          <option value="ollama">Ollama</option>
-                          <option value="lmstudio">LM Studio</option>
-                          <option value="openai">OpenAI</option>
-                          <option value="anthropic">Anthropic</option>
-                        </select>
-                      </label>
-                      <label>
-                        Model
-                        <select id="model"></select>
-                      </label>
-                      <button id="refreshModelsBtn" type="button" class="secondary model-refresh">Refresh models</button>
-                      <label>
-                        Endpoint
-                        <input id="endpoint" type="text" value="http://127.0.0.1:11434" />
-                      </label>
-                      <label>
-                        API key
-                        <input id="apiKey" type="password" placeholder="Only needed for hosted APIs" />
-                      </label>
-                    </div>
-                  </details>
                 </section>
               </div>
             </section>

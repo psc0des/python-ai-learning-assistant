@@ -196,7 +196,8 @@ def build_ai_prompt(
 SYSTEM_MESSAGE = "You are a friendly Python learning coach. Help beginners build practical coding skills step by step."
 
 
-def call_ollama(base_url: str, model: str, prompt: str) -> str:
+def call_ollama(base_url: str, model: str, prompt: str,
+                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> str:
     """Call the Ollama local API."""
     url = base_url.rstrip("/") + "/api/chat"
     data = post_json(
@@ -209,12 +210,18 @@ def call_ollama(base_url: str, model: str, prompt: str) -> str:
                 {"role": "system", "content": SYSTEM_MESSAGE},
                 {"role": "user", "content": prompt},
             ],
+            "options": {
+                "temperature": temperature,
+                "top_p": top_p,
+                "top_k": top_k,
+            },
         },
     )
     return data.get("message", {}).get("content", "").strip() or "No response text returned."
 
 
-def call_openai_compatible(url: str, api_key: str, model: str, prompt: str) -> str:
+def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
+                           temperature: float = 0.2, top_p: float = 0.9) -> str:
     """Call an OpenAI-compatible API (OpenAI, LM Studio, etc.)."""
     data = post_json(
         url,
@@ -228,13 +235,15 @@ def call_openai_compatible(url: str, api_key: str, model: str, prompt: str) -> s
                 {"role": "system", "content": SYSTEM_MESSAGE},
                 {"role": "user", "content": prompt},
             ],
-            "temperature": 0.3,
+            "temperature": temperature,
+            "top_p": top_p,
         },
     )
     return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip() or "No response text returned."
 
 
-def call_anthropic(url: str, api_key: str, model: str, prompt: str) -> str:
+def call_anthropic(url: str, api_key: str, model: str, prompt: str,
+                   temperature: float = 0.2, top_p: float = 0.9) -> str:
     """Call the Anthropic Messages API."""
     data = post_json(
         url,
@@ -246,7 +255,8 @@ def call_anthropic(url: str, api_key: str, model: str, prompt: str) -> str:
         {
             "model": model,
             "max_tokens": 1500,
-            "temperature": 0.3,
+            "temperature": temperature,
+            "top_p": top_p,
             "system": SYSTEM_MESSAGE,
             "messages": [{"role": "user", "content": prompt}],
         },
@@ -278,6 +288,9 @@ def ask_ai_coach(
     run_result = payload.get("run_result", {})
     question = str(payload.get("question", "")).strip()
     chat_history = payload.get("chat_history", [])
+    temperature = max(0.0, min(1.0, float(payload.get("temperature", 0.2))))
+    top_p = max(0.0, min(1.0, float(payload.get("top_p", 0.9))))
+    top_k = max(1, min(200, int(payload.get("top_k", 40))))
 
     topic = next((item for item in topics if item["id"] == topic_id), None)
     exercise = next((item for item in exercises if item["id"] == exercise_id), None)
@@ -285,13 +298,14 @@ def ask_ai_coach(
 
     try:
         if provider == "ollama":
-            answer = call_ollama(endpoint or "http://127.0.0.1:11434", model or "qwen3.5:latest", prompt)
+            answer = call_ollama(endpoint or "http://127.0.0.1:11434", model or "qwen3.5:latest", prompt,
+                                 temperature, top_p, top_k)
         elif provider == "lmstudio":
             answer = call_openai_compatible(
                 endpoint or "http://127.0.0.1:1234/v1/chat/completions",
                 api_key or "lm-studio",
                 model or "local-model",
-                prompt,
+                prompt, temperature, top_p,
             )
         elif provider == "openai":
             if not api_key:
@@ -300,7 +314,7 @@ def ask_ai_coach(
                 endpoint or "https://api.openai.com/v1/chat/completions",
                 api_key,
                 model or "gpt-4.1-mini",
-                prompt,
+                prompt, temperature, top_p,
             )
         elif provider == "anthropic":
             if not api_key:
@@ -309,7 +323,7 @@ def ask_ai_coach(
                 endpoint or "https://api.anthropic.com/v1/messages",
                 api_key,
                 model or "claude-3-5-haiku-latest",
-                prompt,
+                prompt, temperature, top_p,
             )
         else:
             raise ValueError(f"Unknown provider: {provider}")
