@@ -193,7 +193,7 @@ Each topic is organized as:
 - Labs
 - Practice Test
 
-The AI Coach is conversational and can review the current topic, code, and latest local test result.
+The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — clicking it switches to the Labs tab and sends the selection as a question to the coach.
 
 ## Theme Behavior
 

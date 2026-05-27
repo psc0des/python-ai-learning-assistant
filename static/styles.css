@@ -1349,6 +1349,66 @@ article h3,
   display: none !important;
 }
 
+/* --- Selection → Ask AI popover --- */
+.selection-popover {
+  position: fixed;
+  z-index: 9000;
+  background: var(--accent);
+  color: #fffdf8;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  user-select: none;
+}
+
+.selection-popover.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.selection-popover:hover {
+  background: var(--accent-hover);
+}
+
+/* Down-pointing arrow: ink border layer */
+.selection-popover::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--ink);
+  pointer-events: none;
+}
+
+/* Down-pointing arrow: fill layer */
+.selection-popover::after {
+  content: '';
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--accent);
+  pointer-events: none;
+}
+
+.selection-popover:hover::after {
+  border-top-color: var(--accent-hover);
+}
+
 html.dark {
   --ink: #17211b;
   --ink-secondary: #34443a;

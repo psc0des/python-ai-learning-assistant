@@ -60,7 +60,7 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 - `content/sources.json`: official source registry with `checked_at`.
 - `content/topics/*`: per-topic authored content (`topic.json`, `lesson.md`, `labs.json`, `practice.json`).
 - `static/index.html`: app shell.
-- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions.
+- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover.
 - `static/styles.css`: warm notebook visual design.
 - `SETUP.md`: setup, local deployment, and AI provider notes.
 
@@ -148,6 +148,8 @@ The AI Coach supports:
 - LM Studio;
 - OpenAI;
 - Anthropic.
+
+Selecting any text on the page (except inside the code editor or input fields) shows a floating Ask AI button. Clicking it switches to the Labs tab and sends the selected text as a question to the coach. The coach works without a loaded exercise in this mode — no code context is sent, just the topic and the question.
 
 The app should work without AI configured. Local tests and built-in feedback should remain useful even when no provider is connected.
 

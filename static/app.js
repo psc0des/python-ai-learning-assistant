@@ -445,7 +445,6 @@ async function runCode() {
 // ---------------------------------------------------------------------------
 
 async function askAiCoach(questionOverride = "") {
-  if (!selectedExercise) return;
   const question = questionOverride || els.coachInput.value.trim() || "Please review my current code and test result. Explain what I should learn next.";
   appendCoachMessage("user", question);
   els.coachInput.value = "";
@@ -454,7 +453,7 @@ async function askAiCoach(questionOverride = "") {
   els.explainBtn.disabled = true;
 
   let runResult = lastRunResult;
-  if (!runResult) {
+  if (!runResult && selectedExercise) {
     els.testOutput.textContent = "Running local tests before coach review...";
     const response = await fetch("/api/run", {
       method: "POST",
@@ -480,9 +479,9 @@ async function askAiCoach(questionOverride = "") {
         endpoint: els.endpoint.value,
         api_key: els.apiKey.value,
         topic_id: selectedTopicId,
-        exercise_id: selectedExercise.id,
-        code: els.editor.value,
-        run_result: runResult,
+        exercise_id: selectedExercise ? selectedExercise.id : "",
+        code: selectedExercise ? els.editor.value : "",
+        run_result: runResult || {},
         question,
         chat_history: coachMessages.filter((message) => message.text !== "thinking").slice(-8),
       }),
@@ -814,6 +813,90 @@ els.coachInput.addEventListener("keydown", (event) => {
     askAiCoach();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Selection → Ask AI popover
+// ---------------------------------------------------------------------------
+
+let _selectionPopover = null;
+let _quotedText = "";
+
+function _ensurePopover() {
+  if (_selectionPopover) return _selectionPopover;
+  _selectionPopover = document.createElement("button");
+  _selectionPopover.className = "selection-popover";
+  _selectionPopover.type = "button";
+  _selectionPopover.textContent = "Ask AI";
+  _selectionPopover.setAttribute("aria-label", "Ask AI coach about the selected text");
+  document.body.appendChild(_selectionPopover);
+
+  _selectionPopover.addEventListener("mousedown", (e) => e.preventDefault());
+
+  _selectionPopover.addEventListener("click", () => {
+    const text = _quotedText;
+    if (!text) return;
+    _quotedText = "";
+    _hideSelectionPopover();
+    window.getSelection()?.removeAllRanges();
+
+    const displayText = text.length > 300 ? text.slice(0, 300) + "…" : text;
+    const question = `Explain this: "${displayText}"`;
+    setActiveTopicSection("labsSection");
+    setTimeout(() => {
+      els.coachInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      askAiCoach(question);
+    }, 60);
+  });
+
+  return _selectionPopover;
+}
+
+function _showSelectionPopover(rect) {
+  const popover = _ensurePopover();
+  const POPOVER_HEIGHT = 36;
+  const GAP = 10;
+  popover.style.top = `${Math.max(8, rect.top - POPOVER_HEIGHT - GAP)}px`;
+  popover.style.left = `${rect.left + rect.width / 2}px`;
+  popover.classList.add("visible");
+}
+
+function _hideSelectionPopover() {
+  _selectionPopover?.classList.remove("visible");
+}
+
+document.addEventListener("mouseup", (e) => {
+  if (e.target.closest(".selection-popover")) return;
+  if (e.target.closest("textarea, input, select, .cm-editor")) return;
+
+  requestAnimationFrame(() => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim() ?? "";
+    if (text.length >= 5 && selection.rangeCount > 0) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0) {
+        _quotedText = text;
+        _showSelectionPopover(rect);
+        return;
+      }
+    }
+    _quotedText = "";
+    _hideSelectionPopover();
+  });
+});
+
+document.addEventListener("mousedown", (e) => {
+  if (e.target.closest(".selection-popover")) return;
+  _hideSelectionPopover();
+});
+
+document.addEventListener("selectionchange", () => {
+  if (!window.getSelection()?.toString().trim()) {
+    _quotedText = "";
+    _hideSelectionPopover();
+  }
+});
+
+window.addEventListener("scroll", _hideSelectionPopover, { passive: true });
 
 // ---------------------------------------------------------------------------
 // Init
