@@ -476,6 +476,7 @@ def narrate_trace(payload: dict[str, Any]) -> dict[str, Any]:
     endpoint = str(payload.get("endpoint", "")).strip()
     code = str(payload.get("code", "")).strip()
     steps = payload.get("steps", [])
+    run_error = str(payload.get("error", "")).strip()
 
     if not code or not steps:
         return {"ok": False, "narrations": {}, "error": "No code or steps"}
@@ -491,18 +492,28 @@ def narrate_trace(payload: dict[str, Any]) -> dict[str, Any]:
         line_code = _get_line(line_num)
         vars_items = list(step.get("vars", {}).items())[:6]
         vars_str = ", ".join(f"{k}={repr(v)}" for k, v in vars_items) or "none"
-        if step.get("final"):
+        if step.get("final") and run_error:
+            step_descriptions.append(
+                f"Step {i} (ERROR — Python stopped here): line `{line_code}` caused {run_error} | vars before crash: {{{vars_str}}}"
+            )
+        elif step.get("final"):
             step_descriptions.append(f"Step {i} (FINAL — done): vars={{{vars_str}}}")
         else:
             step_descriptions.append(f"Step {i}: about to run `{line_code}` | vars so far: {{{vars_str}}}")
 
+    error_rule = (
+        "- For the ERROR step: explain what went wrong in plain words AND give a one-sentence fix hint a beginner can act on. "
+        "Start with 'Error:' — e.g. 'Error: sarathay has no quotes so Python treated it as a variable name; write lastname = \"sarathay\" instead.'\n"
+    ) if run_error else ""
+
     prompt = (
         "TASK: Explain each step of this Python code to a complete beginner.\n"
         "Rules:\n"
-        "- ONE sentence per step, max 15 words\n"
+        "- ONE sentence per step, max 20 words\n"
         "- Use the actual variable values shown\n"
         "- Start with 'Python stores', 'Python checks', 'Python prints', 'Python adds', etc.\n"
-        "- Return ONLY valid JSON: {\"1\": \"...\", \"2\": \"...\", ...} — no markdown, no extra text\n\n"
+        + error_rule
+        + "- Return ONLY valid JSON: {\"1\": \"...\", \"2\": \"...\", ...} — no markdown, no extra text\n\n"
         f"CODE:\n```python\n{code}\n```\n\n"
         "STEPS:\n" + "\n".join(step_descriptions)
     )

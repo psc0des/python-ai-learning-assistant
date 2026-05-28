@@ -846,8 +846,8 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 }
 
 .code-popup.maximized .code-popup-modal {
-  width: calc(100vw - 80px);
-  max-width: calc(100vw - 80px);
+  width: min(880px, calc(100vw - 80px));
+  max-width: min(880px, calc(100vw - 80px));
 }
 
 .code-popup-header {
@@ -921,8 +921,12 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 }
 
 .code-popup.maximized .code-popup-editor {
-  min-height: 300px;
-  max-height: 58vh;
+  min-height: 360px;
+  max-height: 62vh;
+}
+
+.code-popup.maximized .code-popup-output {
+  max-height: 260px;
 }
 
 .code-popup-editor:focus { outline: none; }

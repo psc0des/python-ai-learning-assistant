@@ -894,7 +894,7 @@ async function openVisualizer(code, sourceBtn) {
     } else {
       stepViz(1);
       // Kick off AI narration in background — updates the note as it arrives
-      _loadNarrations(cleaned, vizState.steps);
+      _loadNarrations(cleaned, vizState.steps, vizState.error);
     }
   } catch (err) {
     openVizOverlay(cleaned.split("\n"));
@@ -909,7 +909,7 @@ async function openVisualizer(code, sourceBtn) {
   }
 }
 
-async function _loadNarrations(code, steps) {
+async function _loadNarrations(code, steps, error) {
   const provider = els.provider.value;
   if (!provider) return;
   vizState.narrationLoading = true;
@@ -919,7 +919,7 @@ async function _loadNarrations(code, steps) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        code, steps,
+        code, steps, error: error || "",
         provider: els.provider.value,
         model: els.model.value,
         endpoint: els.endpoint.value,
@@ -975,7 +975,9 @@ function renderViz() {
   } else if (vizState.narrationLoading) {
     els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
   } else if (step.final) {
-    els.vizNote.textContent = vizState.error ? `Stopped: ${vizState.error}` : "Done — execution complete.";
+    els.vizNote.textContent = vizState.error
+      ? `Python stopped here with an error — ${vizState.error}. (Connect an AI provider for a plain-English explanation.)`
+      : "Done — execution complete.";
   } else {
     els.vizNote.textContent = `About to run line ${step.line}.`;
   }
