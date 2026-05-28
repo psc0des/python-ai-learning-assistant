@@ -765,6 +765,16 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 .viz-var-name { color: var(--charcoal, #1e293b); font-weight: 700; }
 .viz-var-val { color: var(--green); text-align: right; word-break: break-all; }
 .viz-empty { color: var(--ink-muted); font-size: 12.5px; font-style: italic; margin: 0; }
+.viz-output-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-muted); margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.viz-stdout {
+  font-family: var(--font-mono); font-size: 12.5px; color: #059669;
+  white-space: pre-wrap; word-break: break-all; margin: 4px 0 0;
+  background: #f0fdf4; border-radius: 4px; padding: 6px 8px;
+}
 
 .viz-note {
   margin: 14px 0 12px;

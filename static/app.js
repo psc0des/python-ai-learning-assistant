@@ -880,6 +880,7 @@ async function openVisualizer(code, sourceBtn) {
       lines: cleaned.split("\n"),
       error: result.error,
       truncated: result.truncated,
+      stdout: (result.stdout || "").trimEnd(),
     };
     openVizOverlay(vizState.lines);
     if (!vizState.steps.length) {
@@ -914,20 +915,22 @@ function renderViz() {
     els.vizNote.textContent = "";
   } else {
     const names = Object.keys(step.vars || {});
-    els.vizVarList.innerHTML = names.length
-      ? names
-          .map(
-            (n) =>
-              `<div class="viz-var"><span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(
-                JSON.stringify(step.vars[n])
-              )}</span></div>`
-          )
-          .join("")
-      : '<p class="viz-empty">No variables in scope yet.</p>';
+    let html = names.length
+      ? names.map((n) =>
+          `<div class="viz-var"><span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(JSON.stringify(step.vars[n]))}</span></div>`
+        ).join("")
+      : '<p class="viz-empty">No variables yet.</p>';
+    // Always show stdout at the final step so print() code gives visible feedback
+    if (step.final && vizState.stdout) {
+      html += `<div class="viz-output-label">Output</div><pre class="viz-stdout">${escapeHtml(vizState.stdout)}</pre>`;
+    }
+    els.vizVarList.innerHTML = html;
     if (step.final) {
       els.vizNote.textContent = vizState.error
         ? `Stopped: ${vizState.error}`
-        : "Done — these are the final values.";
+        : vizState.stdout
+          ? "Done. Output shown above."
+          : "Done — these are the final values.";
     } else {
       els.vizNote.textContent = `About to run line ${step.line}.`;
     }
