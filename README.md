@@ -1,8 +1,9 @@
 # Python Skill Lab
 
-A local beginner-friendly learning app for Python, backend APIs, DevOps automation, and AI engineering topics. It is learning-first, with career readiness built into each topic.
+**A local desktop learning app for Python, backend APIs, DevOps automation, and AI engineering.** Runs entirely on your own machine — no account, no internet required, no server to manage.
 
-> **⚠️ Run this on your own machine only.** Python Skill Lab executes the code you write in a local subprocess on `127.0.0.1`. The code runner uses lightweight checks to block obvious mistakes, but it is **not a security sandbox** and those checks can be bypassed. **Do not host this on a shared, public, or multi-user server**, and do not expose the port to a network. On your own desktop, the runner has no more power than your own terminal — which is exactly what it is meant for.
+> **⚠️ Personal use only — do not host for other people.**
+> Python Skill Lab runs the code you write in a local subprocess on `127.0.0.1`. The code runner is designed for personal learning, not as a hardened security sandbox. **Do not deploy this on a shared, public, or multi-user server and do not expose the port to a network.** On your own desktop it is no more powerful than your own terminal, which is exactly the point.
 
 ## Who This Is For
 
@@ -14,19 +15,29 @@ This app is built for **complete beginners** — people who want to get into Pyt
 
 Every topic follows the same flow: overview → lesson → hands-on labs → practice test, with an optional AI coach that guides you without giving away the answer.
 
+## Requirements
+
+- Python 3.10 or newer
+- No `pip install` needed — the app uses only the Python standard library
+- Optional: an AI provider key or a local Ollama/LM Studio instance for the AI coach feature (the app works fine without one)
+
 ## Run
 
 ```powershell
 python app.py
 ```
 
-Then open:
+Then open `http://127.0.0.1:8765` in your browser.
 
-```text
-http://127.0.0.1:8765
+The app runs fully offline — fonts and the code editor are bundled in `static/vendor/` with no CDN calls at runtime.
+
+## Tests
+
+```powershell
+python -B -m pytest tests -q -p no:cacheprovider
 ```
 
-The app runs fully offline — fonts and the code editor are served from `static/vendor/` with no CDN calls required.
+All 698 tests should pass on a clean clone with no extra setup.
 
 ## What It Covers
 

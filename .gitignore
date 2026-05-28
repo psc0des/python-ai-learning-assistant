@@ -16,3 +16,9 @@ scripts/package-lock.json
 qa-home-full.png
 srv.out
 srv.err
+
+# Internal audit and implementation notes (not for public repo)
+audit.md
+audit_*.md
+ai_audit_*.md
+ai_implementation_*.md
