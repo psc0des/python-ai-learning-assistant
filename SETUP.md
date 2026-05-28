@@ -282,7 +282,11 @@ Two error cases are handled for beginners:
 
 ### AI Coach
 
-The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — clicking it switches to the Labs tab and sends the selection as a question to the coach.
+The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — where it goes depends on context:
+
+- **Try It popup open**: answer appears inline inside the popup (below the output), with the editor code and output automatically attached. The "🤖 Ask AI" toolbar button sends a full code review without selecting anything.
+- **Visualizer open**: answer appears inline in the AI note area, with the current step line, variables, and any error automatically attached. The "🤖 Ask AI" button in the controls row sends a step or error explanation.
+- **Anywhere else**: navigates to the Labs → AI Coach tab and pre-fills the chat input.
 
 The coach operates in two modes. When the learner types a freeform question in the chat input (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. When a preset button such as "Explain my code" is clicked (`mode: "lab"`), the full context is sent and the AI gives a structured review of the exercise and test results.
 
