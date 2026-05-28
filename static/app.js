@@ -515,7 +515,7 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
   els.explainBtn.disabled = true;
 
   let runResult = lastRunResult;
-  if (!runResult && selectedExercise && !skipAutoRun) {
+  if (!runResult && selectedExercise && !skipAutoRun && questionOverride) {
     els.testOutput.textContent = "Running local tests before coach review...";
     const response = await fetch("/api/run", {
       method: "POST",
