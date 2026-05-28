@@ -60,7 +60,7 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 - `content/sources.json`: official source registry with `checked_at`.
 - `content/topics/*`: per-topic authored content (`topic.json`, `lesson.md`, `labs.json`, `practice.json`).
 - `static/index.html`: app shell. Includes the collapsible Python Scratchpad panel (Lesson tab), the `#codePopup` Try-it centered modal overlay (maximize ⤢/restore ⤡ button, backdrop click to close), and the shared `#vizOverlay` execution visualizer modal. Fonts load from `/vendor/fonts.css` (local — no Google Fonts CDN call).
-- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover, scratchpad toggle/run/clear/visualize, Try-it modal open/maximize/run/visualize/close, lesson code block "▶ Try it" delegation, `openVisualizer` / `renderViz` / `stepViz` for the execution visualizer. **Escape key priority**: viz overlay handles its own Escape first; code popup Escape is skipped while viz is open — do not break this ordering.
+- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover, scratchpad toggle/run/clear/visualize, Try-it modal open/maximize/run/visualize/close, lesson code block "▶ Try it" delegation, `openVisualizer` / `renderViz` / `stepViz` / `_loadNarrations` for the execution visualizer (error is forwarded to narration so the AI explains what went wrong). AI coach sends `mode: "chat"` when the user types a question and `mode: "lab"` when a preset button triggers it — the backend uses this to decide whether to inject exercise/code context. **Escape key priority**: viz overlay handles its own Escape first; code popup Escape is skipped while viz is open — do not break this ordering.
 - `static/styles.css`: warm notebook visual design. Includes `.section-diagram` (transparent, blends into lesson card), `.viz-*` (execution visualizer modal), `.code-popup` / `.code-popup-modal` (Try-it centered modal — `z-index: 800`; viz overlay stays at `z-index: 1000` on top). Both overlays require `[hidden] { display: none }` overrides — do not remove them.
 - `static/codemirror-init.js`: CodeMirror 6 editor initializer. Imports all symbols from `/vendor/codemirror-bundle.js` (local — no esm.sh CDN calls). If the bundle is unavailable the plain `<textarea>` still works.
 - `static/vendor/codemirror-bundle.js`: pre-built ESM bundle of all CodeMirror 6 packages. Rebuilt via `cd scripts && npm install && node build.js`. Committed to the repo so the app works offline without Node.js.
@@ -181,6 +181,10 @@ Google AI Studio uses a non-OpenAI API format (`system_instruction` / `contents`
 Each AI reply shows a stats line below the message content: model name, output token count, input token count, tok/s, and elapsed seconds. Ollama uses native `eval_duration` for accurate tok/s on CPU. Groq uses `usage.completion_time`. All others use server wall time.
 
 Selecting any text on the page (except inside the code editor or input fields) shows a floating Ask AI button. Clicking it switches to the Labs tab and sends the selected text as a question to the coach. The coach works without a loaded exercise in this mode — no code context is sent, just the topic and the question.
+
+The AI coach has two prompt modes controlled by the `mode` field in the `/api/ai-coach` payload:
+- `"chat"` — sent when the learner types their own question in the coach input box. The prompt contains only topic/lesson context and the question; exercise code and test results are omitted so the AI answers only what was asked.
+- `"lab"` — sent when a preset button (e.g. "Explain my code") triggers the coach. The full prompt is used: exercise prompt, learner code, test results, and the 6-point structured response format.
 
 The app should work without AI configured. Local tests and built-in feedback should remain useful even when no provider is connected.
 

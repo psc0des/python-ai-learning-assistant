@@ -274,11 +274,13 @@ Six topics have an inline SVG concept diagram embedded in one lesson section (`d
 
 ### Execution Visualizer
 
-Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel.
+Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel. If the code raises an error, the error is forwarded to the AI narration call so the final step explains what went wrong and how to fix it in plain language.
 
 ### AI Coach
 
 The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — clicking it switches to the Labs tab and sends the selection as a question to the coach.
+
+The coach operates in two modes. When the learner types a freeform question in the chat input (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. When a preset button such as "Explain my code" is clicked (`mode: "lab"`), the full context is sent and the AI gives a structured review of the exercise and test results.
 
 Each AI reply shows a small stats line below the response: model name, output tokens, input tokens, tok/s, and elapsed time. This is useful for comparing local Ollama speed against cloud providers.
 
