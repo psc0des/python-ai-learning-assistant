@@ -368,7 +368,7 @@ def ask_ai_coach(
 
     try:
         if provider == "ollama":
-            call_result = call_ollama(endpoint or "http://127.0.0.1:11434", model or "qwen3.5:latest", prompt,
+            call_result = call_ollama(endpoint or "http://127.0.0.1:11434", model or "llama3.2", prompt,
                                       temperature, top_p, top_k)
         elif provider == "lmstudio":
             call_result = call_openai_compatible(
@@ -475,7 +475,7 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     api_key = resolve_api_key(provider, client_key)
 
     fallback: dict[str, list[str]] = {
-        "ollama": ["qwen3.5:latest", "nemotron-3-nano:4b"],
+        "ollama": ["llama3.2", "qwen2.5", "phi3.5"],
         "lmstudio": ["local-model"],
         "openai": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
         "anthropic": ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],

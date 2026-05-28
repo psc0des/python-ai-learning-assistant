@@ -421,6 +421,26 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   color: var(--accent-hover);
 }
 
+/* --- Lesson concept diagram --- */
+.section-diagram {
+  margin: 4px 16px 14px;
+  padding: 6px 0 2px;
+  background: transparent;
+  text-align: center;
+}
+
+.section-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.section-diagram figcaption {
+  margin-top: 10px;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  font-style: italic;
+}
+
 /* --- Lesson tip card --- */
 .lesson-tip-card {
   grid-column: 1 / -1;
@@ -628,36 +648,188 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   border-radius: 0;
 }
 
+/* --- Execution visualizer (shared modal overlay) --- */
+.viz-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+/* The class rule above sets display:flex, which would override the [hidden]
+   attribute's display:none — so restate it with higher specificity. */
+.viz-overlay[hidden] {
+  display: none;
+}
+
+.viz-modal {
+  width: 100%;
+  max-width: 780px;
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  padding: 20px 22px 22px;
+}
+
+.viz-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.viz-modal-head strong { font-size: 15px; }
+.viz-modal-hint { color: var(--ink-muted); font-size: 12.5px; }
+.viz-x {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 4px 8px;
+}
+.viz-x:hover { color: var(--ink); }
+
+.viz-stage {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 620px) {
+  .viz-stage { grid-template-columns: 1fr; }
+}
+
+.viz-code {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow: auto;
+  max-height: 260px;
+}
+
+.viz-ln {
+  display: block;
+  padding: 0 8px;
+  border-radius: 4px;
+  white-space: pre;
+}
+
+.viz-ln.active {
+  background: rgba(99, 102, 241, 0.32);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.viz-vars {
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.viz-vars h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+.viz-var {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.viz-var:last-child { border-bottom: none; }
+.viz-var-name { color: var(--charcoal, #1e293b); font-weight: 700; }
+.viz-var-val { color: var(--green); text-align: right; word-break: break-all; }
+.viz-empty { color: var(--ink-muted); font-size: 12.5px; font-style: italic; margin: 0; }
+
+.viz-note {
+  margin: 14px 0 12px;
+  color: var(--ink-secondary);
+  font-size: 13px;
+  font-style: italic;
+  min-height: 18px;
+}
+
+.viz-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-count {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
 /* ========================================================================
    Code try-it popup (fixed overlay)
    ======================================================================== */
 
+/* --- Try-it centered modal overlay --- */
 .code-popup {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 480px;
-  max-width: calc(100vw - 48px);
-  z-index: 600;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-  animation: popupIn 0.16s ease;
+  inset: 0;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
 }
 
-@keyframes popupIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+.code-popup[hidden] { display: none; }
+
+.code-popup-modal {
+  width: 700px;
+  max-width: calc(100vw - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--code-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  transition: width 0.18s ease;
+}
+
+.code-popup.maximized .code-popup-modal {
+  width: calc(100vw - 80px);
+  max-width: calc(100vw - 80px);
 }
 
 .code-popup-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 10px 14px;
   background: var(--code-bg);
   color: var(--code-ink);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 .code-popup-title {
@@ -667,8 +839,13 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   flex: 1;
 }
 
-.code-popup-close {
-  padding: 2px 7px;
+.code-popup-header-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.code-popup-icon-btn {
+  padding: 2px 8px;
   font-size: 13px;
   font-weight: 400;
   background: rgba(255, 255, 255, 0.08);
@@ -676,29 +853,34 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   border-radius: 4px;
   color: var(--code-ink);
   cursor: pointer;
-  opacity: 0.65;
+  opacity: 0.7;
   line-height: 1.4;
   transform: none;
   box-shadow: none;
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 
-.code-popup-close:hover {
+.code-popup-icon-btn:hover {
   opacity: 1;
-  background: rgba(180, 40, 40, 0.35);
-  border-color: rgba(200, 60, 60, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.28);
   transform: none;
   box-shadow: none;
 }
 
+#codePopupClose:hover {
+  background: rgba(180, 40, 40, 0.35) !important;
+  border-color: rgba(200, 60, 60, 0.5) !important;
+}
+
 .code-popup-editor {
   width: 100%;
-  min-height: 130px;
-  max-height: 300px;
-  resize: vertical;
+  min-height: 200px;
+  max-height: 45vh;
+  resize: none;
   border: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--code-bg);
   color: var(--code-ink);
   font-family: var(--font-mono);
@@ -706,18 +888,23 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   line-height: 1.6;
   tab-size: 4;
   display: block;
+  box-sizing: border-box;
 }
 
-.code-popup-editor:focus {
-  outline: none;
+.code-popup.maximized .code-popup-editor {
+  min-height: 300px;
+  max-height: 58vh;
 }
+
+.code-popup-editor:focus { outline: none; }
 
 .code-popup-toolbar {
   display: flex;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 8px 14px;
   background: rgba(0, 0, 0, 0.22);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
 .code-popup-toolbar button {
@@ -727,18 +914,18 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 
 .code-popup-output {
   margin: 0;
-  min-height: 44px;
-  max-height: 160px;
+  min-height: 48px;
+  max-height: 180px;
   overflow: auto;
-  padding: 8px 14px;
+  padding: 10px 16px;
   color: var(--code-ink);
-  opacity: 0.82;
+  opacity: 0.85;
   white-space: pre-wrap;
   font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.5;
   background: var(--code-bg);
-  border-radius: 0;
+  flex-shrink: 0;
 }
 
 pre {
@@ -1792,13 +1979,8 @@ article h3,
   border-color: rgba(255, 255, 255, 0.28) !important;
 }
 
-/* code-popup lives on dark code-bg — keep its own dark styling */
-.code-popup {
-  border: 1px solid var(--ink);
-}
-
-.code-popup-close,
-.code-popup-close:hover {
+/* code-popup modal lives on dark code-bg — keep its own dark styling */
+.code-popup-icon-btn {
   background: rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
   color: var(--code-ink) !important;
@@ -1806,7 +1988,12 @@ article h3,
   transform: none !important;
 }
 
-.code-popup-close:hover {
+.code-popup-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+#codePopupClose:hover {
   background: rgba(180, 40, 40, 0.35) !important;
   border-color: rgba(200, 60, 60, 0.5) !important;
 }

@@ -2,6 +2,7 @@
   "schema_version": 1,
   "generated_from": "legacy_python_modules",
   "topic_order": [
+    "getting-started",
     "python-basics",
     "data-structures",
     "functions",

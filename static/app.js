@@ -48,12 +48,25 @@ const els = {
   scratchBody: document.querySelector("#scratchBody"),
   scratchEditor: document.querySelector("#scratchEditor"),
   scratchRunBtn: document.querySelector("#scratchRunBtn"),
+  scratchVizBtn: document.querySelector("#scratchVizBtn"),
   scratchClearBtn: document.querySelector("#scratchClearBtn"),
   scratchOutput: document.querySelector("#scratchOutput"),
+  labVizBtn: document.querySelector("#labVizBtn"),
+  vizOverlay: document.querySelector("#vizOverlay"),
+  vizCode: document.querySelector("#vizCode"),
+  vizVarList: document.querySelector("#vizVarList"),
+  vizNote: document.querySelector("#vizNote"),
+  vizPrev: document.querySelector("#vizPrev"),
+  vizNext: document.querySelector("#vizNext"),
+  vizCount: document.querySelector("#vizCount"),
+  vizClose: document.querySelector("#vizClose"),
   codePopup: document.querySelector("#codePopup"),
+  codePopupModal: document.querySelector("#codePopupModal"),
+  codePopupMaxBtn: document.querySelector("#codePopupMaxBtn"),
   codePopupClose: document.querySelector("#codePopupClose"),
   codePopupEditor: document.querySelector("#codePopupEditor"),
   codePopupRunBtn: document.querySelector("#codePopupRunBtn"),
+  codePopupVizBtn: document.querySelector("#codePopupVizBtn"),
   codePopupClearBtn: document.querySelector("#codePopupClearBtn"),
   codePopupOutput: document.querySelector("#codePopupOutput"),
 };
@@ -302,10 +315,18 @@ function renderLessonSections(sections) {
         const sourceLink = section.source_url
           ? `<a class="section-source" href="${escapeHtml(section.source_url)}" target="_blank" rel="noreferrer">${escapeHtml(section.source_label || "Official source")}</a>`
           : "";
+        // diagram_svg is trusted, author-written content (never user/AI input),
+        // so it is rendered inline as-is. Do not feed external text into this field.
+        const diagram = section.diagram_svg
+          ? `<figure class="section-diagram">${section.diagram_svg}${
+              section.diagram_caption ? `<figcaption>${escapeHtml(section.diagram_caption)}</figcaption>` : ""
+            }</figure>`
+          : "";
         return `
           <article class="lesson-section-card">
             <h3>${escapeHtml(section.title)}</h3>
             <div class="section-body">${renderLessonMarkdown(section.body || '')}</div>
+            ${diagram}
             ${sourceLink}
           </article>
         `;
@@ -571,7 +592,7 @@ function loadAiSettings() {
 
 function applyProviderDefaults() {
   const defaults = {
-    ollama:    { model: "qwen3.5:latest",             endpoint: "http://127.0.0.1:11434" },
+    ollama:    { model: "llama3.2",                   endpoint: "http://127.0.0.1:11434" },
     lmstudio:  { model: "local-model",                endpoint: "http://127.0.0.1:1234/v1/chat/completions" },
     openai:    { model: "gpt-4.1-mini",               endpoint: "https://api.openai.com/v1/chat/completions" },
     anthropic: { model: "claude-3-5-haiku-latest",    endpoint: "https://api.anthropic.com/v1/messages" },
@@ -587,7 +608,7 @@ function applyProviderDefaults() {
 
 async function loadModels() {
   const providerDefaults = {
-    ollama:    ["qwen3.5:latest", "nemotron-3-nano:4b"],
+    ollama:    ["llama3.2", "qwen2.5", "phi3.5"],
     lmstudio:  ["local-model"],
     openai:    ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
     anthropic: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
@@ -826,22 +847,132 @@ async function runScratchpad() {
 }
 
 // ---------------------------------------------------------------------------
+// Execution visualizer (step-through)
+// ---------------------------------------------------------------------------
+
+let vizState = { steps: [], index: -1, lines: [] };
+
+function openVizOverlay(lines) {
+  els.vizCode.innerHTML = lines
+    .map((line, i) => `<span class="viz-ln" data-i="${i}">${escapeHtml(line) || " "}</span>`)
+    .join("");
+  els.vizOverlay.hidden = false;
+}
+
+async function openVisualizer(code, sourceBtn) {
+  const cleaned = (code || "").replace(/\s+$/, "");
+  if (!cleaned.trim()) return;
+  const label = sourceBtn ? sourceBtn.innerHTML : "";
+  if (sourceBtn) {
+    sourceBtn.disabled = true;
+    sourceBtn.textContent = "Tracing…";
+  }
+  try {
+    const response = await fetch("/api/trace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: cleaned }),
+    });
+    const result = await response.json();
+    vizState = {
+      steps: result.steps || [],
+      index: -1,
+      lines: cleaned.split("\n"),
+      error: result.error,
+      truncated: result.truncated,
+    };
+    openVizOverlay(vizState.lines);
+    if (!vizState.steps.length) {
+      els.vizVarList.innerHTML = '<p class="viz-empty">No steps to show.</p>';
+      els.vizNote.textContent = result.error ? `Could not run: ${result.error}` : "No executable steps.";
+      els.vizPrev.disabled = true;
+      els.vizNext.disabled = true;
+      els.vizCount.textContent = "";
+    } else {
+      stepViz(1);
+    }
+  } catch (err) {
+    openVizOverlay(cleaned.split("\n"));
+    els.vizNote.textContent = `Could not reach the visualizer: ${err}`;
+    els.vizPrev.disabled = true;
+    els.vizNext.disabled = true;
+  } finally {
+    if (sourceBtn) {
+      sourceBtn.disabled = false;
+      sourceBtn.innerHTML = label;
+    }
+  }
+}
+
+function renderViz() {
+  const step = vizState.index >= 0 ? vizState.steps[vizState.index] : null;
+  document.querySelectorAll(".viz-ln").forEach((el, i) => {
+    el.classList.toggle("active", step && i === step.line - 1);
+  });
+  if (!step) {
+    els.vizVarList.innerHTML = '<p class="viz-empty">Press Next to start.</p>';
+    els.vizNote.textContent = "";
+  } else {
+    const names = Object.keys(step.vars || {});
+    els.vizVarList.innerHTML = names.length
+      ? names
+          .map(
+            (n) =>
+              `<div class="viz-var"><span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(
+                JSON.stringify(step.vars[n])
+              )}</span></div>`
+          )
+          .join("")
+      : '<p class="viz-empty">No variables in scope yet.</p>';
+    if (step.final) {
+      els.vizNote.textContent = vizState.error
+        ? `Stopped: ${vizState.error}`
+        : "Done — these are the final values.";
+    } else {
+      els.vizNote.textContent = `About to run line ${step.line}.`;
+    }
+  }
+  els.vizPrev.disabled = vizState.index <= 0;
+  const atEnd = vizState.index >= vizState.steps.length - 1;
+  els.vizNext.disabled = atEnd;
+  els.vizNext.textContent = atEnd ? "End" : "Next →";
+  els.vizCount.textContent = vizState.index < 0 ? "" : `Step ${vizState.index + 1} of ${vizState.steps.length}${vizState.truncated ? " (capped)" : ""}`;
+}
+
+function stepViz(delta) {
+  const next = vizState.index + delta;
+  if (next < 0 || next >= vizState.steps.length) return;
+  vizState.index = next;
+  renderViz();
+}
+
+function closeViz() {
+  els.vizOverlay.hidden = true;
+  vizState = { steps: [], index: -1, lines: [] };
+}
+
+// ---------------------------------------------------------------------------
 // Code try-it popup
 // ---------------------------------------------------------------------------
 
 function openCodePopup(code) {
   els.codePopupEditor.value = code;
   els.codePopupOutput.textContent = "Ready.";
+  els.codePopup.classList.remove("maximized");
+  if (els.codePopupMaxBtn) { els.codePopupMaxBtn.textContent = "⤢"; els.codePopupMaxBtn.title = "Maximize"; }
   els.codePopup.hidden = false;
-  // Force animation replay
-  els.codePopup.classList.remove("popup-animating");
-  void els.codePopup.offsetWidth;
-  els.codePopup.classList.add("popup-animating");
   els.codePopupEditor.focus();
 }
 
 function closeCodePopup() {
   els.codePopup.hidden = true;
+  els.codePopup.classList.remove("maximized");
+}
+
+function toggleCodePopupMax() {
+  const maximized = els.codePopup.classList.toggle("maximized");
+  els.codePopupMaxBtn.textContent = maximized ? "⤡" : "⤢";
+  els.codePopupMaxBtn.title = maximized ? "Restore" : "Maximize";
 }
 
 async function runCodePopup() {
@@ -1038,10 +1169,24 @@ els.scratchEditor.addEventListener("keydown", (e) => {
 });
 
 els.scratchRunBtn.addEventListener("click", runScratchpad);
+els.scratchVizBtn.addEventListener("click", () => openVisualizer(els.scratchEditor.value, els.scratchVizBtn));
 els.scratchClearBtn.addEventListener("click", () => {
   els.scratchEditor.value = "";
   els.scratchOutput.textContent = "Ready.";
   els.scratchEditor.focus();
+});
+if (els.labVizBtn) {
+  els.labVizBtn.addEventListener("click", () => openVisualizer(els.editor.value, els.labVizBtn));
+}
+els.vizNext.addEventListener("click", () => stepViz(1));
+els.vizPrev.addEventListener("click", () => stepViz(-1));
+els.vizClose.addEventListener("click", closeViz);
+els.vizOverlay.addEventListener("click", (e) => { if (e.target === els.vizOverlay) closeViz(); });
+document.addEventListener("keydown", (e) => {
+  if (els.vizOverlay.hidden) return;
+  if (e.key === "Escape") closeViz();
+  else if (e.key === "ArrowRight") stepViz(1);
+  else if (e.key === "ArrowLeft") stepViz(-1);
 });
 
 // "Try it" delegation — opens popup in place, no page scroll
@@ -1057,9 +1202,12 @@ els.lessonSections.addEventListener("click", (e) => {
   openCodePopup(btn.dataset.code);
 });
 
-// Popup controls
-els.codePopupClose.addEventListener("click", closeCodePopup);
+// Try-it modal controls
+if (els.codePopupClose) els.codePopupClose.addEventListener("click", closeCodePopup);
+if (els.codePopupMaxBtn) els.codePopupMaxBtn.addEventListener("click", toggleCodePopupMax);
+if (els.codePopup) els.codePopup.addEventListener("click", (e) => { if (e.target === els.codePopup) closeCodePopup(); });
 els.codePopupRunBtn.addEventListener("click", runCodePopup);
+els.codePopupVizBtn.addEventListener("click", () => openVisualizer(els.codePopupEditor.value, els.codePopupVizBtn));
 els.codePopupClearBtn.addEventListener("click", () => {
   els.codePopupEditor.value = "";
   els.codePopupOutput.textContent = "Ready.";
@@ -1076,10 +1224,6 @@ els.codePopupEditor.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     runCodePopup();
-  }
-  if (e.key === "Escape") {
-    e.preventDefault();
-    closeCodePopup();
   }
 });
 
@@ -1132,14 +1276,10 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !els.codePopup.hidden) {
-    closeCodePopup();
-    return;
-  }
-  if (e.key === "Escape" && !_aiSettingsPanel.hidden) {
-    _aiSettingsPanel.hidden = true;
-    _aiSettingsBtn.focus();
-  }
+  if (e.key !== "Escape") return;
+  if (!els.vizOverlay.hidden) return; // viz overlay handles its own Escape
+  if (!els.codePopup.hidden) { closeCodePopup(); return; }
+  if (!_aiSettingsPanel.hidden) { _aiSettingsPanel.hidden = true; _aiSettingsBtn.focus(); }
 });
 
 // ---------------------------------------------------------------------------

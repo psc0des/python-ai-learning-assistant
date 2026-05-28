@@ -1,0 +1,94 @@
+{
+  "id": "getting-started",
+  "track": "Python Core",
+  "title": "Getting Started: Coding From Zero",
+  "level": "Beginner",
+  "intro": "Maybe you have never written a single line of code, and the word 'programming' feels like a locked door. This topic is the key. We assume you know nothing about coding — not what a variable is, not how to run a program, nothing. By the end you will have written and run real Python code, made the computer do small useful things, and understood the handful of ideas that everything else is built on. Coding is not magic and it is not maths-heavy. At its heart it is just writing precise instructions for a very fast, very literal assistant. The reason we start with Python is that its instructions read almost like English, so you can focus on thinking clearly instead of fighting the language. And because Python is the language of modern AI, every step you take here is a step toward building AI tools later. Go slowly, type every example yourself, and let yourself make mistakes — mistakes are how the door opens.",
+  "mental_model": "Imagine you hired an assistant who is incredibly fast but takes everything completely literally. They will do exactly what you write — no more, no less — and if your instruction is unclear, they stop and tell you they are confused (that is an 'error'). Code is the list of instructions you hand this assistant. Python reads your instructions one line at a time, from top to bottom, just like a person reading a to-do list. Learning to code is really just learning how to write that to-do list clearly enough that your literal assistant always knows what to do.",
+  "syntax": "# A line starting with # is a note for humans. Python ignores it.\nprint('Hello, world!')\n\nname = 'Sam'          # store the text 'Sam' under the name 'name'\nage = 20              # store the number 20\nis_student = True     # store a yes/no value\n\nprint('Hi', name)     # show: Hi Sam\nprint(age + 1)        # show: 21\n\ndef greet(person):    # define a reusable instruction\n    return 'Hello, ' + person\n\nprint(greet('Sam'))   # show: Hello, Sam",
+  "example": "# Your first tiny program: a friendly greeter.\n# It uses everything in this topic: text, numbers, a decision, and a function.\n\ndef greet_user(name, age):\n    greeting = 'Hello, ' + name + '!'\n    if age < 18:\n        status = 'You are a young learner.'\n    else:\n        status = 'Welcome aboard.'\n    return greeting + ' ' + status\n\nprint(greet_user('Maya', 15))\n# Hello, Maya! You are a young learner.\n\nprint(greet_user('Jon', 30))\n# Hello, Jon! Welcome aboard.",
+  "must_know": [
+    "Code is just a list of precise instructions the computer runs one line at a time, top to bottom.",
+    "`print(...)` shows something on the screen so you can see what your program is doing.",
+    "A variable is a name attached to a value, written with `=` (for example `age = 20`).",
+    "The first kinds of values you will meet are text (strings, in quotes), numbers, and True/False.",
+    "An error is not a disaster — it is the computer politely telling you which line it could not understand.",
+    "A function is a named, reusable instruction. You `return` a result so the rest of your program can use it."
+  ],
+  "common_traps": [
+    "Forgetting the quotes around text. `name = Sam` fails; `name = 'Sam'` works.",
+    "Mixing up `=` (store a value) with `==` (check if two values are equal).",
+    "Expecting `print()` to give a value back to your code. It only shows text on screen — use `return` to hand a value back.",
+    "Reading an error message and giving up. The last line of an error tells you what went wrong; read it.",
+    "Inconsistent indentation. The lines inside a function or an `if` must be indented the same amount."
+  ],
+  "interview": [
+    "Explain in plain words what a variable is and give an everyday analogy.",
+    "Describe what `print()` does and how it differs from `return`.",
+    "Name the three basic kinds of values a beginner meets first and give an example of each.",
+    "Read an error message aloud and explain how you would find the cause.",
+    "Explain why we use functions instead of writing the same instructions over and over."
+  ],
+  "docs": [
+    {
+      "label": "Python.org — Get Started",
+      "url": "https://www.python.org/about/gettingstarted/"
+    },
+    {
+      "label": "Python Tutorial: An Informal Introduction",
+      "url": "https://docs.python.org/3/tutorial/introduction.html"
+    },
+    {
+      "label": "Python Tutorial: Using the Interpreter",
+      "url": "https://docs.python.org/3/tutorial/interpreter.html"
+    }
+  ],
+  "real_world": [
+    "Before you can build anything — a website, an automation script, or an AI assistant — you write small instructions exactly like the ones in this topic. Every large program is thousands of these basic steps stacked together.",
+    "Knowing how to read an error message calmly is one of the most valuable skills a new programmer can have. Professionals read errors all day; it is normal, not a sign of failure.",
+    "The 'name a value, then reuse it' habit you build with variables and functions is the same habit that keeps real codebases readable and maintainable."
+  ],
+  "outcome": "By the end of this topic, you should be able to run Python code, use print() to see output, create variables, work with text/numbers/True-False values, write and call a simple function, and read a basic error message without panicking — everything you need to move confidently into Python Basics.",
+  "lesson_sections": [
+    {
+      "title": "1. What Is Code, and How Do You Run It?",
+      "body": "Think of a recipe card. It is a list of steps, written in order, that anyone can follow to make a dish. Code is exactly that — a list of steps written for a computer to follow. The computer reads your steps from top to bottom and does each one, in order, extremely fast.\n\nThe program that reads and runs your Python steps is called the **interpreter**. You write code, you press Run, and the interpreter does what you wrote. In this app you do not need to install anything — the editor and a Run button are built in. You write a line, run it, and see the result immediately. That instant feedback is the best way to learn.\n\nThe simplest possible instruction is to show something on the screen. We use `print()` for that:\n\n```python\nprint('I just ran my first line of code!')\n```\n\nWhen you run that, the words inside the quotes appear as output. That is it — you have run a program. Everything else in programming is just learning more kinds of instructions to put on the list.\n\n**Try this:** change the words inside the quotes to your own name and run it again. Changing examples and re-running is how you learn fastest.",
+      "source_label": "Python Tutorial: Using the Interpreter",
+      "source_url": "https://docs.python.org/3/tutorial/interpreter.html"
+    },
+    {
+      "title": "2. Showing Output with print()",
+      "body": "`print()` is how your program talks to you. Whatever you put inside the brackets, Python shows on the screen. This is your window into what your code is doing — you will use it constantly to check your work.\n\nYou can print text (always wrapped in quotes), numbers (no quotes), or several things separated by commas:\n\n```python\nprint('Hello!')          # text in quotes\nprint(42)                # a number, no quotes\nprint('Score:', 95)      # two things — Python adds a space: Score: 95\n```\n\nAnything inside quotes is treated as plain text and printed exactly as written. Anything without quotes, Python tries to understand as a value or calculation:\n\n```python\nprint('2 + 2')   # shows: 2 + 2   (it is just text)\nprint(2 + 2)     # shows: 4       (Python does the maths)\n```\n\nThat difference — quotes mean 'literal text', no quotes mean 'work this out' — is one of the first big 'aha' moments in coding.\n\n**Try this:** print your favourite number, then print it with `+ 10` after it (no quotes) and watch Python do the maths.",
+      "source_label": "Python Tutorial: An Informal Introduction",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html"
+    },
+    {
+      "title": "3. Variables: Naming Your Values",
+      "body": "Imagine sticking a labelled note onto a box so you can find it again later. A **variable** is that label. You pick a name, attach it to a value with `=`, and from then on you can use the name instead of repeating the value.\n\n```python\nname = 'Sam'\nage = 20\n\nprint(name)        # Sam\nprint(age)         # 20\nprint(age + 1)     # 21\n```\n\nRead `=` as 'gets' or 'is set to', not as the equals sign from maths. `age = 20` means 'the name age now points to the value 20'. You can change it later, and the newest value wins:\n\n```python\nscore = 10\nscore = score + 5    # take the current score (10), add 5, store it back\nprint(score)         # 15\n```\n\nGood names make code readable. `total_price` tells a future reader (including you tomorrow) what the value means; `x` does not.\n\n**Common trap:** using a name before you have created it. If you `print(city)` before writing `city = 'Paris'`, Python stops with a `NameError` — it has no note with that label yet.",
+      "source_label": "Python Tutorial: An Informal Introduction",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html"
+    },
+    {
+      "title": "4. The Three Values You Meet First: Text, Numbers, True/False",
+      "body": "Every value in Python has a **type** — a kind. As a beginner you meet three kinds first:\n\n- **Text** (called a *string*): letters and symbols wrapped in quotes, like `'hello'` or `'order #42'`.\n- **Numbers**: whole numbers like `7` (an *int*) and decimals like `3.5` (a *float*). No quotes.\n- **True/False** (called a *boolean*): the answer to a yes/no question — exactly `True` or `False`.\n\n```python\ncity = 'Tokyo'      # text\ntemperature = 18.5  # number\nis_raining = False  # True/False\n\nprint(type(city))         # <class 'str'>\nprint(type(temperature))  # <class 'float'>\nprint(type(is_raining))   # <class 'bool'>\n```\n\nThe type matters because it decides what you can do. You can add two numbers to get a sum; you can 'add' two strings to join them together; but adding a number to text directly causes an error.\n\n```python\nprint('Sea' + 'shell')   # Seashell  (joining text)\nprint(3 + 4)             # 7         (adding numbers)\n```\n\nBooleans appear whenever you ask a question, like `5 > 3`, which Python answers with `True`. They are the foundation of decisions, which come next.\n\n**Try this:** run `print(type(your_value))` on a few different values to see what Python calls them.",
+      "source_label": "Python Tutorial: An Informal Introduction",
+      "source_url": "https://docs.python.org/3/tutorial/introduction.html#numbers"
+    },
+    {
+      "title": "5. Making Decisions with if / else",
+      "body": "Real programs need to choose what to do based on the situation — like a doorman who lets you in only if you are on the list. In Python, `if` and `else` make that choice.\n\nYou give `if` a yes/no question (something that is True or False). If it is True, Python runs the indented lines underneath. If it is False, it runs the `else` block instead.\n\n```python\nage = 15\n\nif age >= 18:\n    print('You can vote.')\nelse:\n    print('Too young to vote.')\n# shows: Too young to vote.\n```\n\nTwo details that catch every beginner:\n\n- Use `==` (two equals signs) to **check** if things are equal, and `=` (one) to **store** a value. `if name == 'Sam':` asks a question; `name = 'Sam'` sets a value.\n- The lines that belong to the `if` must be **indented** (pushed to the right, usually four spaces). The indentation is how Python knows which lines are 'inside' the decision.\n\nThe comparison questions you will use most: `==` (equal), `!=` (not equal), `>` `<` `>=` `<=` (greater/less than).\n\n```python\nscore = 72\nif score >= 50:\n    result = 'pass'\nelse:\n    result = 'fail'\nprint(result)   # pass\n```\n\n**Try this:** change `score` to a number below 50 and run it again to see the other branch.",
+      "source_label": "Python Tutorial: More Control Flow Tools",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html"
+    },
+    {
+      "title": "6. Your First Function (and Reading Errors)",
+      "body": "When you find yourself wanting to reuse the same steps, you wrap them in a **function** — a named instruction you can run again and again. You met `print()` already; that is a function someone else wrote. Now you write your own with `def`.\n\n```python\ndef greet(person):\n    return 'Hello, ' + person + '!'\n\nprint(greet('Sam'))   # Hello, Sam!\nprint(greet('Mia'))   # Hello, Mia!\n```\n\nThe word in brackets (`person`) is a placeholder for whatever you pass in when you call it. `return` is the function's way of handing a result back so the rest of your program can use it. This is different from `print()`: `print` only shows text on screen, while `return` gives a value back to your code. In this app, the labs check the value you **return**, so returning (not just printing) matters.\n\n**Reading errors — the most important beginner skill.** When Python cannot follow an instruction, it stops and prints an error. Do not panic and do not ignore it — read the **last line**, which names the problem:\n\n```python\nprint(total)\n# NameError: name 'total' is not defined\n```\n\nThat last line is Python telling you, in its own words, exactly what confused it — here, you used `total` before creating it. Errors are normal. Professional programmers read them all day. Learning to read the last line calmly is what turns a frustrating wall into a simple fix.\n\n**Try this:** write a function `double(n)` that returns `n * 2`, then call it with a few numbers.",
+      "diagram_svg": "<svg viewBox=\"0 0 700 164\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"A function takes an input argument, runs its body, and returns an output value\"><defs><marker id=\"ar\" markerWidth=\"9\" markerHeight=\"9\" refX=\"7.5\" refY=\"3\" orient=\"auto\" markerUnits=\"strokeWidth\"><path d=\"M0,0 L7.5,3 L0,6 Z\" fill=\"#4a5568\"/></marker></defs><rect x=\"20\" y=\"52\" width=\"130\" height=\"56\" rx=\"10\" fill=\"#ffffff\" stroke=\"#94a3b8\" stroke-width=\"2\"/><text x=\"85.0\" y=\"74.66666666666667\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12.5\" font-weight=\"700\" fill=\"#1a1f2e\">&#x27;Sam&#x27;</text><text x=\"85.0\" y=\"93.33333333333334\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#718096\">input (argument)</text><rect x=\"250\" y=\"36\" width=\"200\" height=\"88\" rx=\"10\" fill=\"#1e293b\" stroke=\"#1e293b\" stroke-width=\"2\"/><text x=\"350.0\" y=\"62.0\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12.5\" font-weight=\"700\" fill=\"#ffffff\">greet(person)</text><text x=\"350.0\" y=\"84.0\" text-anchor=\"middle\" font-family=\"monospace\" font-size=\"9.5\" fill=\"#cbd5e1\">return &#x27;Hello, &#x27; + person + &#x27;!&#x27;</text><text x=\"350.0\" y=\"106.0\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#94a3b8\">the function</text><rect x=\"540\" y=\"52\" width=\"140\" height=\"56\" rx=\"10\" fill=\"#ecfdf5\" stroke=\"#059669\" stroke-width=\"2\"/><text x=\"610.0\" y=\"74.66666666666667\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12.5\" font-weight=\"700\" fill=\"#065f46\">&#x27;Hello, Sam!&#x27;</text><text x=\"610.0\" y=\"93.33333333333334\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#059669\">output (return)</text><line x1=\"150\" y1=\"80\" x2=\"250\" y2=\"80\" stroke=\"#4a5568\" stroke-width=\"2\" marker-end=\"url(#ar)\"/><text x=\"200\" y=\"72\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#64748b\">you pass a value</text><line x1=\"450\" y1=\"80\" x2=\"540\" y2=\"80\" stroke=\"#4a5568\" stroke-width=\"2\" marker-end=\"url(#ar)\"/><text x=\"495\" y=\"72\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#64748b\">it returns one</text><text x=\"20\" y=\"150\" text-anchor=\"start\" font-family=\"sans-serif\" font-size=\"10.5\" fill=\"#64748b\">The code inside the function runs every time you call it, with whatever value you pass in.</text></svg>",
+      "diagram_caption": "A function takes an input, runs its body, and returns an output — like a small machine.",
+      "source_label": "Python Tutorial: Defining Functions",
+      "source_url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"
+    }
+  ],
+  "lesson_path": "content/topics/getting-started/lesson.md",
+  "quality_status": "reference"
+}

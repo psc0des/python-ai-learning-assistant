@@ -146,6 +146,7 @@
                 <textarea id="scratchEditor" class="scratchpad-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" placeholder="# Type or paste Python here…"></textarea>
                 <div class="scratchpad-toolbar">
                   <button id="scratchRunBtn" type="button">&#9654; Run</button>
+                  <button id="scratchVizBtn" type="button" class="secondary">&#128270; Visualize</button>
                   <button id="scratchClearBtn" type="button" class="secondary">Clear</button>
                 </div>
                 <pre id="scratchOutput" class="scratchpad-output">Ready.</pre>
@@ -177,6 +178,7 @@
                   <textarea id="editor" aria-label="Code editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"></textarea>
                   <div class="editor-toolbar">
                     <button id="runBtn" type="button">▶ Run Tests</button>
+                    <button id="labVizBtn" type="button" class="secondary">&#128270; Visualize</button>
                     <button id="hintBtn" type="button" class="secondary">💡 Hint</button>
                     <button id="solutionBtn" type="button" class="secondary">Show Solution</button>
                   </div>
@@ -232,19 +234,48 @@
       </main>
     </div>
 
-    <!-- Code try-it popup (fixed overlay — no page scroll) -->
+    <!-- Code try-it overlay (centered modal) -->
     <div id="codePopup" class="code-popup" hidden>
-      <div class="code-popup-header">
-        <div class="scratchpad-dots"><span></span><span></span><span></span></div>
-        <span class="code-popup-title">Try it · Ctrl+Enter to run</span>
-        <button id="codePopupClose" type="button" class="code-popup-close" aria-label="Close">✕</button>
+      <div class="code-popup-modal" id="codePopupModal">
+        <div class="code-popup-header">
+          <div class="scratchpad-dots"><span></span><span></span><span></span></div>
+          <span class="code-popup-title">Try it · Ctrl+Enter to run</span>
+          <div class="code-popup-header-btns">
+            <button id="codePopupMaxBtn" type="button" class="code-popup-icon-btn" aria-label="Maximize" title="Maximize">⤢</button>
+            <button id="codePopupClose" type="button" class="code-popup-icon-btn" aria-label="Close">✕</button>
+          </div>
+        </div>
+        <textarea id="codePopupEditor" class="code-popup-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false"></textarea>
+        <div class="code-popup-toolbar">
+          <button id="codePopupRunBtn" type="button">&#9654; Run</button>
+          <button id="codePopupVizBtn" type="button" class="secondary">&#128270; Visualize</button>
+          <button id="codePopupClearBtn" type="button" class="secondary">Clear</button>
+        </div>
+        <pre id="codePopupOutput" class="code-popup-output">Ready.</pre>
       </div>
-      <textarea id="codePopupEditor" class="code-popup-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" data-gramm="false"></textarea>
-      <div class="code-popup-toolbar">
-        <button id="codePopupRunBtn" type="button">&#9654; Run</button>
-        <button id="codePopupClearBtn" type="button" class="secondary">Clear</button>
+    </div>
+
+    <div id="vizOverlay" class="viz-overlay" hidden>
+      <div class="viz-modal">
+        <div class="viz-modal-head">
+          <strong>&#128270; Execution Visualizer</strong>
+          <span class="viz-modal-hint">step through your code line by line</span>
+          <button id="vizClose" type="button" class="viz-x" aria-label="Close">✕</button>
+        </div>
+        <div class="viz-stage">
+          <pre id="vizCode" class="viz-code"></pre>
+          <div class="viz-vars">
+            <h4>Variables</h4>
+            <div id="vizVarList"><p class="viz-empty">Press Next to start.</p></div>
+          </div>
+        </div>
+        <p id="vizNote" class="viz-note"></p>
+        <div class="viz-controls">
+          <button id="vizPrev" type="button" class="secondary" disabled>&larr; Prev</button>
+          <button id="vizNext" type="button">Next &rarr;</button>
+          <span id="vizCount" class="viz-count"></span>
+        </div>
       </div>
-      <pre id="codePopupOutput" class="code-popup-output">Ready.</pre>
     </div>
 
     <script src="/app.js"></script>

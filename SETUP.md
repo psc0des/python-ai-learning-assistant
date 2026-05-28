@@ -12,19 +12,26 @@ E:\AI\Python_Learning_Assistant
 
 ```text
 Python_Learning_Assistant/
-  app.py              Local HTTP server, code runner, AI provider integration
+  app.py              Local HTTP server, API routes (including /api/trace)
   content_loader.py   Structured content loader with legacy fallback
-  curriculum.py       Learning topics, lesson content, citations, real-world notes
-  exercises.py        Coding labs and test cases
-  practice_tests.py   Topic practice-test questions
+  runner.py           Lab test runner and execution tracer (sys.settrace in subprocess)
+  ai_coach.py         AI provider integration
+  curriculum.py       Legacy topic metadata (fallback only)
+  exercises.py        Legacy coding labs (fallback only)
+  practice_tests.py   Legacy practice tests (fallback only)
   content/
-    manifest.json     Topic order and schema metadata
+    manifest.json     Topic order and schema metadata (15 topics)
     sources.json      Official source registry
-    topics/           Per-topic authored content (topic, lesson, labs, practice)
+    topics/           Per-topic authored content (topic.json, lesson.md, labs.json, practice.json)
   static/
-    index.html        Browser UI
-    app.js            UI behavior, labs, tests, AI chat
-    styles.css        App styling
+    index.html        App shell — includes scratchpad, try-it popup, viz overlay modal
+    app.js            UI behavior, topic rendering, labs, AI coach, execution visualizer
+    styles.css        Warm notebook visual design
+  tests/
+    test_content_loader.py   Content structure and loader tests
+    test_content_quality.py  Quality gate (≥5 labs, ≥8 questions, sources present)
+    test_runner.py           Lab runner tests incl. _safe() and _norm() edge cases
+    test_trace.py            Execution tracer tests (8 tests)
   AGENTS.md           Contributor instructions and project quality rules
   README.md           Short project overview
   SETUP.md            Setup and deployment notes
@@ -111,11 +118,12 @@ Endpoint: http://127.0.0.1:11434
 Model: choose from the dropdown
 ```
 
-Current detected local Ollama models on this machine:
+Recommended models (pull if not installed):
 
 ```text
-qwen3.5:latest
-nemotron-3-nano:4b
+llama3.2
+qwen2.5
+phi3.5
 ```
 
 ### LM Studio
@@ -220,14 +228,24 @@ Before deploying for multiple users, a senior developer should review and harden
 
 ## Current Product Shape
 
-The app is now learning-focused, not interview-only.
+The app is learning-focused, not interview-only. 15 topics across Python Core, Engineering Habits, Backend, AI Apps, and DevOps.
 
 Each topic is organized as:
 
 - Overview
-- Lesson
+- Lesson (with inline concept diagrams for structural topics)
 - Labs
 - Practice Test
+
+### Concept Diagrams
+
+Six topics have an inline SVG concept diagram embedded in one lesson section (`diagram_svg` + `diagram_caption` fields in `topic.json`): `getting-started` (function input/output), `fastapi` (request lifecycle), `rag-vectors` (pipeline), `mcp` (host/client/server), `langgraph` (state graph), `langchain` (agent loop). Diagrams use the locked palette: charcoal `#1e293b` (focal), green `#059669` (result), slate `#94a3b8` (borders), gray `#4a5568` (arrows).
+
+### Execution Visualizer
+
+Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel.
+
+### AI Coach
 
 The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — clicking it switches to the Labs tab and sends the selection as a question to the coach.
 

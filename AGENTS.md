@@ -48,7 +48,7 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 
 ## Main Files
 
-- `app.py`: local HTTP server and API routes.
+- `app.py`: local HTTP server and API routes. Serves `index.html` with `Cache-Control: no-cache` so browsers never serve a stale HTML with mismatched JS.
 - `content_loader.py`: loads structured curriculum from `content/`.
 - `ai_coach.py`: AI provider integration for Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), and Groq Cloud.
 - `runner.py`: local Python exercise runner.
@@ -59,9 +59,9 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 - `content/manifest.json`: topic ordering and schema metadata.
 - `content/sources.json`: official source registry with `checked_at`.
 - `content/topics/*`: per-topic authored content (`topic.json`, `lesson.md`, `labs.json`, `practice.json`).
-- `static/index.html`: app shell. Includes the collapsible Python Scratchpad panel (bottom of Lesson tab) and the fixed try-it code popup overlay.
-- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover, scratchpad toggle/run/clear, code popup open/run/close, lesson code block "▶ Try it" delegation.
-- `static/styles.css`: warm notebook visual design.
+- `static/index.html`: app shell. Includes the collapsible Python Scratchpad panel (Lesson tab), the `#codePopup` Try-it centered modal overlay (maximize ⤢/restore ⤡ button, backdrop click to close), and the shared `#vizOverlay` execution visualizer modal.
+- `static/app.js`: UI behavior, topic rendering, labs, tests, AI coach interactions, selection-triggered Ask AI popover, scratchpad toggle/run/clear/visualize, Try-it modal open/maximize/run/visualize/close, lesson code block "▶ Try it" delegation, `openVisualizer` / `renderViz` / `stepViz` for the execution visualizer. **Escape key priority**: viz overlay handles its own Escape first; code popup Escape is skipped while viz is open — do not break this ordering.
+- `static/styles.css`: warm notebook visual design. Includes `.section-diagram` (transparent, blends into lesson card), `.viz-*` (execution visualizer modal), `.code-popup` / `.code-popup-modal` (Try-it centered modal — `z-index: 800`; viz overlay stays at `z-index: 1000` on top). Both overlays require `[hidden] { display: none }` overrides — do not remove them.
 - `SETUP.md`: setup, local deployment, and AI provider notes.
 
 ## Product Direction
@@ -103,7 +103,7 @@ When adding or rewriting lesson content:
 
 ## Current Content Status
 
-All 14 topics have been rewritten to reference quality:
+All 15 topics have been rewritten to reference quality:
 
 - richer `intro` and `mental_model` fields; `python-basics` and `oop` intros further refined for tone (direct, confident engineering-handbook register — see Async Python intro as the target standard);
 - official source citations at the section level (`source_label` / `source_url`);
@@ -111,9 +111,15 @@ All 14 topics have been rewritten to reference quality:
 - each section: one-sentence analogy opener → technical explanation → beginner code example → production/professional code example (no inline `# Layman example:` or `# Professional example:` labels — labels were removed as they read awkwardly in-context);
 - `lesson.md` files updated to match the rich content in each `topic.json`.
 
-Topics at this level: `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `python-devops`, `sql-http-git`.
+Topics at this level: `getting-started`, `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `python-devops`, `sql-http-git`.
 
-Do not assume the curriculum is complete just because tests pass. Tests currently validate structure and exercise correctness, not full teaching quality. Labs (at least 5 per topic) and practice questions (at least 8 per topic) remain incomplete for most topics beyond Python Basics.
+### Concept Diagrams
+
+Six topics have an inline SVG diagram in one lesson section (`diagram_svg` + `diagram_caption` on the section object in `topic.json`). These are rendered as a `<figure>` inside `.section-diagram`. The SVG is trusted authored content — it is NOT passed through `escapeHtml`. Locked palette: charcoal `#1e293b` (focal/your-code), green `#059669` (result/output), white with slate `#94a3b8` borders (plain boxes), gray `#4a5568` (arrows), amber `#b45309` (store/data).
+
+Topics with diagrams: `getting-started` (function), `fastapi` (request lifecycle), `rag-vectors` (pipeline with Vector DB), `mcp` (host/client/server), `langgraph` (state graph), `langchain` (ReAct agent loop).
+
+Do not assume the curriculum is complete just because tests pass. Tests validate structure and exercise correctness, not full teaching quality.
 
 ## UI Direction
 
@@ -141,6 +147,17 @@ When adding labs:
 - include edge cases such as empty input, invalid input, boundaries, duplicates, and casing where relevant;
 - verify every solution passes its own tests;
 - prefer small functions that return values over print-only exercises.
+
+### Runner Safety
+
+`runner.py` applies two normalizations before comparing or serializing test results:
+
+- `_safe(value)` — converts non-JSON-serializable values (sets, objects) to a truncated `repr` string instead of crashing `json.dumps` inside the subprocess.
+- `_norm(value)` — recursively converts tuples to lists (and nested) so a function returning `(1, 2)` compares equal to `expected=[1, 2]`. This is intentional for a beginner platform; beginners routinely return tuples when lists are expected.
+
+### Execution Tracer
+
+`runner.py` also exposes `trace_user_code(code)` which runs the snippet under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max `MAX_TRACE_STEPS = 300`). Non-serializable values degrade to `repr`. Dangerous imports are blocked by the same AST scan used by the lab runner. The `/api/trace` endpoint in `app.py` is rate-limited and concurrency-capped identically to `/api/run`.
 
 ## AI Coach
 

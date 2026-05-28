@@ -1,0 +1,93 @@
+{
+  "topic_id": "getting-started",
+  "questions": [
+    {
+      "question": "What does `print()` do in a Python program?",
+      "options": [
+        "It shows something on the screen so you can see your program's output.",
+        "It saves your program to a file.",
+        "It sends your code to the printer.",
+        "It deletes a variable."
+      ],
+      "answer": 0,
+      "explanation": "`print()` displays whatever you put inside the brackets on the screen. It is how your program 'talks' to you and how you check what your code is doing."
+    },
+    {
+      "question": "Which of these correctly stores the text Sam in a variable called name?",
+      "options": [
+        "name = Sam",
+        "name = 'Sam'",
+        "name == 'Sam'",
+        "'Sam' = name"
+      ],
+      "answer": 1,
+      "explanation": "Text must be wrapped in quotes, and `=` stores the value into the name on its left. `name = Sam` (no quotes) fails, and `==` is for checking equality, not storing."
+    },
+    {
+      "question": "What is a variable?",
+      "options": [
+        "A type of error.",
+        "A name attached to a value so you can use it later.",
+        "A command that prints text.",
+        "A number that cannot change."
+      ],
+      "answer": 1,
+      "explanation": "A variable is a label you attach to a value with `=`. You can then use the name anywhere you need that value, and you can change what it points to later."
+    },
+    {
+      "question": "What will `print(2 + 3)` show on the screen?",
+      "options": [
+        "2 + 3",
+        "23",
+        "5",
+        "An error"
+      ],
+      "answer": 2,
+      "explanation": "Because there are no quotes, Python works out the calculation and prints the result, 5. `print('2 + 3')` with quotes would instead show the literal text 2 + 3."
+    },
+    {
+      "question": "Which value is a boolean (a True/False value)?",
+      "options": [
+        "'hello'",
+        "42",
+        "3.5",
+        "True"
+      ],
+      "answer": 3,
+      "explanation": "A boolean is exactly `True` or `False`. `'hello'` is text, `42` is a whole number (int), and `3.5` is a decimal (float)."
+    },
+    {
+      "question": "What is the difference between `=` and `==`?",
+      "options": [
+        "They are the same thing.",
+        "`=` stores a value in a variable; `==` checks whether two values are equal.",
+        "`=` checks equality; `==` stores a value.",
+        "`==` is only used with numbers."
+      ],
+      "answer": 1,
+      "explanation": "Use one equals sign `=` to store a value (`age = 20`) and two equals signs `==` to ask whether two values are equal (`if age == 20:`). Mixing them up is a very common beginner mistake."
+    },
+    {
+      "question": "Inside a function, what does `return` do?",
+      "options": [
+        "It prints text on the screen.",
+        "It hands a value back to the code that called the function.",
+        "It deletes the function.",
+        "It restarts the program."
+      ],
+      "answer": 1,
+      "explanation": "`return` sends a value back to whoever called the function so it can be used elsewhere. This is different from `print()`, which only displays text and gives nothing back to your code."
+    },
+    {
+      "question": "You run some code and see `NameError: name 'total' is not defined`. What is the most likely cause?",
+      "options": [
+        "Your computer is broken.",
+        "Python does not support the word 'total'.",
+        "You used the variable `total` before creating it with `=`.",
+        "You need to restart Python."
+      ],
+      "answer": 2,
+      "explanation": "A NameError means you used a name Python has not seen yet. The fix is to make sure you assign the variable (for example `total = 0`) before you use it. Reading the last line of an error tells you exactly what went wrong."
+    }
+  ]
+}

@@ -22,7 +22,7 @@ from typing import Any
 from ai_coach import ask_ai_coach, list_ai_models
 from content_loader import load_content
 from models import validate_content_at_startup
-from runner import run_user_code
+from runner import run_user_code, trace_user_code
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -140,12 +140,21 @@ class Handler(SimpleHTTPRequestHandler):
                 "loaded_at": CONTENT_LOADED_AT,
             })
             return
-        if self.path == "/" or self.path.startswith("/?"):
-            self.path = "/index.html"
+        # Serve index.html explicitly with no-cache so JS/HTML never go out of sync
+        if self.path in ("/", "/index.html") or self.path.startswith("/?"):
+            content = (STATIC_DIR / "index.html").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.end_headers()
+            self.wfile.write(content)
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
-        allowed_endpoints = {"/api/run", "/api/ai-coach", "/api/ai-models"}
+        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-models"}
         if self.path not in allowed_endpoints:
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
@@ -160,8 +169,8 @@ class Handler(SimpleHTTPRequestHandler):
             )
             return
 
-        # Rate limiting on the code runner only
-        if self.path == "/api/run":
+        # Rate limiting on the code-execution endpoints
+        if self.path in ("/api/run", "/api/trace"):
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip):
                 logger.warning("Rate limit exceeded for IP: %s", client_ip)
@@ -192,6 +201,8 @@ class Handler(SimpleHTTPRequestHandler):
 
             if self.path == "/api/run":
                 result = run_user_code(payload, EXERCISES)
+            elif self.path == "/api/trace":
+                result = trace_user_code(payload)
             elif self.path == "/api/ai-models":
                 result = list_ai_models(payload)
             else:

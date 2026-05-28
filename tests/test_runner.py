@@ -32,6 +32,38 @@ class TestBuildTestCode:
         assert "__PY_SKILL_LAB_RESULTS__" in code
 
 
+class TestNonSerializableReturn:
+    def test_set_return_does_not_crash_harness(self):
+        # Regression for P1.1: a non-JSON-serializable return value must degrade
+        # to a readable repr and a failed test, never crash the result harness.
+        exercises = [{"id": "p1", "tests": [
+            {"call": "f()", "expected": [1, 2, 3], "label": "set-vs-list"}
+        ]}]
+        result = run_user_code({"code": "def f():\n    return {1, 2, 3}\n", "exercise_id": "p1"}, exercises)
+        assert len(result["tests"]) == 1
+        test = result["tests"][0]
+        assert test["passed"] is False
+        assert isinstance(test["actual"], str) and "1" in test["actual"]
+
+
+class TestTupleListComparison:
+    def test_tuple_return_matches_list_expected(self):
+        # Regression for P1.2: JSON has no tuples, so 'expected' is always a list.
+        # A correct tuple return must compare equal, not be marked wrong.
+        exercises = [{"id": "tp", "tests": [
+            {"call": "f()", "expected": [1, 2], "label": "tuple"}
+        ]}]
+        result = run_user_code({"code": "def f():\n    return (1, 2)\n", "exercise_id": "tp"}, exercises)
+        assert result["tests"][0]["passed"] is True
+
+    def test_genuine_mismatch_still_fails(self):
+        exercises = [{"id": "tp2", "tests": [
+            {"call": "f()", "expected": [1, 2, 3], "label": "mismatch"}
+        ]}]
+        result = run_user_code({"code": "def f():\n    return [1, 2]\n", "exercise_id": "tp2"}, exercises)
+        assert result["tests"][0]["passed"] is False
+
+
 class TestParseTestResults:
     def test_parses_valid_results(self):
         stdout = 'hello\n__PY_SKILL_LAB_RESULTS__[{"label":"a","passed":true}]'

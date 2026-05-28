@@ -1,0 +1,137 @@
+[
+  {
+    "id": "gs-say-hello",
+    "topic_id": "getting-started",
+    "title": "Say Hello",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write a function `say_hello()` that returns the exact text `Hello, world!` (with the capital H, the comma, and the exclamation mark).",
+    "starter": "def say_hello():\n    # Replace pass with a return statement.\n    pass\n",
+    "tests": [
+      {
+        "label": "returns the greeting",
+        "call": "say_hello()",
+        "expected": "Hello, world!"
+      },
+      {
+        "label": "starts with Hello",
+        "call": "say_hello().startswith('Hello')",
+        "expected": true
+      }
+    ],
+    "hint": "Inside the function, write `return 'Hello, world!'`. Text must be wrapped in quotes.",
+    "solution": "def say_hello():\n    return 'Hello, world!'\n",
+    "explanation": "A function gives a value back with `return`. Here we return the exact text the test expects. Note the quotes around the text — without them Python would not know it is text."
+  },
+  {
+    "id": "gs-add-two",
+    "topic_id": "getting-started",
+    "title": "Add Two Numbers",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write a function `add(a, b)` that returns the sum of the two numbers passed to it.",
+    "starter": "def add(a, b):\n    pass\n",
+    "tests": [
+      {
+        "label": "two positives",
+        "call": "add(2, 3)",
+        "expected": 5
+      },
+      {
+        "label": "with zero",
+        "call": "add(10, 0)",
+        "expected": 10
+      },
+      {
+        "label": "negatives",
+        "call": "add(-4, 1)",
+        "expected": -3
+      }
+    ],
+    "hint": "The `+` operator adds numbers. Write `return a + b`.",
+    "solution": "def add(a, b):\n    return a + b\n",
+    "explanation": "`a` and `b` are placeholders for the values passed in when the function is called. `a + b` adds them, and `return` hands the result back to whoever called the function."
+  },
+  {
+    "id": "gs-greet-name",
+    "topic_id": "getting-started",
+    "title": "Greet by Name",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write a function `greet(name)` that returns `Hello, ` followed by the name and a `!`. For example, `greet('Sam')` should return `Hello, Sam!`.",
+    "starter": "def greet(name):\n    pass\n",
+    "tests": [
+      {
+        "label": "greets Sam",
+        "call": "greet('Sam')",
+        "expected": "Hello, Sam!"
+      },
+      {
+        "label": "greets Mia",
+        "call": "greet('Mia')",
+        "expected": "Hello, Mia!"
+      }
+    ],
+    "hint": "Join text with `+`: `return 'Hello, ' + name + '!'`. Watch the spaces and the exclamation mark.",
+    "solution": "def greet(name):\n    return 'Hello, ' + name + '!'\n",
+    "explanation": "Joining strings with `+` sticks them together end to end. The space after the comma in `'Hello, '` matters — the test expects it exactly."
+  },
+  {
+    "id": "gs-is-even",
+    "topic_id": "getting-started",
+    "title": "Is It Even?",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "Write a function `is_even(n)` that returns `True` if the number `n` is even, and `False` if it is odd.",
+    "starter": "def is_even(n):\n    pass\n",
+    "tests": [
+      {
+        "label": "4 is even",
+        "call": "is_even(4)",
+        "expected": true
+      },
+      {
+        "label": "7 is odd",
+        "call": "is_even(7)",
+        "expected": false
+      },
+      {
+        "label": "0 is even",
+        "call": "is_even(0)",
+        "expected": true
+      }
+    ],
+    "hint": "The `%` operator gives the remainder after division. An even number has remainder 0 when divided by 2, so `n % 2 == 0` is True for even numbers.",
+    "solution": "def is_even(n):\n    return n % 2 == 0\n",
+    "explanation": "`n % 2` is the remainder when `n` is divided by 2. For even numbers that remainder is 0, so `n % 2 == 0` is a True/False question whose answer we return directly."
+  },
+  {
+    "id": "gs-describe-number",
+    "topic_id": "getting-started",
+    "title": "Describe a Number",
+    "difficulty": "Beginner",
+    "difficulty_order": 5,
+    "prompt": "Write a function `describe_number(n)` that returns the text `positive` if `n` is greater than 0, `negative` if it is less than 0, and `zero` if it is exactly 0.",
+    "starter": "def describe_number(n):\n    pass\n",
+    "tests": [
+      {
+        "label": "positive",
+        "call": "describe_number(5)",
+        "expected": "positive"
+      },
+      {
+        "label": "negative",
+        "call": "describe_number(-3)",
+        "expected": "negative"
+      },
+      {
+        "label": "zero",
+        "call": "describe_number(0)",
+        "expected": "zero"
+      }
+    ],
+    "hint": "Use `if`, `elif`, and `else`. Check `n > 0` first, then `n < 0`, then everything else is zero.",
+    "solution": "def describe_number(n):\n    if n > 0:\n        return 'positive'\n    elif n < 0:\n        return 'negative'\n    else:\n        return 'zero'\n",
+    "explanation": "`if` / `elif` / `else` lets you choose between three paths. Python checks each question in order and runs the first one that is True. Returning text directly from each branch keeps the function simple."
+  }
+]

@@ -221,6 +221,29 @@ import traceback
 TESTS = json.loads({encoded_tests_json})
 USER_GLOBALS = {{"__name__": "__main__"}}
 
+def _safe(value):
+    # Keep JSON-serializable values as-is; fall back to a truncated repr so an
+    # exotic return value (set, custom object, etc.) can never crash json.dumps.
+    try:
+        json.dumps(value)
+        return value
+    except Exception:
+        try:
+            text = repr(value)
+        except Exception:
+            text = "<unrepresentable>"
+        return text if len(text) <= 200 else text[:197] + "..."
+
+def _norm(value):
+    # Tuples cannot be expressed in JSON, so an 'expected' value loaded from a
+    # lab file is always a list. Normalize tuples<->lists (recursively) before
+    # comparing so a correct tuple return is not marked wrong.
+    if isinstance(value, (list, tuple)):
+        return [_norm(item) for item in value]
+    if isinstance(value, dict):
+        return {{key: _norm(val) for key, val in value.items()}}
+    return value
+
 try:
     exec({user_code!r}, USER_GLOBALS)
 except Exception:
@@ -235,12 +258,15 @@ for test in TESTS:
     try:
         with contextlib.redirect_stdout(capture):
             actual = eval(expression, USER_GLOBALS)
-        passed = actual == expected
+        try:
+            passed = bool(_norm(actual) == _norm(expected))
+        except Exception:
+            passed = False
         results.append({{
             "label": label,
             "call": expression,
             "expected": expected,
-            "actual": actual,
+            "actual": _safe(actual),
             "printed": capture.getvalue(),
             "passed": passed,
         }})
@@ -361,4 +387,159 @@ def run_user_code(payload: dict[str, Any], exercises: list[dict[str, Any]]) -> d
         "stderr": stderr,
         "tests": parsed_tests,
         "feedback": coach_feedback(code, clean_stdout, stderr, parsed_tests, exercise),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Execution visualizer (step-through trace)
+# ---------------------------------------------------------------------------
+
+MAX_TRACE_STEPS = 300
+TRACE_MARKER = "__PY_TRACE__"
+
+
+def build_trace_code(user_code: str) -> str:
+    """Build a subprocess script that runs user code under sys.settrace.
+
+    It records one step per executed line — the line number plus a snapshot of
+    the data variables in scope — so the frontend can replay execution. Values
+    are serialized safely (non-JSON values fall back to a truncated repr) so an
+    exotic value can never crash the recorder.
+    """
+    return f"""
+import sys, json, io, contextlib, types
+
+MAX_STEPS = {MAX_TRACE_STEPS}
+USER_FILE = "<user>"
+steps = []
+state = {{"last_line": 0}}
+
+def _safe(value):
+    try:
+        json.dumps(value)
+        return value
+    except Exception:
+        try:
+            text = repr(value)
+        except Exception:
+            text = "<unrepresentable>"
+        return text if len(text) <= 120 else text[:117] + "..."
+
+def _skip(value):
+    return isinstance(value, (
+        types.FunctionType, types.LambdaType, types.ModuleType, type,
+        types.BuiltinFunctionType, types.MethodType,
+    ))
+
+def _snapshot(namespace):
+    out = {{}}
+    for key, value in list(namespace.items()):
+        if key.startswith("__") or _skip(value):
+            continue
+        out[key] = _safe(value)
+    return out
+
+class _StepLimit(Exception):
+    pass
+
+def _tracer(frame, event, arg):
+    if frame.f_code.co_filename != USER_FILE:
+        return _tracer
+    if event == "line":
+        if len(steps) >= MAX_STEPS:
+            raise _StepLimit()
+        state["last_line"] = frame.f_lineno
+        steps.append({{"line": frame.f_lineno, "vars": _snapshot(frame.f_locals)}})
+    return _tracer
+
+result = {{"steps": steps, "stdout": "", "truncated": False, "error": ""}}
+user_globals = {{"__name__": "__main__", "__file__": USER_FILE}}
+capture = io.StringIO()
+try:
+    compiled = compile({user_code!r}, USER_FILE, "exec")
+    sys.settrace(_tracer)
+    with contextlib.redirect_stdout(capture):
+        exec(compiled, user_globals)
+except _StepLimit:
+    result["truncated"] = True
+except SyntaxError as exc:
+    result["error"] = "SyntaxError: " + str(exc.msg)
+except Exception as exc:
+    result["error"] = type(exc).__name__ + ": " + str(exc)
+finally:
+    sys.settrace(None)
+
+# A final snapshot captures assignments made on the last executed line,
+# which produces no further 'line' event of its own.
+steps.append({{"line": state["last_line"], "vars": _snapshot(user_globals), "final": True}})
+result["stdout"] = capture.getvalue()
+print("{TRACE_MARKER}" + json.dumps(result))
+"""
+
+
+def parse_trace_result(stdout: str) -> dict[str, Any] | None:
+    """Extract the structured trace payload from subprocess stdout."""
+    if TRACE_MARKER not in stdout:
+        return None
+    raw = stdout.rsplit(TRACE_MARKER, 1)[-1].strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+
+
+def trace_user_code(payload: dict[str, Any]) -> dict[str, Any]:
+    """Run learner code and return a step-by-step execution trace."""
+    code = str(payload.get("code", ""))
+
+    if len(code.encode("utf-8")) > MAX_CODE_BYTES:
+        return {"ok": False, "steps": [], "stdout": "", "error": "Code is too large to visualize."}
+
+    violations = scan_for_dangerous_code(code)
+    if violations:
+        return {
+            "ok": False,
+            "steps": [],
+            "stdout": "",
+            "error": "\n".join(violations),
+        }
+
+    trace_code = build_trace_code(code)
+    try:
+        tmpdir = tempfile.mkdtemp(prefix="pyskilllab_trace_")
+        try:
+            env = os.environ.copy()
+            env["PYTHONDONTWRITEBYTECODE"] = "1"
+            for key in ("PYTHONSTARTUP", "PYTHONPATH"):
+                env.pop(key, None)
+            proc = subprocess.run(
+                [sys.executable, "-I", "-B", "-c", trace_code],
+                capture_output=True,
+                text=True,
+                timeout=RUN_TIMEOUT_SECONDS,
+                cwd=tmpdir,
+                env=env,
+            )
+            stdout = proc.stdout
+            stderr = proc.stderr
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "steps": [], "stdout": "",
+                "error": "Execution timed out. Check for infinite loops or very slow code."}
+    except Exception as exc:
+        logger.exception("Trace runner failed unexpectedly")
+        return {"ok": False, "steps": [], "stdout": "", "error": f"Visualizer error: {exc}"}
+
+    parsed = parse_trace_result(stdout)
+    if parsed is None:
+        return {"ok": False, "steps": [], "stdout": "",
+                "error": stderr or "Could not produce an execution trace."}
+
+    return {
+        "ok": not parsed.get("error"),
+        "steps": parsed.get("steps", []),
+        "stdout": parsed.get("stdout", ""),
+        "truncated": parsed.get("truncated", False),
+        "error": parsed.get("error", ""),
     }
