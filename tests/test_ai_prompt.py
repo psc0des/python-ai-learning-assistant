@@ -154,3 +154,40 @@ class TestPromptQuestion:
     def test_default_review_text_when_no_question(self):
         prompt = build_ai_prompt(MOCK_TOPIC, MOCK_EXERCISE, "pass", {}, question="")
         assert "Review" in prompt or "review" in prompt
+
+
+# ---------------------------------------------------------------------------
+# Chat mode vs lab mode
+# ---------------------------------------------------------------------------
+
+class TestChatMode:
+    def test_chat_mode_omits_exercise_and_code(self):
+        prompt = build_ai_prompt(
+            MOCK_TOPIC, MOCK_EXERCISE, "def f(): pass", {}, question="Is x = 1 valid?", mode="chat"
+        )
+        # exercise title and code block must NOT appear in chat mode
+        assert "Reverse Words" not in prompt
+        assert "def f(): pass" not in prompt
+        assert "=== LEARNER'S CODE ===" not in prompt
+
+    def test_chat_mode_omits_response_format_structure(self):
+        prompt = build_ai_prompt(
+            MOCK_TOPIC, MOCK_EXERCISE, "pass", {}, question="What is a variable?", mode="chat"
+        )
+        assert "=== YOUR RESPONSE FORMAT ===" not in prompt
+
+    def test_chat_mode_includes_question_and_topic(self):
+        prompt = build_ai_prompt(
+            MOCK_TOPIC, MOCK_EXERCISE, "pass", {}, question="Is this correct?", mode="chat"
+        )
+        assert "Is this correct?" in prompt
+        assert "Python Basics" in prompt
+
+    def test_lab_mode_is_default(self):
+        prompt_default = build_ai_prompt(MOCK_TOPIC, MOCK_EXERCISE, "def f(): pass", {})
+        prompt_lab = build_ai_prompt(MOCK_TOPIC, MOCK_EXERCISE, "def f(): pass", {}, mode="lab")
+        assert prompt_default == prompt_lab
+
+    def test_chat_mode_does_not_crash_with_no_topic(self):
+        prompt = build_ai_prompt(None, None, "", {}, question="Hello?", mode="chat")
+        assert len(prompt) > 0

@@ -535,6 +535,7 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
         code: selectedExercise ? els.editor.value : "",
         run_result: runResult || {},
         question,
+        mode: questionOverride ? "lab" : "chat",
         chat_history: coachMessages.filter((message) => message.text !== "thinking").slice(-8),
       }),
     });

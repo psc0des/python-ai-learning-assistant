@@ -94,20 +94,17 @@ def build_ai_prompt(
     run_result: dict[str, Any],
     question: str = "",
     chat_history: list[dict[str, Any]] | None = None,
+    mode: str = "lab",
 ) -> str:
     """Build a structured prompt for the AI coach.
 
-    Organizes context into clear sections so the model can reason about
-    the learner's specific situation.
+    mode='chat'  — learner typed a freeform question; answer only that, no exercise injection.
+    mode='lab'   — triggered by a preset button; include exercise, code, and test context.
     """
     topic_title = topic["title"] if topic else "Python learning practice"
-    exercise_title = exercise["title"] if exercise else "free practice"
-    exercise_prompt = exercise["prompt"] if exercise else "Review the learner's code."
-    real_world = "\n".join(f"- {item}" for item in (topic or {}).get("real_world", []))
 
     lesson_sections = (topic or {}).get("lesson_sections", [])
     section_lines: list[str] = []
-    source_lines: list[str] = []
     for idx, section in enumerate(lesson_sections[:6], start=1):
         section_title = str(section.get("title", f"Section {idx}")).strip()
         section_body = str(section.get("body", "")).strip().replace("\n", " ")
@@ -115,6 +112,46 @@ def build_ai_prompt(
             section_body = section_body[:180] + "... (truncated)"
         section_lines.append(f"- {section_title}: {section_body}")
 
+    recent_history = (chat_history or [])[-6:]
+    history_lines = []
+    for message in recent_history:
+        role = message.get("role", "user")
+        text = message.get("text", "")
+        if len(text) > 500:
+            text = text[:500] + "... (truncated)"
+        history_lines.append(f"{role}: {text}")
+    history = "\n".join(history_lines)
+
+    if mode == "chat":
+        return textwrap.dedent(
+            f"""
+            You are a patient Python learning coach helping a complete beginner.
+            Answer the learner's question directly and concisely.
+            If they show a code snippet, explain exactly what's right or wrong with it and show the correct version.
+            Keep it plain, practical, and encouraging. Do NOT discuss the current exercise or lab unless they ask.
+
+            === TOPIC CONTEXT ===
+            Topic: {topic_title}
+
+            === LESSON SNAPSHOT ===
+            {chr(10).join(section_lines) if section_lines else "- No lesson sections available."}
+
+            === RECENT CONVERSATION ===
+            {history or "- No previous conversation."}
+
+            === LEARNER'S QUESTION ===
+            {question}
+            """
+        ).strip()
+
+    # lab mode — full context with exercise, code, and test results
+    exercise_title = exercise["title"] if exercise else "free practice"
+    exercise_prompt = exercise["prompt"] if exercise else "Review the learner's code."
+    real_world = "\n".join(f"- {item}" for item in (topic or {}).get("real_world", []))
+
+    source_lines: list[str] = []
+    for idx, section in enumerate(lesson_sections[:6], start=1):
+        section_title = str(section.get("title", f"Section {idx}")).strip()
         source_label = str(section.get("source_label", "")).strip()
         source_url = str(section.get("source_url", "")).strip()
         if source_url:
@@ -126,24 +163,10 @@ def build_ai_prompt(
         if doc_url:
             source_lines.append(f"- {doc_label}: {doc_url}")
 
-    # Limit chat history to recent messages and truncate very long ones
-    recent_history = (chat_history or [])[-6:]
-    history_lines = []
-    for message in recent_history:
-        role = message.get("role", "user")
-        text = message.get("text", "")
-        # Truncate individual messages to prevent context overflow
-        if len(text) > 500:
-            text = text[:500] + "... (truncated)"
-        history_lines.append(f"{role}: {text}")
-    history = "\n".join(history_lines)
-
-    # Truncate test result to prevent huge payloads
     run_result_str = json.dumps(run_result, indent=2)
     if len(run_result_str) > 2000:
         run_result_str = run_result_str[:2000] + "\n... (truncated)"
 
-    # Truncate learner code if very long
     code_display = code
     if len(code_display) > 3000:
         code_display = code_display[:3000] + "\n# ... (truncated)"
@@ -358,13 +381,14 @@ def ask_ai_coach(
     run_result = payload.get("run_result", {})
     question = str(payload.get("question", "")).strip()
     chat_history = payload.get("chat_history", [])
+    mode = str(payload.get("mode", "lab"))
     temperature = max(0.0, min(1.0, float(payload.get("temperature", 0.2))))
     top_p = max(0.0, min(1.0, float(payload.get("top_p", 0.9))))
     top_k = max(1, min(200, int(payload.get("top_k", 40))))
 
     topic = next((item for item in topics if item["id"] == topic_id), None)
     exercise = next((item for item in exercises if item["id"] == exercise_id), None)
-    prompt = build_ai_prompt(topic, exercise, code, run_result, question, chat_history)
+    prompt = build_ai_prompt(topic, exercise, code, run_result, question, chat_history, mode)
 
     try:
         if provider == "ollama":
