@@ -57,6 +57,14 @@ class TestTraceBackend:
         # capped recorded line-steps plus one final snapshot
         assert len(out["steps"]) <= MAX_TRACE_STEPS + 1
 
+    def test_syntax_error_returns_empty_steps(self):
+        # SyntaxError fires at compile time — no lines run, so no misleading step
+        out = trace_user_code({"code": "if x > 5\n    print(x)\n"})
+        assert out["ok"] is False
+        assert "SyntaxError" in out["error"]
+        assert out["steps"] == []
+        assert out.get("error_line", 0) > 0
+
     def test_stdout_is_captured(self):
         out = trace_user_code({"code": "print('hello')\nx = 5\n"})
         assert out["stdout"] == "hello\n"

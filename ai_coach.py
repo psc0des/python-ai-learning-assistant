@@ -502,45 +502,59 @@ def narrate_trace(payload: dict[str, Any]) -> dict[str, Any]:
     steps = payload.get("steps", [])
     run_error = str(payload.get("error", "")).strip()
 
-    if not code or not steps:
-        return {"ok": False, "narrations": {}, "error": "No code or steps"}
+    if not code:
+        return {"ok": False, "narrations": {}, "error": "No code"}
+    if not steps and not run_error:
+        return {"ok": False, "narrations": {}, "error": "No steps to narrate"}
 
     lines = code.splitlines()
     def _get_line(n: int) -> str:
         idx = n - 1
         return lines[idx].strip() if 0 <= idx < len(lines) else "?"
 
-    step_descriptions = []
-    for i, step in enumerate(steps, start=1):
-        line_num = step.get("line", 0)
-        line_code = _get_line(line_num)
-        vars_items = list(step.get("vars", {}).items())[:6]
-        vars_str = ", ".join(f"{k}={repr(v)}" for k, v in vars_items) or "none"
-        if step.get("final") and run_error:
-            step_descriptions.append(
-                f"Step {i} (ERROR — Python stopped here): line `{line_code}` caused {run_error} | vars before crash: {{{vars_str}}}"
-            )
-        elif step.get("final"):
-            step_descriptions.append(f"Step {i} (FINAL — done): vars={{{vars_str}}}")
-        else:
-            step_descriptions.append(f"Step {i}: about to run `{line_code}` | vars so far: {{{vars_str}}}")
+    # Compile-time error (SyntaxError etc.) — no lines ran, just explain the error.
+    error_only = not steps and bool(run_error)
 
-    error_rule = (
-        "- For the ERROR step: explain what went wrong in plain words AND give a one-sentence fix hint a beginner can act on. "
-        "Start with 'Error:' — e.g. 'Error: sarathay has no quotes so Python treated it as a variable name; write lastname = \"sarathay\" instead.'\n"
-    ) if run_error else ""
+    if error_only:
+        prompt = (
+            "A complete beginner wrote this Python code and got an error before any code ran.\n"
+            "In ONE plain sentence explain what's wrong and exactly how to fix it. Start with 'Error:'.\n"
+            "Return ONLY valid JSON: {\"0\": \"...\"} — no markdown, no extra text\n\n"
+            f"CODE:\n```python\n{code}\n```\n\n"
+            f"ERROR: {run_error}"
+        )
+    else:
+        step_descriptions = []
+        for i, step in enumerate(steps, start=1):
+            line_num = step.get("line", 0)
+            line_code = _get_line(line_num)
+            vars_items = list(step.get("vars", {}).items())[:6]
+            vars_str = ", ".join(f"{k}={repr(v)}" for k, v in vars_items) or "none"
+            if step.get("final") and run_error:
+                step_descriptions.append(
+                    f"Step {i} (ERROR — Python stopped here): line `{line_code}` caused {run_error} | vars before crash: {{{vars_str}}}"
+                )
+            elif step.get("final"):
+                step_descriptions.append(f"Step {i} (FINAL — done): vars={{{vars_str}}}")
+            else:
+                step_descriptions.append(f"Step {i}: about to run `{line_code}` | vars so far: {{{vars_str}}}")
 
-    prompt = (
-        "TASK: Explain each step of this Python code to a complete beginner.\n"
-        "Rules:\n"
-        "- ONE sentence per step, max 20 words\n"
-        "- Use the actual variable values shown\n"
-        "- Start with 'Python stores', 'Python checks', 'Python prints', 'Python adds', etc.\n"
-        + error_rule
-        + "- Return ONLY valid JSON: {\"1\": \"...\", \"2\": \"...\", ...} — no markdown, no extra text\n\n"
-        f"CODE:\n```python\n{code}\n```\n\n"
-        "STEPS:\n" + "\n".join(step_descriptions)
-    )
+        error_rule = (
+            "- For the ERROR step: explain what went wrong in plain words AND give a one-sentence fix hint a beginner can act on. "
+            "Start with 'Error:' — e.g. 'Error: sarathay has no quotes so Python treated it as a variable name; write lastname = \"sarathay\" instead.'\n"
+        ) if run_error else ""
+
+        prompt = (
+            "TASK: Explain each step of this Python code to a complete beginner.\n"
+            "Rules:\n"
+            "- ONE sentence per step, max 20 words\n"
+            "- Use the actual variable values shown\n"
+            "- Start with 'Python stores', 'Python checks', 'Python prints', 'Python adds', etc.\n"
+            + error_rule
+            + "- Return ONLY valid JSON: {\"1\": \"...\", \"2\": \"...\", ...} — no markdown, no extra text\n\n"
+            f"CODE:\n```python\n{code}\n```\n\n"
+            "STEPS:\n" + "\n".join(step_descriptions)
+        )
 
     try:
         if provider == "ollama":

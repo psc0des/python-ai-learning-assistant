@@ -3,6 +3,7 @@ let exercises = [];
 let practiceTests = [];
 let selectedTopicId = null;
 let selectedExercise = null;
+let vizDrag = { active: false, startX: 0, startY: 0 };
 
 const els = {
   topicList: document.querySelector("#topicList"),
@@ -53,6 +54,8 @@ const els = {
   scratchOutput: document.querySelector("#scratchOutput"),
   labVizBtn: document.querySelector("#labVizBtn"),
   vizOverlay: document.querySelector("#vizOverlay"),
+  vizModal: document.querySelector(".viz-modal"),
+  vizModalHead: document.querySelector(".viz-modal-head"),
   vizCode: document.querySelector("#vizCode"),
   vizVarList: document.querySelector("#vizVarList"),
   vizNote: document.querySelector("#vizNote"),
@@ -880,6 +883,7 @@ async function openVisualizer(code, sourceBtn) {
       index: -1,
       lines: cleaned.split("\n"),
       error: result.error,
+      error_line: result.error_line || 0,
       truncated: result.truncated,
       stdout: (result.stdout || "").trimEnd(),
       narrations: {},
@@ -887,11 +891,20 @@ async function openVisualizer(code, sourceBtn) {
     };
     openVizOverlay(vizState.lines);
     if (!vizState.steps.length) {
-      els.vizVarList.innerHTML = '<p class="viz-empty">No steps to show.</p>';
-      els.vizNote.textContent = result.error ? `Could not run: ${result.error}` : "No executable steps.";
+      // Compile-time error (e.g. SyntaxError) — highlight the offending line
+      if (vizState.error_line > 0) {
+        const errEl = els.vizCode.querySelectorAll(".viz-ln")[vizState.error_line - 1];
+        if (errEl) errEl.classList.add("viz-ln-error");
+      }
+      els.vizVarList.innerHTML = '<p class="viz-empty">Python stopped before running any code.</p>';
       els.vizPrev.disabled = true;
       els.vizNext.disabled = true;
       els.vizCount.textContent = "";
+      // Set fallback note then ask AI to explain (overrides if AI responds)
+      els.vizNote.textContent = vizState.error
+        ? `Error — ${vizState.error}`
+        : "No executable steps.";
+      if (vizState.error) _loadNarrations(cleaned, [], vizState.error);
     } else {
       stepViz(1);
       // Kick off AI narration in background — updates the note as it arrives
@@ -937,6 +950,16 @@ async function _loadNarrations(code, steps, error) {
 }
 
 function renderViz() {
+  // 0-steps case: compile-time error (SyntaxError etc.) — AI note only, no navigation
+  if (!vizState.steps.length) {
+    if (vizState.narrations["0"]) {
+      els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations["0"])}`;
+    } else if (vizState.narrationLoading) {
+      els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
+    }
+    return;
+  }
+
   const step = vizState.index >= 0 ? vizState.steps[vizState.index] : null;
   const prevStep = vizState.index > 0 ? vizState.steps[vizState.index - 1] : null;
   document.querySelectorAll(".viz-ln").forEach((el, i) => {
@@ -999,7 +1022,11 @@ function stepViz(delta) {
 
 function closeViz() {
   els.vizOverlay.hidden = true;
-  vizState = { steps: [], index: -1, lines: [] };
+  vizState = { steps: [], index: -1, lines: [], narrations: {}, narrationLoading: false };
+  // Reset any position set by dragging so next open re-centers
+  els.vizModal.style.transform = "";
+  els.vizModal.style.top = "";
+  els.vizModal.style.left = "";
 }
 
 // ---------------------------------------------------------------------------
@@ -1244,6 +1271,35 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeViz();
   else if (e.key === "ArrowRight") stepViz(1);
   else if (e.key === "ArrowLeft") stepViz(-1);
+});
+
+// Draggable viz modal — drag by the header
+els.vizModalHead.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const rect = els.vizModal.getBoundingClientRect();
+  // Freeze the modal's current position, replacing the CSS transform centering
+  els.vizModal.style.transform = "none";
+  els.vizModal.style.top = rect.top + "px";
+  els.vizModal.style.left = rect.left + "px";
+  vizDrag.active = true;
+  vizDrag.startX = e.clientX - rect.left;
+  vizDrag.startY = e.clientY - rect.top;
+  els.vizModalHead.style.cursor = "grabbing";
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (!vizDrag.active) return;
+  const maxX = window.innerWidth - els.vizModal.offsetWidth;
+  const maxY = window.innerHeight - els.vizModal.offsetHeight;
+  els.vizModal.style.left = Math.max(0, Math.min(maxX, e.clientX - vizDrag.startX)) + "px";
+  els.vizModal.style.top = Math.max(0, Math.min(maxY, e.clientY - vizDrag.startY)) + "px";
+});
+
+document.addEventListener("mouseup", () => {
+  if (!vizDrag.active) return;
+  vizDrag.active = false;
+  els.vizModalHead.style.cursor = "";
 });
 
 // "Try it" delegation — opens popup in place, no page scroll

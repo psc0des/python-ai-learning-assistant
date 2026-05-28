@@ -452,7 +452,7 @@ def _tracer(frame, event, arg):
         steps.append({{"line": frame.f_lineno, "vars": _snapshot(frame.f_locals), "out": capture.getvalue()}})
     return _tracer
 
-result = {{"steps": steps, "stdout": "", "truncated": False, "error": ""}}
+result = {{"steps": steps, "stdout": "", "truncated": False, "error": "", "error_line": 0}}
 user_globals = {{"__name__": "__main__", "__file__": USER_FILE}}
 capture = io.StringIO()
 try:
@@ -464,6 +464,8 @@ except _StepLimit:
     result["truncated"] = True
 except SyntaxError as exc:
     result["error"] = "SyntaxError: " + str(exc.msg)
+    if exc.lineno:
+        result["error_line"] = exc.lineno
 except Exception as exc:
     result["error"] = type(exc).__name__ + ": " + str(exc)
 finally:
@@ -471,8 +473,11 @@ finally:
 
 # A final snapshot captures assignments made on the last executed line,
 # which produces no further 'line' event of its own.
+# Skip when last_line==0 (no lines ran, e.g. a compile-time SyntaxError) so
+# a beginner does not see a misleading "Step 1 of 1" with phantom execution.
 result["stdout"] = capture.getvalue()
-steps.append({{"line": state["last_line"], "vars": _snapshot(user_globals), "final": True, "out": result["stdout"]}})
+if state["last_line"] > 0:
+    steps.append({{"line": state["last_line"], "vars": _snapshot(user_globals), "final": True, "out": result["stdout"]}})
 print("{TRACE_MARKER}" + json.dumps(result))
 """
 
@@ -542,4 +547,5 @@ def trace_user_code(payload: dict[str, Any]) -> dict[str, Any]:
         "stdout": parsed.get("stdout", ""),
         "truncated": parsed.get("truncated", False),
         "error": parsed.get("error", ""),
+        "error_line": parsed.get("error_line", 0),
     }
