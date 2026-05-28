@@ -4,6 +4,7 @@ let practiceTests = [];
 let selectedTopicId = null;
 let selectedExercise = null;
 let vizDrag = { active: false, startX: 0, startY: 0 };
+let codePopupDrag = { active: false, startX: 0, startY: 0 };
 
 const els = {
   topicList: document.querySelector("#topicList"),
@@ -66,6 +67,7 @@ const els = {
   vizClose: document.querySelector("#vizClose"),
   codePopup: document.querySelector("#codePopup"),
   codePopupModal: document.querySelector("#codePopupModal"),
+  codePopupHeader: document.querySelector(".code-popup-header"),
   codePopupMaxBtn: document.querySelector("#codePopupMaxBtn"),
   codePopupClose: document.querySelector("#codePopupClose"),
   codePopupEditor: document.querySelector("#codePopupEditor"),
@@ -1052,6 +1054,9 @@ function closeCodePopup() {
   els.codePopup.classList.remove("maximized");
   els.codePopupAiPanel.hidden = true;
   els.codePopupAiBody.innerHTML = "";
+  els.codePopupModal.style.transform = "";
+  els.codePopupModal.style.top = "";
+  els.codePopupModal.style.left = "";
 }
 
 function toggleCodePopupMax() {
@@ -1305,17 +1310,43 @@ els.vizModalHead.addEventListener("mousedown", (e) => {
 });
 
 document.addEventListener("mousemove", (e) => {
-  if (!vizDrag.active) return;
-  const maxX = window.innerWidth - els.vizModal.offsetWidth;
-  const maxY = window.innerHeight - els.vizModal.offsetHeight;
-  els.vizModal.style.left = Math.max(0, Math.min(maxX, e.clientX - vizDrag.startX)) + "px";
-  els.vizModal.style.top = Math.max(0, Math.min(maxY, e.clientY - vizDrag.startY)) + "px";
+  if (vizDrag.active) {
+    const maxX = window.innerWidth - els.vizModal.offsetWidth;
+    const maxY = window.innerHeight - els.vizModal.offsetHeight;
+    els.vizModal.style.left = Math.max(0, Math.min(maxX, e.clientX - vizDrag.startX)) + "px";
+    els.vizModal.style.top = Math.max(0, Math.min(maxY, e.clientY - vizDrag.startY)) + "px";
+  }
+  if (codePopupDrag.active) {
+    const maxX = window.innerWidth - els.codePopupModal.offsetWidth;
+    const maxY = window.innerHeight - els.codePopupModal.offsetHeight;
+    els.codePopupModal.style.left = Math.max(0, Math.min(maxX, e.clientX - codePopupDrag.startX)) + "px";
+    els.codePopupModal.style.top = Math.max(0, Math.min(maxY, e.clientY - codePopupDrag.startY)) + "px";
+  }
 });
 
 document.addEventListener("mouseup", () => {
-  if (!vizDrag.active) return;
-  vizDrag.active = false;
-  els.vizModalHead.style.cursor = "";
+  if (vizDrag.active) {
+    vizDrag.active = false;
+    els.vizModalHead.style.cursor = "";
+  }
+  if (codePopupDrag.active) {
+    codePopupDrag.active = false;
+    els.codePopupHeader.style.cursor = "";
+  }
+});
+
+// Draggable Try It popup — drag by the header (skip button clicks)
+els.codePopupHeader.addEventListener("mousedown", (e) => {
+  if (e.button !== 0 || e.target.closest("button")) return;
+  e.preventDefault();
+  const rect = els.codePopupModal.getBoundingClientRect();
+  els.codePopupModal.style.transform = "none";
+  els.codePopupModal.style.top = rect.top + "px";
+  els.codePopupModal.style.left = rect.left + "px";
+  codePopupDrag.active = true;
+  codePopupDrag.startX = e.clientX - rect.left;
+  codePopupDrag.startY = e.clientY - rect.top;
+  els.codePopupHeader.style.cursor = "grabbing";
 });
 
 // "Try it" delegation — opens popup in place, no page scroll
