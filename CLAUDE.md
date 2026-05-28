@@ -161,6 +161,8 @@ Keep:
 Critical CSS invariants:
 - `[hidden] { display: none }` overrides are required for both overlays — do not remove them
 - `.code-popup` / `.code-popup-modal` sit at `z-index: 800`; `#vizOverlay` stays at `z-index: 1000`
+- `.viz-modal` uses `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%)` to self-center — do **not** add `display: flex` / centering back to `.viz-overlay` (that would fight the drag logic)
+- `.viz-overlay` is a plain backdrop with no flex — the modal positions itself and is draggable via JS mousedown on `.viz-modal-head`
 - Escape key priority: viz overlay handles Escape first; code popup Escape is skipped while viz is open — do not break this ordering
 
 ## Vendor Bundle Rules

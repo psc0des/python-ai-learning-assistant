@@ -274,7 +274,11 @@ Six topics have an inline SVG concept diagram embedded in one lesson section (`d
 
 ### Execution Visualizer
 
-Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel. If the code raises an error, the error is forwarded to the AI narration call so the final step explains what went wrong and how to fix it in plain language.
+Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel. The modal is draggable — grab the header and move it anywhere on screen.
+
+Two error cases are handled for beginners:
+- **Runtime error** (e.g. `NameError`): some steps ran before the crash. The final step is highlighted and the AI narrates what went wrong with a fix hint.
+- **Compile-time error** (e.g. `SyntaxError`): no lines ran. The trace returns 0 steps and an `error_line` field. The offending line is highlighted in red and the AI explains the error in one plain sentence.
 
 ### AI Coach
 

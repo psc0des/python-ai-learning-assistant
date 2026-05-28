@@ -43,7 +43,7 @@ All 698 tests should pass on a clean clone with no extra setup.
 
 - 15 topics: Python basics, functions, data structures, OOP, errors/testing, async, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings/vector databases — plus a zero-knowledge Getting Started on-ramp
 - Topic flow: overview → lesson (with inline concept diagrams) → hands-on labs → practice test
-- **Execution Visualizer** — step through your own code line by line, watching variables change, available in every editor (scratchpad, lab, and lesson try-it popup)
+- **Execution Visualizer** — step through your own code line by line, watching variables change; draggable overlay, available in every editor; beginner-friendly error explanations for both runtime and syntax errors
 - Practice exercises with local test runner and optional AI coaching across 7 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq)
 
 ## Content System
