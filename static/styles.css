@@ -817,6 +817,10 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   gap: 10px;
 }
 
+.viz-ask-ai-btn {
+  margin-left: auto;
+}
+
 .viz-count {
   color: var(--ink-muted);
   font-size: 12px;
@@ -967,6 +971,43 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   line-height: 1.5;
   background: var(--code-bg);
   flex-shrink: 0;
+}
+
+.code-popup-ai-panel {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 16px 14px;
+  background: var(--code-bg);
+  flex-shrink: 0;
+}
+
+.code-popup-ai-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.code-popup-ai-header .code-popup-icon-btn {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+.code-popup-ai-body {
+  color: var(--code-ink);
+  font-size: 12.5px;
+  line-height: 1.65;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.code-popup-ai-body p { margin: 0 0 6px; }
+.code-popup-ai-body code {
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 pre {

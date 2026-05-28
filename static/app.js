@@ -56,6 +56,7 @@ const els = {
   vizOverlay: document.querySelector("#vizOverlay"),
   vizModal: document.querySelector(".viz-modal"),
   vizModalHead: document.querySelector(".viz-modal-head"),
+  vizAskAiBtn: document.querySelector("#vizAskAiBtn"),
   vizCode: document.querySelector("#vizCode"),
   vizVarList: document.querySelector("#vizVarList"),
   vizNote: document.querySelector("#vizNote"),
@@ -70,8 +71,12 @@ const els = {
   codePopupEditor: document.querySelector("#codePopupEditor"),
   codePopupRunBtn: document.querySelector("#codePopupRunBtn"),
   codePopupVizBtn: document.querySelector("#codePopupVizBtn"),
+  codePopupAiBtn: document.querySelector("#codePopupAiBtn"),
   codePopupClearBtn: document.querySelector("#codePopupClearBtn"),
   codePopupOutput: document.querySelector("#codePopupOutput"),
+  codePopupAiPanel: document.querySelector("#codePopupAiPanel"),
+  codePopupAiClose: document.querySelector("#codePopupAiClose"),
+  codePopupAiBody: document.querySelector("#codePopupAiBody"),
 };
 
 let lastRunResult = null;
@@ -1045,6 +1050,8 @@ function openCodePopup(code) {
 function closeCodePopup() {
   els.codePopup.hidden = true;
   els.codePopup.classList.remove("maximized");
+  els.codePopupAiPanel.hidden = true;
+  els.codePopupAiBody.innerHTML = "";
 }
 
 function toggleCodePopupMax() {
@@ -1265,6 +1272,15 @@ if (els.labVizBtn) {
 els.vizNext.addEventListener("click", () => stepViz(1));
 els.vizPrev.addEventListener("click", () => stepViz(-1));
 els.vizClose.addEventListener("click", closeViz);
+els.vizAskAiBtn.addEventListener("click", () => {
+  const step = vizState.index >= 0 ? vizState.steps[vizState.index] : null;
+  const question = step
+    ? "Explain what is happening on this line. What does this code do and what do the current variable values mean for a complete beginner?"
+    : vizState.error
+    ? "Explain what this error means in plain words and exactly how to fix it."
+    : "Explain what this code does step by step.";
+  askInlineViz(question);
+});
 els.vizOverlay.addEventListener("click", (e) => { if (e.target === els.vizOverlay) closeViz(); });
 document.addEventListener("keydown", (e) => {
   if (els.vizOverlay.hidden) return;
@@ -1321,6 +1337,13 @@ if (els.codePopupMaxBtn) els.codePopupMaxBtn.addEventListener("click", toggleCod
 if (els.codePopup) els.codePopup.addEventListener("click", (e) => { if (e.target === els.codePopup) closeCodePopup(); });
 els.codePopupRunBtn.addEventListener("click", runCodePopup);
 els.codePopupVizBtn.addEventListener("click", () => openVisualizer(els.codePopupEditor.value, els.codePopupVizBtn));
+els.codePopupAiBtn.addEventListener("click", () => askInlinePopup(
+  "Review this code. Explain what it does and whether there are any mistakes. If there are errors, explain exactly how to fix them."
+));
+els.codePopupAiClose.addEventListener("click", () => {
+  els.codePopupAiPanel.hidden = true;
+  els.codePopupAiBody.innerHTML = "";
+});
 els.codePopupClearBtn.addEventListener("click", () => {
   els.codePopupEditor.value = "";
   els.codePopupOutput.textContent = "Ready.";
@@ -1396,6 +1419,61 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// Inline AI — Try It popup and Visualizer
+// ---------------------------------------------------------------------------
+
+async function _callInlineAi(question) {
+  if (!els.provider.value) return "Connect an AI provider in Settings to use inline AI.";
+  try {
+    const res = await fetch("/api/ai-coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: els.provider.value,
+        model: els.model.value,
+        endpoint: els.endpoint.value,
+        api_key: els.apiKey.value,
+        topic_id: selectedTopicId,
+        question,
+        mode: "chat",
+        chat_history: [],
+      }),
+    });
+    const data = await res.json();
+    return data.answer || data.error || "No response.";
+  } catch (e) {
+    return `Could not reach AI: ${e}`;
+  }
+}
+
+async function askInlinePopup(question) {
+  const code = els.codePopupEditor.value.trim();
+  const output = els.codePopupOutput.textContent;
+  const hasOutput = output && output !== "Ready.";
+  let full = question;
+  if (code) full += `\n\nCode:\n\`\`\`python\n${code}\n\`\`\``;
+  if (hasOutput) full += `\n\nOutput:\n${output.slice(0, 800)}`;
+  els.codePopupAiPanel.hidden = false;
+  els.codePopupAiBody.innerHTML = "<em>AI thinking…</em>";
+  els.codePopupAiBody.innerHTML = renderMarkdown(await _callInlineAi(full));
+}
+
+async function askInlineViz(question) {
+  const code = vizState.lines.join("\n");
+  const step = vizState.index >= 0 ? vizState.steps[vizState.index] : null;
+  let ctx = `\n\nCode:\n\`\`\`python\n${code}\n\`\`\``;
+  if (vizState.error) ctx += `\n\nError: ${vizState.error}`;
+  if (step) {
+    const lineCode = (vizState.lines[step.line - 1] || "").trim();
+    const varsStr = Object.entries(step.vars || {}).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(", ") || "none";
+    ctx += `\n\nCurrently on line ${step.line}: \`${lineCode}\`\nVariables: ${varsStr}`;
+  }
+  els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>thinking…</em>`;
+  const answer = await _callInlineAi(question + ctx);
+  els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${renderMarkdown(answer)}`;
+}
+
+// ---------------------------------------------------------------------------
 // Selection → Ask AI popover
 // ---------------------------------------------------------------------------
 
@@ -1422,6 +1500,18 @@ function _ensurePopover() {
 
     const displayText = text.length > 300 ? text.slice(0, 300) + "…" : text;
     const question = `Explain this: "${displayText}"`;
+
+    // Inline: answer inside Try It popup without leaving it
+    if (!els.codePopup.hidden) {
+      askInlinePopup(question);
+      return;
+    }
+    // Inline: answer inside the Visualizer without leaving it
+    if (!els.vizOverlay.hidden) {
+      askInlineViz(question);
+      return;
+    }
+    // Default: navigate to Coach tab
     setActiveTopicSection("labsSection");
     setTimeout(() => {
       els.coachInput.value = question;

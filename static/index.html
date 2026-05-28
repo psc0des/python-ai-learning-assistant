@@ -247,9 +247,17 @@
         <div class="code-popup-toolbar">
           <button id="codePopupRunBtn" type="button">&#9654; Run</button>
           <button id="codePopupVizBtn" type="button" class="secondary">&#128270; Visualize</button>
+          <button id="codePopupAiBtn" type="button" class="secondary">&#129302; Ask AI</button>
           <button id="codePopupClearBtn" type="button" class="secondary">Clear</button>
         </div>
         <pre id="codePopupOutput" class="code-popup-output">Ready.</pre>
+        <div id="codePopupAiPanel" class="code-popup-ai-panel" hidden>
+          <div class="code-popup-ai-header">
+            <span class="viz-ai-badge">AI</span>
+            <button id="codePopupAiClose" type="button" class="code-popup-icon-btn" title="Dismiss">✕</button>
+          </div>
+          <div id="codePopupAiBody" class="code-popup-ai-body"></div>
+        </div>
       </div>
     </div>
 
@@ -272,6 +280,7 @@
           <button id="vizPrev" type="button" class="secondary" disabled>&larr; Prev</button>
           <button id="vizNext" type="button">Next &rarr;</button>
           <span id="vizCount" class="viz-count"></span>
+          <button id="vizAskAiBtn" type="button" class="secondary viz-ask-ai-btn">&#129302; Ask AI</button>
         </div>
       </div>
     </div>
