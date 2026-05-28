@@ -1469,8 +1469,10 @@ button.secondary:hover {
 
 #coachInput {
   width: 100%;
-  min-height: 80px;
-  resize: vertical;
+  min-height: 64px;
+  max-height: 200px;
+  overflow-y: auto;
+  resize: none;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 10px 12px;

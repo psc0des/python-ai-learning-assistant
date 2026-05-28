@@ -27,10 +27,10 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "https://es
 import { python } from "https://esm.sh/@codemirror/lang-python@6";
 import {
   syntaxHighlighting,
-  defaultHighlightStyle,
   indentOnInput,
   bracketMatching,
 } from "https://esm.sh/@codemirror/language@6";
+import { oneDarkHighlightStyle } from "https://esm.sh/@codemirror/theme-one-dark@6";
 import { closeBrackets, closeBracketsKeymap } from "https://esm.sh/@codemirror/autocomplete@6";
 
 const editorTheme = EditorView.theme({
@@ -65,7 +65,7 @@ const baseExtensions = [
   indentOnInput(),
   bracketMatching(),
   closeBrackets(),
-  syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+  syntaxHighlighting(oneDarkHighlightStyle),
   python(),
   keymap.of([
     indentWithTab,

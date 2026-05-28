@@ -1113,12 +1113,18 @@ function renderCoachMessages() {
       }
     )
     .join("");
-  els.aiOutput.scrollTop = els.aiOutput.scrollHeight;
+  requestAnimationFrame(() => { els.aiOutput.scrollTop = els.aiOutput.scrollHeight; });
 }
 
 // ---------------------------------------------------------------------------
 // Event listeners
 // ---------------------------------------------------------------------------
+
+// Auto-grow coach input as user types/pastes
+els.coachInput.addEventListener("input", function () {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 200) + "px";
+});
 
 els.search.addEventListener("input", renderTopicList);
 els.exerciseSelect.addEventListener("change", (event) => selectExercise(event.target.value));
