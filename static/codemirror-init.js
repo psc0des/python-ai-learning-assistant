@@ -13,8 +13,8 @@
  * listeners to prevent recursive update loops.
  */
 
-import { EditorState } from "https://esm.sh/@codemirror/state@6";
 import {
+  EditorState,
   EditorView,
   keymap,
   lineNumbers,
@@ -22,16 +22,18 @@ import {
   drawSelection,
   rectangularSelection,
   crosshairCursor,
-} from "https://esm.sh/@codemirror/view@6";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "https://esm.sh/@codemirror/commands@6";
-import { python } from "https://esm.sh/@codemirror/lang-python@6";
-import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+  python,
   syntaxHighlighting,
   indentOnInput,
   bracketMatching,
-} from "https://esm.sh/@codemirror/language@6";
-import { oneDarkHighlightStyle } from "https://esm.sh/@codemirror/theme-one-dark@6";
-import { closeBrackets, closeBracketsKeymap } from "https://esm.sh/@codemirror/autocomplete@6";
+  oneDarkHighlightStyle,
+  closeBrackets,
+  closeBracketsKeymap,
+} from "/vendor/codemirror-bundle.js";
 
 const editorTheme = EditorView.theme({
   "&": {

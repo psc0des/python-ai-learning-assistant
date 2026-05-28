@@ -7,6 +7,10 @@ dist/
 build/
 .env
 
+# Vendor build tooling (npm packages, not the built output)
+scripts/node_modules/
+scripts/package-lock.json
+
 # Dev/QA artifacts (not part of the app)
 .playwright-mcp/
 qa-home-full.png

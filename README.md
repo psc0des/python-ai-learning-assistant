@@ -26,6 +26,8 @@ Then open:
 http://127.0.0.1:8765
 ```
 
+The app runs fully offline — fonts and the code editor are served from `static/vendor/` with no CDN calls required.
+
 ## What It Covers
 
 - 15 topics: Python basics, functions, data structures, OOP, errors/testing, async, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings/vector databases — plus a zero-knowledge Getting Started on-ramp

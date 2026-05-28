@@ -7,11 +7,9 @@
     <meta name="description" content="A free, local Python learning app covering basics, data structures, OOP, FastAPI, async, LangChain, RAG, and more. Practice with guided labs, AI coaching, and progress tracking." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles.css?v=warm-notebook" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <!-- CodeMirror 6: loaded as ES module from CDN, gracefully degrades to textarea if unavailable -->
-    <script type="module" src="/codemirror-init.js"></script>
+    <link rel="stylesheet" href="/vendor/fonts.css?v=local-vendor" />
+    <!-- CodeMirror 6: loaded as ES module from local vendor bundle, degrades to textarea if unavailable -->
+    <script type="module" src="/codemirror-init.js?v=local-vendor"></script>
   </head>
   <body>
     <div class="app-shell">

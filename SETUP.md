@@ -27,11 +27,23 @@ Python_Learning_Assistant/
     index.html        App shell — includes scratchpad, try-it popup, viz overlay modal
     app.js            UI behavior, topic rendering, labs, AI coach, execution visualizer
     styles.css        Warm notebook visual design
+    codemirror-init.js  CodeMirror 6 editor setup — imports from /vendor/codemirror-bundle.js
+    vendor/
+      codemirror-bundle.js  Bundled CodeMirror 6 (built by scripts/build.js — committed)
+      fonts.css             Local @font-face declarations (built by scripts/vendor_fonts.py — committed)
+      fonts/                Inter and JetBrains Mono woff2 files (committed)
+  scripts/
+    build.js          esbuild script — bundles CodeMirror into static/vendor/codemirror-bundle.js
+    codemirror-entry.js  Entry point that re-exports all required CodeMirror symbols
+    package.json      npm manifest for esbuild + CodeMirror packages
+    vendor_fonts.py   Downloads Inter and JetBrains Mono from Google Fonts into static/vendor/fonts/
   tests/
-    test_content_loader.py   Content structure and loader tests
-    test_content_quality.py  Quality gate (≥5 labs, ≥8 questions, sources present)
-    test_runner.py           Lab runner tests incl. _safe() and _norm() edge cases
-    test_trace.py            Execution tracer tests (8 tests)
+    test_content_loader.py       Content structure and loader tests
+    test_content_quality.py      Quality gate (≥5 labs, ≥8 questions, sources present)
+    test_runner.py               Lab runner tests incl. _safe() and _norm() edge cases
+    test_trace.py                Execution tracer tests
+    test_origin_validation.py    HTTP origin header security tests (exact match, hostile prefix, wrong port)
+    test_content_drift.py        Parity guard: lesson.md headings must match topic.json lesson_sections
   AGENTS.md           Contributor instructions and project quality rules
   README.md           Short project overview
   SETUP.md            Setup and deployment notes
@@ -41,12 +53,31 @@ Python_Learning_Assistant/
 
 - Python 3.10 or newer
 - No required third-party Python packages for the current version
+- Node.js 18 or newer (only needed to rebuild the CodeMirror vendor bundle — pre-built bundle is committed)
 - Optional local AI:
   - Ollama running at `http://127.0.0.1:11434`
   - LM Studio running at `http://127.0.0.1:1234`
 - Optional hosted AI:
   - OpenAI API key
   - Anthropic API key
+
+## First-Time Vendor Setup
+
+The pre-built vendor files (`static/vendor/`) are committed to the repo — you do **not** need to rebuild them to run the app. Rebuild only when upgrading CodeMirror or font versions.
+
+To rebuild the CodeMirror bundle:
+
+```powershell
+cd scripts
+npm install
+node build.js
+```
+
+To refresh the local font files:
+
+```powershell
+python scripts/vendor_fonts.py
+```
 
 ## Run Locally
 

@@ -18,6 +18,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from ai_coach import ask_ai_coach, list_ai_models, narrate_trace
 from content_loader import load_content
@@ -115,6 +116,19 @@ def validate_on_startup() -> None:
 # Request handler
 # ---------------------------------------------------------------------------
 
+
+def _is_allowed_origin(origin: str, host: str, port: int) -> bool:
+    """Return True only when origin exactly matches scheme+host+port."""
+    if not origin:
+        return True
+    try:
+        parsed = urlparse(origin)
+        origin_port = parsed.port if parsed.port is not None else (80 if parsed.scheme == "http" else 443)
+        return parsed.scheme == "http" and parsed.hostname == host and origin_port == port
+    except Exception:
+        return False
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
@@ -159,9 +173,9 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
 
-        # Basic origin check — only allow same-origin requests
+        # Exact origin check — scheme, host, and port must all match
         origin = self.headers.get("Origin", "")
-        if origin and not origin.startswith(f"http://{HOST}"):
+        if not _is_allowed_origin(origin, HOST, PORT):
             logger.warning("Blocked cross-origin POST from: %s", origin)
             self.send_json(
                 {"ok": False, "error": "Cross-origin requests are not allowed."},
