@@ -467,6 +467,92 @@ def model_list_url(chat_endpoint: str) -> str:
     return chat_endpoint.rstrip("/") + "/models"
 
 
+def narrate_trace(payload: dict[str, Any]) -> dict[str, Any]:
+    """Generate beginner-friendly per-step narrations for the execution visualizer."""
+    provider = str(payload.get("provider", "ollama")).lower()
+    client_key = str(payload.get("api_key", ""))
+    api_key = resolve_api_key(provider, client_key)
+    model = str(payload.get("model", "")).strip()
+    endpoint = str(payload.get("endpoint", "")).strip()
+    code = str(payload.get("code", "")).strip()
+    steps = payload.get("steps", [])
+
+    if not code or not steps:
+        return {"ok": False, "narrations": {}, "error": "No code or steps"}
+
+    lines = code.splitlines()
+    def _get_line(n: int) -> str:
+        idx = n - 1
+        return lines[idx].strip() if 0 <= idx < len(lines) else "?"
+
+    step_descriptions = []
+    for i, step in enumerate(steps, start=1):
+        line_num = step.get("line", 0)
+        line_code = _get_line(line_num)
+        vars_items = list(step.get("vars", {}).items())[:6]
+        vars_str = ", ".join(f"{k}={repr(v)}" for k, v in vars_items) or "none"
+        if step.get("final"):
+            step_descriptions.append(f"Step {i} (FINAL — done): vars={{{vars_str}}}")
+        else:
+            step_descriptions.append(f"Step {i}: about to run `{line_code}` | vars so far: {{{vars_str}}}")
+
+    prompt = (
+        "TASK: Explain each step of this Python code to a complete beginner.\n"
+        "Rules:\n"
+        "- ONE sentence per step, max 15 words\n"
+        "- Use the actual variable values shown\n"
+        "- Start with 'Python stores', 'Python checks', 'Python prints', 'Python adds', etc.\n"
+        "- Return ONLY valid JSON: {\"1\": \"...\", \"2\": \"...\", ...} — no markdown, no extra text\n\n"
+        f"CODE:\n```python\n{code}\n```\n\n"
+        "STEPS:\n" + "\n".join(step_descriptions)
+    )
+
+    try:
+        if provider == "ollama":
+            result = call_ollama(endpoint or "http://127.0.0.1:11434", model or "llama3.2", prompt, 0.3, 0.9, 40)
+        elif provider == "lmstudio":
+            result = call_openai_compatible(endpoint or "http://127.0.0.1:1234/v1/chat/completions", api_key or "lm-studio", model or "local-model", prompt, 0.3, 0.9)
+        elif provider == "openai":
+            if not api_key:
+                raise ValueError("OpenAI API key required")
+            result = call_openai_compatible(endpoint or "https://api.openai.com/v1/chat/completions", api_key, model or "gpt-4.1-mini", prompt, 0.3, 0.9)
+        elif provider == "anthropic":
+            if not api_key:
+                raise ValueError("Anthropic API key required")
+            result = call_anthropic(endpoint or "https://api.anthropic.com/v1/messages", api_key, model or "claude-3-5-haiku-latest", prompt, 0.3, 0.9)
+        elif provider == "google":
+            if not api_key:
+                raise ValueError("Google API key required")
+            result = call_google(endpoint or "https://generativelanguage.googleapis.com/v1beta", api_key, model or "gemini-2.0-flash", prompt, 0.3, 0.9, 40)
+        elif provider == "grok":
+            if not api_key:
+                raise ValueError("Grok API key required")
+            result = call_openai_compatible(endpoint or "https://api.x.ai/v1/chat/completions", api_key, model or "grok-3-mini", prompt, 0.3, 0.9)
+        elif provider == "groq":
+            if not api_key:
+                raise ValueError("Groq API key required")
+            result = call_openai_compatible(endpoint or "https://api.groq.com/openai/v1/chat/completions", api_key, model or "llama-3.3-70b-versatile", prompt, 0.3, 0.9)
+        else:
+            raise ValueError(f"Unknown provider: {provider}")
+
+        text = result.get("text", "").strip()
+        # Strip any markdown code fences the model may have added
+        if "```" in text:
+            parts = text.split("```")
+            for part in parts:
+                part = part.lstrip("json").strip()
+                if part.startswith("{"):
+                    text = part
+                    break
+        narrations = json.loads(text)
+        return {"ok": True, "narrations": {str(k): str(v) for k, v in narrations.items()}}
+
+    except json.JSONDecodeError:
+        return {"ok": False, "narrations": {}, "error": "AI returned non-JSON"}
+    except Exception as exc:
+        return {"ok": False, "narrations": {}, "error": str(exc)}
+
+
 def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     """List available models for a given AI provider."""
     provider = str(payload.get("provider", "ollama")).lower()

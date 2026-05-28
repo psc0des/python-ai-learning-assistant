@@ -449,7 +449,7 @@ def _tracer(frame, event, arg):
         if len(steps) >= MAX_STEPS:
             raise _StepLimit()
         state["last_line"] = frame.f_lineno
-        steps.append({{"line": frame.f_lineno, "vars": _snapshot(frame.f_locals)}})
+        steps.append({{"line": frame.f_lineno, "vars": _snapshot(frame.f_locals), "out": capture.getvalue()}})
     return _tracer
 
 result = {{"steps": steps, "stdout": "", "truncated": False, "error": ""}}
@@ -471,8 +471,8 @@ finally:
 
 # A final snapshot captures assignments made on the last executed line,
 # which produces no further 'line' event of its own.
-steps.append({{"line": state["last_line"], "vars": _snapshot(user_globals), "final": True}})
 result["stdout"] = capture.getvalue()
+steps.append({{"line": state["last_line"], "vars": _snapshot(user_globals), "final": True, "out": result["stdout"]}})
 print("{TRACE_MARKER}" + json.dumps(result))
 """
 

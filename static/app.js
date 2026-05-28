@@ -850,7 +850,7 @@ async function runScratchpad() {
 // Execution visualizer (step-through)
 // ---------------------------------------------------------------------------
 
-let vizState = { steps: [], index: -1, lines: [] };
+let vizState = { steps: [], index: -1, lines: [], stdout: "", narrations: {}, narrationLoading: false };
 
 function openVizOverlay(lines) {
   els.vizCode.innerHTML = lines
@@ -881,6 +881,8 @@ async function openVisualizer(code, sourceBtn) {
       error: result.error,
       truncated: result.truncated,
       stdout: (result.stdout || "").trimEnd(),
+      narrations: {},
+      narrationLoading: false,
     };
     openVizOverlay(vizState.lines);
     if (!vizState.steps.length) {
@@ -891,6 +893,8 @@ async function openVisualizer(code, sourceBtn) {
       els.vizCount.textContent = "";
     } else {
       stepViz(1);
+      // Kick off AI narration in background — updates the note as it arrives
+      _loadNarrations(cleaned, vizState.steps);
     }
   } catch (err) {
     openVizOverlay(cleaned.split("\n"));
@@ -905,41 +909,82 @@ async function openVisualizer(code, sourceBtn) {
   }
 }
 
+async function _loadNarrations(code, steps) {
+  const provider = els.provider.value;
+  if (!provider) return;
+  vizState.narrationLoading = true;
+  renderViz(); // show "AI explaining..." in note
+  try {
+    const res = await fetch("/api/narrate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code, steps,
+        provider: els.provider.value,
+        model: els.model.value,
+        endpoint: els.endpoint.value,
+        api_key: els.apiKey.value,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok && data.narrations) {
+      vizState.narrations = data.narrations;
+    }
+  } catch (_) { /* silent — fallback to line numbers */ }
+  vizState.narrationLoading = false;
+  renderViz(); // re-render with narrations
+}
+
 function renderViz() {
   const step = vizState.index >= 0 ? vizState.steps[vizState.index] : null;
+  const prevStep = vizState.index > 0 ? vizState.steps[vizState.index - 1] : null;
   document.querySelectorAll(".viz-ln").forEach((el, i) => {
     el.classList.toggle("active", step && i === step.line - 1);
   });
+
   if (!step) {
     els.vizVarList.innerHTML = '<p class="viz-empty">Press Next to start.</p>';
-    els.vizNote.textContent = "";
-  } else {
-    const names = Object.keys(step.vars || {});
-    let html = names.length
-      ? names.map((n) =>
-          `<div class="viz-var"><span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(JSON.stringify(step.vars[n]))}</span></div>`
-        ).join("")
-      : '<p class="viz-empty">No variables yet.</p>';
-    // Always show stdout at the final step so print() code gives visible feedback
-    if (step.final && vizState.stdout) {
-      html += `<div class="viz-output-label">Output</div><pre class="viz-stdout">${escapeHtml(vizState.stdout)}</pre>`;
-    }
-    els.vizVarList.innerHTML = html;
-    if (step.final) {
-      els.vizNote.textContent = vizState.error
-        ? `Stopped: ${vizState.error}`
-        : vizState.stdout
-          ? "Done. Output shown above."
-          : "Done — these are the final values.";
-    } else {
-      els.vizNote.textContent = `About to run line ${step.line}.`;
-    }
+    els.vizNote.innerHTML = "";
+    return;
   }
+
+  // --- Variables panel with change highlighting ---
+  const names = Object.keys(step.vars || {});
+  const prevVars = prevStep ? (prevStep.vars || {}) : {};
+  let html = names.length
+    ? names.map((n) => {
+        const isNew = !(n in prevVars);
+        const isChanged = !isNew && JSON.stringify(prevVars[n]) !== JSON.stringify(step.vars[n]);
+        const cls = isNew ? " viz-var-new" : isChanged ? " viz-var-changed" : "";
+        const badge = isNew ? '<span class="viz-var-badge">new</span>' : isChanged ? '<span class="viz-var-badge">changed</span>' : "";
+        return `<div class="viz-var${cls}">${badge}<span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(JSON.stringify(step.vars[n]))}</span></div>`;
+      }).join("")
+    : '<p class="viz-empty">No variables yet.</p>';
+
+  // --- Per-step stdout (shows output as it accumulates, not just at the end) ---
+  const outNow = (step.out || "").trimEnd();
+  if (outNow) {
+    html += `<div class="viz-output-label">Output so far</div><pre class="viz-stdout">${escapeHtml(outNow)}</pre>`;
+  }
+  els.vizVarList.innerHTML = html;
+
+  // --- Note: AI narration if available, loading indicator, or line number fallback ---
+  const stepKey = String(vizState.index + 1);
+  if (vizState.narrations[stepKey]) {
+    els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations[stepKey])}`;
+  } else if (vizState.narrationLoading) {
+    els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
+  } else if (step.final) {
+    els.vizNote.textContent = vizState.error ? `Stopped: ${vizState.error}` : "Done — execution complete.";
+  } else {
+    els.vizNote.textContent = `About to run line ${step.line}.`;
+  }
+
   els.vizPrev.disabled = vizState.index <= 0;
   const atEnd = vizState.index >= vizState.steps.length - 1;
   els.vizNext.disabled = atEnd;
   els.vizNext.textContent = atEnd ? "End" : "Next →";
-  els.vizCount.textContent = vizState.index < 0 ? "" : `Step ${vizState.index + 1} of ${vizState.steps.length}${vizState.truncated ? " (capped)" : ""}`;
+  els.vizCount.textContent = `Step ${vizState.index + 1} of ${vizState.steps.length}${vizState.truncated ? " (capped)" : ""}`;
 }
 
 function stepViz(delta) {
