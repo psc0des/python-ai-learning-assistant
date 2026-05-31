@@ -288,7 +288,7 @@ The AI Coach is conversational and can review the current topic, code, and lates
 - **Visualizer open**: answer appears inline in the AI note area, with the current step line, variables, and any error automatically attached. The "🤖 Ask AI" button in the controls row sends a step or error explanation.
 - **Anywhere else**: navigates to the Labs → AI Coach tab and pre-fills the chat input.
 
-The coach operates in two modes. When the learner types a freeform question in the chat input (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. When a preset button such as "Explain my code" is clicked (`mode: "lab"`), the full context is sent and the AI gives a structured review of the exercise and test results.
+The coach operates in two modes. When the learner types a freeform question in the chat input (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. Tests are also **not** auto-run in this mode. When a preset button such as "Explain my code" is clicked (`mode: "lab"`), the full context is sent, tests are auto-run if no prior result exists, and the AI gives a structured review of the exercise and test results.
 
 Each AI reply shows a small stats line below the response: model name, output tokens, input tokens, tok/s, and elapsed time. This is useful for comparing local Ollama speed against cloud providers.
 
