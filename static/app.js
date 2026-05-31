@@ -642,7 +642,9 @@ async function loadModels() {
       }),
     });
     const result = await response.json();
-    setModelOptions(result.models && result.models.length ? result.models : fallback, preferredModel || fallback[0]);
+    const liveModels = result.models && result.models.length ? result.models : fallback;
+    const liveSelected = liveModels.includes(preferredModel) ? preferredModel : liveModels[0];
+    setModelOptions(liveModels, liveSelected);
     saveAiSettings();
     _updateSettingsBtnLabel();
     els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no model selected"}`;
@@ -963,6 +965,10 @@ function renderViz() {
       els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations["0"])}`;
     } else if (vizState.narrationLoading) {
       els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
+    } else {
+      els.vizNote.textContent = vizState.error
+        ? `Error — ${vizState.error}`
+        : "No executable steps.";
     }
     return;
   }
@@ -1471,7 +1477,7 @@ async function _callInlineAi(question) {
       }),
     });
     const data = await res.json();
-    return data.answer || data.error || "No response.";
+    return data.ok ? (data.answer || "No response.") : (data.error || data.answer || "No response.");
   } catch (e) {
     return `Could not reach AI: ${e}`;
   }
