@@ -86,6 +86,8 @@ let preferredModel = "";
 let coachMessages = [];
 let solutionRevealed = false;
 let failedAttempts = 0;
+const AI_REQUEST_TIMEOUT_MS = 20000;
+const AI_NARRATION_TIMEOUT_MS = 18000;
 
 // ---------------------------------------------------------------------------
 // Progress tracking (localStorage)
@@ -164,6 +166,39 @@ function clearDraft(exerciseId) {
     delete drafts[exerciseId];
     localStorage.setItem("pySkillLabDrafts", JSON.stringify(drafts));
   } catch { /* ignore */ }
+}
+
+async function postJsonWithTimeout(url, payload, timeoutMs = 0) {
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller ? controller.signal : undefined,
+    });
+    let data = {};
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+    if (!response.ok) {
+      data.ok = false;
+      if (!data.error) {
+        data.error = `HTTP ${response.status} ${response.statusText}`;
+      }
+    }
+    return data;
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      throw new Error(`timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -517,39 +552,29 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
   let runResult = lastRunResult;
   if (!runResult && selectedExercise && !skipAutoRun && questionOverride) {
     els.testOutput.textContent = "Running local tests before coach review...";
-    const response = await fetch("/api/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        exercise_id: selectedExercise.id,
-        code: els.editor.value,
-      }),
+    runResult = await postJsonWithTimeout("/api/run", {
+      exercise_id: selectedExercise.id,
+      code: els.editor.value,
     });
-    runResult = await response.json();
     lastRunResult = runResult;
     els.testOutput.innerHTML = formatResult(runResult);
   }
 
   try {
     appendCoachMessage("assistant", "thinking");
-    const response = await fetch("/api/ai-coach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        provider: els.provider.value,
-        model: els.model.value,
-        endpoint: els.endpoint.value,
-        api_key: els.apiKey.value,
-        topic_id: selectedTopicId,
-        exercise_id: selectedExercise ? selectedExercise.id : "",
-        code: selectedExercise ? els.editor.value : "",
-        run_result: runResult || {},
-        question,
-        mode: questionOverride ? "lab" : "chat",
-        chat_history: coachMessages.filter((message) => message.text !== "thinking").slice(-8),
-      }),
-    });
-    const result = await response.json();
+    const result = await postJsonWithTimeout("/api/ai-coach", {
+      provider: els.provider.value,
+      model: els.model.value,
+      endpoint: els.endpoint.value,
+      api_key: els.apiKey.value,
+      topic_id: selectedTopicId,
+      exercise_id: selectedExercise ? selectedExercise.id : "",
+      code: selectedExercise ? els.editor.value : "",
+      run_result: runResult || {},
+      question,
+      mode: questionOverride ? "lab" : "chat",
+      chat_history: coachMessages.filter((message) => message.text !== "thinking").slice(-8),
+    }, AI_REQUEST_TIMEOUT_MS);
     const prefix = result.ok ? "" : `⚠ AI Coach unavailable (${result.error}). Built-in feedback:\n\n`;
     const stats = result.ok ? {
       model: els.model.value,
@@ -563,7 +588,10 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
     els.coachStatus.textContent = result.ok ? "Coach response received" : "Fallback feedback shown";
     saveAiSettings();
   } catch (error) {
-    replaceLastThinkingMessage(`Could not reach the AI coach route: ${error}`);
+    const message = String(error).includes("timed out")
+      ? "AI Coach request timed out. Check provider endpoint/model and try again."
+      : `Could not reach the AI coach route: ${error}`;
+    replaceLastThinkingMessage(message);
     els.coachStatus.textContent = "Coach unavailable";
   } finally {
     els.aiBtn.disabled = false;
@@ -632,16 +660,11 @@ async function loadModels() {
 
   try {
     els.refreshModelsBtn.disabled = true;
-    const response = await fetch("/api/ai-models", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        provider: els.provider.value,
-        endpoint: els.endpoint.value,
-        api_key: els.apiKey.value,
-      }),
-    });
-    const result = await response.json();
+    const result = await postJsonWithTimeout("/api/ai-models", {
+      provider: els.provider.value,
+      endpoint: els.endpoint.value,
+      api_key: els.apiKey.value,
+    }, 10000);
     const liveModels = result.models && result.models.length ? result.models : fallback;
     const liveSelected = liveModels.includes(preferredModel) ? preferredModel : liveModels[0];
     setModelOptions(liveModels, liveSelected);
@@ -863,7 +886,15 @@ async function runScratchpad() {
 // Execution visualizer (step-through)
 // ---------------------------------------------------------------------------
 
-let vizState = { steps: [], index: -1, lines: [], stdout: "", narrations: {}, narrationLoading: false };
+let vizState = {
+  steps: [],
+  index: -1,
+  lines: [],
+  stdout: "",
+  narrations: {},
+  narrationLoading: false,
+  narrationError: "",
+};
 
 function openVizOverlay(lines) {
   els.vizCode.innerHTML = lines
@@ -881,12 +912,7 @@ async function openVisualizer(code, sourceBtn) {
     sourceBtn.textContent = "Tracing…";
   }
   try {
-    const response = await fetch("/api/trace", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: cleaned }),
-    });
-    const result = await response.json();
+    const result = await postJsonWithTimeout("/api/trace", { code: cleaned });
     vizState = {
       steps: result.steps || [],
       index: -1,
@@ -897,6 +923,7 @@ async function openVisualizer(code, sourceBtn) {
       stdout: (result.stdout || "").trimEnd(),
       narrations: {},
       narrationLoading: false,
+      narrationError: "",
     };
     openVizOverlay(vizState.lines);
     if (!vizState.steps.length) {
@@ -913,7 +940,9 @@ async function openVisualizer(code, sourceBtn) {
       els.vizNote.textContent = vizState.error
         ? `Error — ${vizState.error}`
         : "No executable steps.";
-      if (vizState.error) _loadNarrations(cleaned, [], vizState.error);
+      if (vizState.error && !/rate limit/i.test(vizState.error)) {
+        _loadNarrations(cleaned, [], vizState.error);
+      }
     } else {
       stepViz(1);
       // Kick off AI narration in background — updates the note as it arrives
@@ -936,24 +965,26 @@ async function _loadNarrations(code, steps, error) {
   const provider = els.provider.value;
   if (!provider) return;
   vizState.narrationLoading = true;
+  vizState.narrationError = "";
   renderViz(); // show "AI explaining..." in note
   try {
-    const res = await fetch("/api/narrate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code, steps, error: error || "",
-        provider: els.provider.value,
-        model: els.model.value,
-        endpoint: els.endpoint.value,
-        api_key: els.apiKey.value,
-      }),
-    });
-    const data = await res.json();
+    const data = await postJsonWithTimeout("/api/narrate", {
+      code,
+      steps,
+      error: error || "",
+      provider: els.provider.value,
+      model: els.model.value,
+      endpoint: els.endpoint.value,
+      api_key: els.apiKey.value,
+    }, AI_NARRATION_TIMEOUT_MS);
     if (data.ok && data.narrations) {
       vizState.narrations = data.narrations;
+    } else if (data.error) {
+      vizState.narrationError = data.error;
     }
-  } catch (_) { /* silent — fallback to line numbers */ }
+  } catch (err) {
+    vizState.narrationError = String(err);
+  }
   vizState.narrationLoading = false;
   renderViz(); // re-render with narrations
 }
@@ -965,6 +996,8 @@ function renderViz() {
       els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations["0"])}`;
     } else if (vizState.narrationLoading) {
       els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
+    } else if (vizState.narrationError) {
+      els.vizNote.textContent = `AI explanation unavailable: ${vizState.narrationError}`;
     } else {
       els.vizNote.textContent = vizState.error
         ? `Error — ${vizState.error}`
@@ -1011,6 +1044,8 @@ function renderViz() {
     els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations[stepKey])}`;
   } else if (vizState.narrationLoading) {
     els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
+  } else if (vizState.narrationError) {
+    els.vizNote.textContent = `AI explanation unavailable: ${vizState.narrationError}`;
   } else if (step.final) {
     els.vizNote.textContent = vizState.error
       ? `Python stopped here with an error — ${vizState.error}. (Connect an AI provider for a plain-English explanation.)`
@@ -1035,7 +1070,14 @@ function stepViz(delta) {
 
 function closeViz() {
   els.vizOverlay.hidden = true;
-  vizState = { steps: [], index: -1, lines: [], narrations: {}, narrationLoading: false };
+  vizState = {
+    steps: [],
+    index: -1,
+    lines: [],
+    narrations: {},
+    narrationLoading: false,
+    narrationError: "",
+  };
   // Reset any position set by dragging so next open re-centers
   els.vizModal.style.transform = "";
   els.vizModal.style.top = "";
@@ -1462,23 +1504,21 @@ document.addEventListener("keydown", (e) => {
 async function _callInlineAi(question) {
   if (!els.provider.value) return "Connect an AI provider in Settings to use inline AI.";
   try {
-    const res = await fetch("/api/ai-coach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        provider: els.provider.value,
-        model: els.model.value,
-        endpoint: els.endpoint.value,
-        api_key: els.apiKey.value,
-        topic_id: selectedTopicId,
-        question,
-        mode: "chat",
-        chat_history: [],
-      }),
-    });
-    const data = await res.json();
+    const data = await postJsonWithTimeout("/api/ai-coach", {
+      provider: els.provider.value,
+      model: els.model.value,
+      endpoint: els.endpoint.value,
+      api_key: els.apiKey.value,
+      topic_id: selectedTopicId,
+      question,
+      mode: "chat",
+      chat_history: [],
+    }, AI_REQUEST_TIMEOUT_MS);
     return data.ok ? (data.answer || "No response.") : (data.error || data.answer || "No response.");
   } catch (e) {
+    if (String(e).includes("timed out")) {
+      return "AI request timed out. Check local model/API connection and try again.";
+    }
     return `Could not reach AI: ${e}`;
   }
 }

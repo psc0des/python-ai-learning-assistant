@@ -222,7 +222,7 @@ Every code or content change must be accompanied by doc updates in the same comm
 
 ### 1. Tests before done
 
-Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 698 tests passing. Do not ship a regression.
+Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 705 tests passing. Do not ship a regression.
 
 ### 2. No CDN drift
 

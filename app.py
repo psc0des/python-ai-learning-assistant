@@ -188,16 +188,35 @@ class Handler(SimpleHTTPRequestHandler):
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip):
                 logger.warning("Rate limit exceeded for IP: %s", client_ip)
-                self.send_json(
-                    {
-                        "ok": False,
-                        "stdout": "",
-                        "stderr": f"Rate limit exceeded: max {RATE_LIMIT_MAX} code runs per {RATE_LIMIT_WINDOW}s. Wait a moment.",
-                        "tests": [],
-                        "feedback": ["You're running code very fast. Take a moment to read your results before the next run."],
-                    },
-                    status=429,
+                message = (
+                    f"Rate limit exceeded: max {RATE_LIMIT_MAX} code runs per "
+                    f"{RATE_LIMIT_WINDOW}s. Wait a moment."
                 )
+                if self.path == "/api/trace":
+                    self.send_json(
+                        {
+                            "ok": False,
+                            "steps": [],
+                            "stdout": "",
+                            "truncated": False,
+                            "error": message,
+                            "error_line": 0,
+                        },
+                        status=429,
+                    )
+                else:
+                    self.send_json(
+                        {
+                            "ok": False,
+                            "stdout": "",
+                            "stderr": message,
+                            "tests": [],
+                            "feedback": [
+                                "You're running code very fast. Take a moment to read your results before the next run."
+                            ],
+                        },
+                        status=429,
+                    )
                 return
 
         # Concurrent request cap

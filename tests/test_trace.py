@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import threading
 from http.server import ThreadingHTTPServer
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import app
@@ -100,3 +101,34 @@ class TestTraceEndpoint:
         assert payload["ok"] is True
         assert payload["steps"]
         assert payload["steps"][-1]["vars"].get("b") == 3
+
+    def test_trace_endpoint_rate_limit_payload_shape(self, monkeypatch):
+        monkeypatch.setattr(app, "check_rate_limit", lambda _ip: False)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        host, port = server.server_address
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            req = Request(
+                f"http://{host}:{port}/api/trace",
+                data=json.dumps({"code": "print(1)\n"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urlopen(req, timeout=5) as response:
+                    payload = json.load(response)
+                    status = response.status
+            except HTTPError as exc:
+                status = exc.code
+                payload = json.loads(exc.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+        assert status == 429
+        assert payload["ok"] is False
+        assert payload["steps"] == []
+        assert "Rate limit exceeded" in payload["error"]
+        assert payload["error_line"] == 0

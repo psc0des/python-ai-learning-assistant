@@ -22,7 +22,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-AI_TIMEOUT_SECONDS = 90
+AI_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_TIMEOUT_SECONDS", "25"))
+AI_MODEL_LIST_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS", "8"))
 
 # Environment variable names for server-side API keys (preferred over client-sent)
 ENV_OPENAI_API_KEY = "PY_SKILL_LAB_OPENAI_KEY"
@@ -43,6 +44,13 @@ def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dic
     try:
         with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
+    except TimeoutError as exc:
+        raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, "reason", "")
+        if isinstance(reason, TimeoutError):
+            raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+        raise
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
@@ -52,8 +60,19 @@ def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
     """GET JSON from a URL and parse the response."""
     request = urllib.request.Request(url, headers=headers, method="GET")
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
+        with urllib.request.urlopen(request, timeout=AI_MODEL_LIST_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
+    except TimeoutError as exc:
+        raise RuntimeError(
+            f"timed out after {AI_MODEL_LIST_TIMEOUT_SECONDS}s"
+        ) from exc
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, "reason", "")
+        if isinstance(reason, TimeoutError):
+            raise RuntimeError(
+                f"timed out after {AI_MODEL_LIST_TIMEOUT_SECONDS}s"
+            ) from exc
+        raise
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
@@ -678,4 +697,3 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     except Exception as exc:
         logger.warning("Model listing failed (%s): %s", provider, exc)
         return {"ok": False, "models": fallback.get(provider, []), "error": str(exc)}
-

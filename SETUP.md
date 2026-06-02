@@ -119,6 +119,16 @@ python app.py
 
 When strict mode is on, startup fails if content validation warnings exist.
 
+Optional AI timeout tuning (useful for slower/faster local models):
+
+```powershell
+$env:PY_SKILL_LAB_AI_TIMEOUT_SECONDS="25"
+$env:PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS="8"
+python app.py
+```
+
+Defaults are intentionally short so the UI fails fast with clear fallback feedback instead of appearing stuck.
+
 To use another port:
 
 ```powershell
@@ -291,6 +301,12 @@ The AI Coach is conversational and can review the current topic, code, and lates
 The coach operates in two modes. When the learner types a freeform question in the chat input (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. Tests are also **not** auto-run in this mode. When a preset button such as "Explain my code" is clicked (`mode: "lab"`), the full context is sent, tests are auto-run if no prior result exists, and the AI gives a structured review of the exercise and test results.
 
 Each AI reply shows a small stats line below the response: model name, output tokens, input tokens, tok/s, and elapsed time. This is useful for comparing local Ollama speed against cloud providers.
+
+If a provider is unavailable or slow, the app surfaces explicit fallback states:
+
+- AI Coach chat: `AI Coach unavailable (...)` + built-in feedback
+- Try It inline AI: transport/timeout error text in the popup panel
+- Visualizer narration: `AI explanation unavailable: ...` in the note area
 
 ## Theme Behavior
 

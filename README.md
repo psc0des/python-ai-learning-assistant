@@ -37,7 +37,7 @@ The app runs fully offline — fonts and the code editor are bundled in `static/
 python -B -m pytest tests -q -p no:cacheprovider
 ```
 
-All 698 tests should pass on a clean clone with no extra setup.
+All 705 tests should pass on a clean clone with no extra setup.
 
 ## What It Covers
 
@@ -55,6 +55,11 @@ The app loads this through `content_loader.py` and keeps the same `/api/curricul
 ## Notes
 
 The code runner executes snippets locally with a short timeout. Treat it as a practice tool, not a security sandbox for untrusted code.
+
+AI request timeout defaults are intentionally short so the learning UI does not appear frozen if a provider is down:
+
+- `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` (default `25`) for coach/narration calls
+- `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` (default `8`) for model list refresh
 
 UI theme note: dark mode has been removed for now. The app uses a single warm light theme to avoid inconsistent contrast and readability issues.
 
