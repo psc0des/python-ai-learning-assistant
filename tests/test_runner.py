@@ -146,7 +146,14 @@ class TestRunUserCode:
             {"code": "print('hello')", "exercise_id": "nonexistent"},
             EXERCISES,
         )
-        # Should still run without crashing
+        assert result["ok"] is False
+        assert "nonexistent" in result["stderr"]
+
+    def test_empty_exercise_id_runs_as_scratchpad(self):
+        result = run_user_code(
+            {"code": "print('hello')", "exercise_id": ""},
+            EXERCISES,
+        )
         assert "stdout" in result
 
     def test_oversized_code(self):
@@ -164,3 +171,33 @@ class TestRunUserCode:
         )
         assert result["ok"] is False
         assert "timed out" in result["stderr"].lower()
+
+
+class TestOpenBlocking:
+    def test_scan_blocks_open_bare(self):
+        violations = scan_for_dangerous_code("f = open('secret.txt')")
+        assert any("open()" in v for v in violations)
+
+    def test_scan_blocks_open_with_read_mode(self):
+        violations = scan_for_dangerous_code("open('secret.txt', 'r')")
+        assert any("open()" in v for v in violations)
+
+    def test_scan_blocks_open_with_write_mode(self):
+        violations = scan_for_dangerous_code("open('out.txt', 'w')")
+        assert any("open()" in v for v in violations)
+
+    def test_run_blocks_open_read(self):
+        result = run_user_code(
+            {"code": "open('secret.txt', 'r')", "exercise_id": ""},
+            EXERCISES,
+        )
+        assert result["ok"] is False
+        assert "open()" in result["stderr"]
+
+    def test_run_blocks_open_bare(self):
+        result = run_user_code(
+            {"code": "f = open('any_file')", "exercise_id": ""},
+            EXERCISES,
+        )
+        assert result["ok"] is False
+        assert "open()" in result["stderr"]

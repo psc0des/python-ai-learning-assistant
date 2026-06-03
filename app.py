@@ -89,6 +89,8 @@ def check_rate_limit(ip: str) -> bool:
 MAX_CONCURRENT_REQUESTS = 20
 _request_semaphore = threading.Semaphore(MAX_CONCURRENT_REQUESTS)
 
+MAX_REQUEST_BODY_BYTES = 100_000  # 100 KB hard cap applied before JSON parsing
+
 
 # ---------------------------------------------------------------------------
 # Startup validation
@@ -230,6 +232,12 @@ class Handler(SimpleHTTPRequestHandler):
 
         try:
             length = int(self.headers.get("Content-Length", "0"))
+            if length > MAX_REQUEST_BODY_BYTES:
+                self.send_json(
+                    {"ok": False, "error": "Request body too large."},
+                    status=413,
+                )
+                return
             payload = json.loads(self.rfile.read(length) or b"{}")
 
             if self.path == "/api/run":

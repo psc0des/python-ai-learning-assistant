@@ -2,7 +2,7 @@
 
 Executes learner code in a restricted subprocess with:
 - AST-based import and built-in blocking before execution
-- Filesystem isolation (runs in temp directory)
+- open() blocked via AST scan — no file I/O from learner code
 - Strict timeout with process kill
 - Size limits on submitted code
 """
@@ -45,8 +45,6 @@ BLOCKED_BUILTINS = frozenset({
     "getattr", "setattr", "delattr",
 })
 
-# Allow open() for reading only — we block write via the detection below
-BLOCKED_OPEN_MODES = frozenset({"w", "a", "x", "wb", "ab", "xb", "w+", "a+", "r+"})
 
 
 class CodeSecurityError(Exception):
@@ -100,14 +98,12 @@ def scan_for_dangerous_code(code: str) -> list[str]:
                     f"Line {node.lineno}: '{func_name}()' is not allowed in the practice sandbox."
                 )
 
-            # Check open() with write modes
-            if func_name == "open" and len(node.args) >= 2:
-                mode_arg = node.args[1]
-                if isinstance(mode_arg, ast.Constant) and isinstance(mode_arg.value, str):
-                    if mode_arg.value in BLOCKED_OPEN_MODES:
-                        violations.append(
-                            f"Line {node.lineno}: open() with write mode '{mode_arg.value}' is not allowed."
-                        )
+            # Block open() entirely — labs use input parameters, not files
+            if func_name == "open":
+                violations.append(
+                    f"Line {node.lineno}: open() is not available in this sandbox. "
+                    f"Use variables and function parameters to work with data in your solution."
+                )
 
         # --- Dunder attribute access (e.g. __class__, __subclasses__) ---
         elif isinstance(node, ast.Attribute):
@@ -313,6 +309,15 @@ def run_user_code(payload: dict[str, Any], exercises: list[dict[str, Any]]) -> d
     code = str(payload.get("code", ""))
     exercise_id = str(payload.get("exercise_id", ""))
     exercise = next((item for item in exercises if item["id"] == exercise_id), None)
+
+    if exercise_id and exercise is None:
+        return {
+            "ok": False,
+            "stdout": "",
+            "stderr": f"Unknown exercise_id: '{exercise_id}'.",
+            "tests": [],
+            "feedback": ["The exercise ID was not recognised. Please reload the page."],
+        }
 
     # --- Size check ---
     if len(code.encode("utf-8")) > MAX_CODE_BYTES:

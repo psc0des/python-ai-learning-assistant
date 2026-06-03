@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger("skill_lab.content_loader")
+
+_ALLOW_LEGACY_FALLBACK = os.environ.get("PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK", "0") == "1"
 
 ROOT = Path(__file__).parent.resolve()
 CONTENT_DIR = ROOT / "content"
@@ -119,7 +122,13 @@ def _load_legacy_content() -> LoadedContent:
 
 
 def load_content() -> LoadedContent:
-    """Load content from structured files, with legacy fallback."""
+    """Load content from structured files.
+
+    When content/manifest.json exists, structured loading must succeed. A
+    failure is fatal by default so a broken release cannot silently serve
+    stale legacy data. Set PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK=1 to restore
+    the old fallback behaviour (developer use only).
+    """
     if MANIFEST_PATH.exists():
         try:
             loaded = _load_structured_content()
@@ -130,7 +139,12 @@ def load_content() -> LoadedContent:
                 len(loaded.practice_tests),
             )
             return loaded
-        except Exception as exc:  # pragma: no cover - exercised in integration paths
+        except Exception as exc:
+            if not _ALLOW_LEGACY_FALLBACK:
+                raise RuntimeError(
+                    f"Structured content failed to load and legacy fallback is disabled. "
+                    f"Fix content/ or set PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK=1. Error: {exc}"
+                ) from exc
             logger.exception("Structured content load failed; falling back to legacy: %s", exc)
 
     loaded = _load_legacy_content()

@@ -327,6 +327,8 @@ function selectTopic(topicId) {
   renderPracticeTest(topicId);
   setActiveTopicSection("overviewSection");
   markTopicVisited(topicId);
+  // On narrow screens, collapse the topic list so the workspace is immediately visible
+  if (window.innerWidth <= 1020) _collapseTopicList();
 }
 
 function buildLearningOutcome(topic) {
@@ -445,6 +447,14 @@ function checkPracticeTest() {
   const test = practiceTests.find((item) => item.topic_id === selectedTopicId);
   const questions = test ? test.questions : [];
   if (!questions.length) return;
+
+  const unanswered = questions.filter(
+    (_, i) => !document.querySelector(`input[name="question-${i}"]:checked`)
+  ).length;
+  if (unanswered) {
+    els.testResult.textContent = `${unanswered} question${unanswered > 1 ? "s" : ""} unanswered — please answer all before checking.`;
+    return;
+  }
 
   let score = 0;
   questions.forEach((question, questionIndex) => {
@@ -1441,6 +1451,37 @@ els.codePopupEditor.addEventListener("keydown", (e) => {
     runCodePopup();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Mobile topic list toggle
+// ---------------------------------------------------------------------------
+
+const _topicsToggle = document.getElementById("topicsToggle");
+const _topicList = document.getElementById("topicList");
+
+function _collapseTopicList() {
+  if (!_topicsToggle) return;
+  _topicList.classList.add("topics-collapsed");
+  _topicsToggle.setAttribute("aria-expanded", "false");
+  _topicsToggle.textContent = "Topics ▸";
+}
+
+function _expandTopicList() {
+  if (!_topicsToggle) return;
+  _topicList.classList.remove("topics-collapsed");
+  _topicsToggle.setAttribute("aria-expanded", "true");
+  _topicsToggle.textContent = "Topics ▾";
+}
+
+if (_topicsToggle) {
+  _topicsToggle.addEventListener("click", () => {
+    if (_topicList.classList.contains("topics-collapsed")) {
+      _expandTopicList();
+    } else {
+      _collapseTopicList();
+    }
+  });
+}
 
 // ---------------------------------------------------------------------------
 // AI settings popup

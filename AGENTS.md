@@ -209,10 +209,12 @@ Tests: `tests/test_origin_validation.py` covers exact match, empty origin, hosti
 
 ### Code execution
 
+The AST scanner in `runner.py` blocks dangerous imports, dangerous builtins, and `open()` entirely — learner code cannot read or write files. HTTP request bodies are capped at 100 KB before JSON parsing (`MAX_REQUEST_BODY_BYTES` in `app.py`).
+
 Do not expose this app to a network or multiple users without reviewing:
 
 - code execution isolation;
-- filesystem access;
+- file I/O restrictions;
 - process limits;
 - network restrictions;
 - authentication;

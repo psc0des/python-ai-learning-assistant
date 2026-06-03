@@ -107,7 +107,9 @@ Tests in `tests/test_origin_validation.py` cover: exact match, empty origin, hos
 
 ### Code runner
 
-`runner.py` runs learner code in a subprocess with a short timeout. It uses an AST scan to block dangerous imports (`os`, `subprocess`, `socket`, etc.) and dangerous builtins (`exec`, `eval`, `__import__`, etc.). This is a learning sandbox, not a production security boundary. **Do not expose this app to a network or multi-user environment.**
+`runner.py` runs learner code in a subprocess with a short timeout. It uses an AST scan to block dangerous imports (`os`, `subprocess`, `socket`, etc.), dangerous builtins (`exec`, `eval`, `__import__`, etc.), and `open()` entirely — learner code cannot read or write any files. This is a learning sandbox, not a production security boundary. **Do not expose this app to a network or multi-user environment.**
+
+HTTP request bodies are capped at 100 KB (`MAX_REQUEST_BODY_BYTES` in `app.py`) before JSON parsing, so an oversized POST cannot consume memory before the runner's code-size check applies.
 
 Two normalizations in the runner are intentional and must not be removed:
 - `_safe(value)` — converts non-JSON-serializable values to `repr` strings rather than crashing

@@ -65,13 +65,21 @@ class TestBlockedBuiltins:
         assert len(violations) >= 1
 
 
-class TestBlockedFileWrite:
+class TestBlockedFileAccess:
     def test_blocks_open_write(self):
         violations = scan_for_dangerous_code("f = open('x.txt', 'w')")
         assert len(violations) >= 1
 
     def test_blocks_open_append(self):
         violations = scan_for_dangerous_code("f = open('x.txt', 'a')")
+        assert len(violations) >= 1
+
+    def test_blocks_open_read(self):
+        violations = scan_for_dangerous_code("f = open('x.txt', 'r')")
+        assert len(violations) >= 1
+
+    def test_blocks_open_bare(self):
+        violations = scan_for_dangerous_code("f = open('secret.txt')")
         assert len(violations) >= 1
 
 
@@ -111,11 +119,11 @@ class TestSafeCode:
         violations = scan_for_dangerous_code(code)
         assert violations == []
 
-    def test_allows_open_read(self):
-        # open() for reading should be fine
+    def test_blocks_open_read_in_safe_class(self):
+        # open() is blocked entirely — even read mode
         code = "f = open('x.txt', 'r')"
         violations = scan_for_dangerous_code(code)
-        assert violations == []
+        assert len(violations) >= 1
 
     def test_handles_syntax_error_gracefully(self):
         code = "def f(\n"

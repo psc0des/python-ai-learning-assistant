@@ -119,6 +119,15 @@ python app.py
 
 When strict mode is on, startup fails if content validation warnings exist.
 
+Legacy content fallback (developer use only — not for production):
+
+```powershell
+$env:PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK="1"
+python app.py
+```
+
+By default, if `content/manifest.json` exists and structured content fails to load, the server raises a fatal error so a broken release cannot silently serve stale legacy data. Set this variable to restore the old silent-fallback behaviour during local development only.
+
 Optional AI timeout tuning (useful for slower/faster local models):
 
 ```powershell
