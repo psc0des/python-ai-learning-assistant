@@ -1747,14 +1747,14 @@ button.secondary:hover {
     border: 1px solid var(--line);
     border-radius: 6px;
     cursor: pointer;
-    color: var(--text);
+    color: var(--ink);
     justify-content: space-between;
     align-items: center;
     text-align: left;
   }
 
   .topics-toggle:hover {
-    background: var(--bg);
+    background: var(--paper);
   }
 
   .topic-list.topics-collapsed {

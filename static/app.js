@@ -1483,6 +1483,14 @@ if (_topicsToggle) {
   });
 }
 
+// Collapse topic list when viewport shrinks to mobile width mid-session
+window.addEventListener("resize", () => {
+  if (!_topicsToggle) return;
+  if (window.innerWidth <= 1020 && !_topicList.classList.contains("topics-collapsed")) {
+    _collapseTopicList();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // AI settings popup
 // ---------------------------------------------------------------------------
