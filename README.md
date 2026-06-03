@@ -37,12 +37,14 @@ The app runs fully offline — fonts and the code editor are bundled in `static/
 python -B -m pytest tests -q -p no:cacheprovider
 ```
 
-All 705 tests should pass on a clean clone with no extra setup.
+All 746 tests should pass on a clean clone with no extra setup.
 
 ## What It Covers
 
 - 15 topics: Python basics, functions, data structures, OOP, errors/testing, async, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings/vector databases — plus a zero-knowledge Getting Started on-ramp
 - Topic flow: overview → lesson (with inline concept diagrams) → hands-on labs → practice test
+- **Capstone labs** — one advanced multi-function project per major track (Python Core, Backend, AI Apps, DevOps, Engineering Habits) that integrates concepts from across the track
+- **Learner readiness signals** — sidebar badges show lab progress and test scores; a readiness bar appears when you complete a topic (test ≥80% + ≥3 labs passed) with a direct link to the next topic
 - **Execution Visualizer** — step through your own code line by line, watching variables change; draggable overlay, available in every editor; beginner-friendly error explanations for both runtime and syntax errors
 - Practice exercises with local test runner and context-aware AI coaching — inline inside the Try It popup and Visualizer, or via the full AI Coach chat; supports 7 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq)
 

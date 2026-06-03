@@ -44,6 +44,8 @@ Python_Learning_Assistant/
     test_trace.py                Execution tracer tests
     test_origin_validation.py    HTTP origin header security tests (exact match, hostile prefix, wrong port)
     test_content_drift.py        Parity guard: lesson.md headings must match topic.json lesson_sections
+  docs/
+    ai_provider_qa.md   Manual QA checklist for all 7 AI providers (sign-off before release)
   AGENTS.md           Contributor instructions and project quality rules
   README.md           Short project overview
   SETUP.md            Setup and deployment notes
