@@ -128,11 +128,15 @@ Two normalizations in the runner are intentional and must not be removed:
 ### Quality bar for reference topics
 
 Every topic marked `quality_status: reference` must have:
-- at least 5 labs
+- at least 5 labs (capstone labs count toward this)
 - at least 8 practice questions
 - `source_url` on every `lesson_sections` entry
 
 `tests/test_content_quality.py` enforces this. Do not mark a topic `reference` until it passes.
+
+### Capstone labs
+
+Each major track has one capstone lab (`difficulty: "Advanced"`, `difficulty_order: 6`) that integrates multiple concepts from the track. Capstone labs are added to `labs.json` only — no changes to `topic.json` or `lesson.md`. All code must be pure Python (no imports from `BLOCKED_MODULES`). Tracks with capstones: Python Core (`oop`), Backend (`fastapi`), AI Apps (`rag-vectors`), DevOps (`python-devops`), Engineering Habits (`errors-testing`).
 
 ### Content writing style
 

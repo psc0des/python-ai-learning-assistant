@@ -143,5 +143,54 @@
     "hint": "Update `Session.created_count` through `type(self)` or the class in `__init__`.",
     "solution": "class Session:\n    created_count = 0\n\n    def __init__(self):\n        type(self).created_count += 1\n\n    @classmethod\n    def count(cls):\n        return cls.created_count\n",
     "explanation": "This lab reinforces shared class state versus per-instance state."
+  },
+  {
+    "id": "oop-capstone-task-manager",
+    "topic_id": "oop",
+    "title": "Capstone: Task Manager",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a task manager using five pure functions that share a list of task dicts.\n\nEach task dict has keys: `id` (int), `title` (str), `priority` (int, lower = more urgent), `done` (bool).\n\n- `add_task(tasks, title, priority)` — append a new task (id = len(tasks)+1, done=False) and return the updated list.\n- `complete_task(tasks, task_id)` — set done=True on the matching task, return True. Return False if not found.\n- `get_pending(tasks)` — return all not-done tasks sorted by priority ascending (most urgent first).\n- `get_by_priority(tasks, priority)` — return all tasks with the given priority (done or not).\n- `summary(tasks)` — return a dict with keys `total`, `done`, `pending`.",
+    "starter": "def add_task(tasks, title, priority):\n    pass\n\ndef complete_task(tasks, task_id):\n    pass\n\ndef get_pending(tasks):\n    pass\n\ndef get_by_priority(tasks, priority):\n    pass\n\ndef summary(tasks):\n    pass\n",
+    "tests": [
+      {
+        "label": "add first task",
+        "call": "add_task([], 'Write tests', 1)",
+        "expected": [{"id": 1, "title": "Write tests", "priority": 1, "done": false}]
+      },
+      {
+        "label": "add second task gets id 2",
+        "call": "add_task([{'id': 1, 'title': 'A', 'priority': 2, 'done': False}], 'B', 1)",
+        "expected": [{"id": 1, "title": "A", "priority": 2, "done": false}, {"id": 2, "title": "B", "priority": 1, "done": false}]
+      },
+      {
+        "label": "complete existing task returns True",
+        "call": "complete_task([{'id': 1, 'title': 'Deploy', 'priority': 1, 'done': False}], 1)",
+        "expected": true
+      },
+      {
+        "label": "complete missing task returns False",
+        "call": "complete_task([{'id': 1, 'title': 'Deploy', 'priority': 1, 'done': False}], 99)",
+        "expected": false
+      },
+      {
+        "label": "get_pending excludes done and sorts by priority",
+        "call": "get_pending([{'id': 1, 'title': 'Write docs', 'priority': 2, 'done': False}, {'id': 2, 'title': 'Fix bug', 'priority': 1, 'done': False}, {'id': 3, 'title': 'Deploy', 'priority': 1, 'done': True}])",
+        "expected": [{"id": 2, "title": "Fix bug", "priority": 1, "done": false}, {"id": 1, "title": "Write docs", "priority": 2, "done": false}]
+      },
+      {
+        "label": "get_by_priority filters correctly",
+        "call": "get_by_priority([{'id': 1, 'title': 'A', 'priority': 1, 'done': False}, {'id': 2, 'title': 'B', 'priority': 2, 'done': False}], 1)",
+        "expected": [{"id": 1, "title": "A", "priority": 1, "done": false}]
+      },
+      {
+        "label": "summary counts correctly",
+        "call": "summary([{'id': 1, 'title': 'A', 'priority': 1, 'done': True}, {'id': 2, 'title': 'B', 'priority': 2, 'done': False}])",
+        "expected": {"total": 2, "done": 1, "pending": 1}
+      }
+    ],
+    "hint": "Implement add_task and summary first — they test your data shape. Then complete_task (loop + mutate + return bool), then the two filter/sort functions.",
+    "solution": "def add_task(tasks, title, priority):\n    task_id = len(tasks) + 1\n    tasks.append({'id': task_id, 'title': title, 'priority': priority, 'done': False})\n    return tasks\n\ndef complete_task(tasks, task_id):\n    for task in tasks:\n        if task['id'] == task_id:\n            task['done'] = True\n            return True\n    return False\n\ndef get_pending(tasks):\n    return sorted([t for t in tasks if not t['done']], key=lambda t: t['priority'])\n\ndef get_by_priority(tasks, priority):\n    return [t for t in tasks if t['priority'] == priority]\n\ndef summary(tasks):\n    done = sum(1 for t in tasks if t['done'])\n    return {'total': len(tasks), 'done': done, 'pending': len(tasks) - done}\n",
+    "explanation": "Real task managers (Jira, Linear, GitHub Issues) are exactly this pattern: structured records, state mutations, filtered/sorted views, and summary reports. This capstone connects class-free OOP thinking — encapsulating data shape and behaviour — to how backend services manage entity state."
   }
 ]

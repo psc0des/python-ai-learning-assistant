@@ -160,5 +160,59 @@
     "hint": "Count booleans with a loop or comprehensions, then derive `all_passed`.",
     "solution": "def summarize_checks(results):\n    passed = sum(1 for item in results if item)\n    failed = sum(1 for item in results if not item)\n    return {\n        'passed': passed,\n        'failed': failed,\n        'all_passed': failed == 0,\n    }\n",
     "explanation": "This lab reinforces deterministic result reporting used in test/debug workflows."
+  },
+  {
+    "id": "errors-capstone-debug-report",
+    "topic_id": "errors-testing",
+    "title": "Capstone: Debug Report Builder",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a five-function system that classifies Python errors, extracts context from tracebacks, and produces structured debug reports.\n\n- `classify_error(error_text)` — scan error_text for the first match among: SyntaxError, TypeError, NameError, IndexError, KeyError, ValueError, AttributeError, ZeroDivisionError. Return the matched name or `'Unknown'`.\n- `extract_line_number(traceback_text)` — find the first occurrence of `'line '` in any line and return the integer after it. Return None if not found.\n- `suggest_fix(error_type)` — return a beginner-friendly one-sentence fix hint for the given error type. Return a generic fallback for unrecognised types.\n- `format_report(error_text, code_line)` — return a dict with keys `type`, `line`, `suggestion`, `code_line` by composing the three functions above.\n- `build_debug_summary(reports)` — given a list of report dicts, return `{'total': int, 'by_type': {type: count}, 'most_common': str_or_None}`.",
+    "starter": "def classify_error(error_text):\n    pass\n\ndef extract_line_number(traceback_text):\n    pass\n\ndef suggest_fix(error_type):\n    pass\n\ndef format_report(error_text, code_line):\n    pass\n\ndef build_debug_summary(reports):\n    pass\n",
+    "tests": [
+      {
+        "label": "classify_error finds NameError",
+        "call": "classify_error('NameError: name x is not defined')",
+        "expected": "NameError"
+      },
+      {
+        "label": "classify_error returns Unknown",
+        "call": "classify_error('Some random error happened')",
+        "expected": "Unknown"
+      },
+      {
+        "label": "extract_line_number from traceback",
+        "call": "extract_line_number('File \"app.py\", line 7, in main')",
+        "expected": 7
+      },
+      {
+        "label": "extract_line_number returns None when absent",
+        "call": "extract_line_number('No traceback here')",
+        "expected": null
+      },
+      {
+        "label": "suggest_fix returns NameError hint",
+        "call": "suggest_fix('NameError')",
+        "expected": "Check that all variable and function names are defined before use."
+      },
+      {
+        "label": "suggest_fix returns generic fallback",
+        "call": "suggest_fix('UnknownType')",
+        "expected": "Read the error message carefully and check that line in your code."
+      },
+      {
+        "label": "format_report combines all three functions",
+        "call": "format_report('NameError: name x is not defined\\nFile \"app.py\", line 3, in test', 'x = y')",
+        "expected": {"type": "NameError", "line": 3, "suggestion": "Check that all variable and function names are defined before use.", "code_line": "x = y"}
+      },
+      {
+        "label": "build_debug_summary aggregates types",
+        "call": "build_debug_summary([{'type': 'TypeError', 'line': 1, 'suggestion': 'x', 'code_line': 'y'}, {'type': 'NameError', 'line': 2, 'suggestion': 'a', 'code_line': 'b'}, {'type': 'TypeError', 'line': 3, 'suggestion': 'z', 'code_line': 'w'}])",
+        "expected": {"total": 3, "by_type": {"TypeError": 2, "NameError": 1}, "most_common": "TypeError"}
+      }
+    ],
+    "hint": "classify_error: loop over the known type names and return the first match. extract_line_number: split each line on 'line ' and parse the integer before the next comma. suggest_fix: use a dict lookup with a fallback. format_report and build_debug_summary compose the others.",
+    "solution": "def classify_error(error_text):\n    for error_type in ['SyntaxError', 'TypeError', 'NameError', 'IndexError', 'KeyError', 'ValueError', 'AttributeError', 'ZeroDivisionError']:\n        if error_type in error_text:\n            return error_type\n    return 'Unknown'\n\ndef extract_line_number(traceback_text):\n    for line in traceback_text.splitlines():\n        if 'line ' in line:\n            parts = line.split('line ')\n            if len(parts) > 1:\n                try:\n                    return int(parts[1].split(',')[0].strip())\n                except ValueError:\n                    pass\n    return None\n\ndef suggest_fix(error_type):\n    fixes = {\n        'SyntaxError': 'Check for missing colons, unclosed brackets, or incorrect indentation.',\n        'TypeError': 'Check that you are passing the right types to functions and operators.',\n        'NameError': 'Check that all variable and function names are defined before use.',\n        'IndexError': 'Check that your index is within the valid range of the list.',\n        'KeyError': 'Check that the key exists in the dict; use .get() with a default.',\n        'ValueError': 'Check that the value matches what the function expects.',\n        'AttributeError': 'Check that the object has the method or property you are calling.',\n        'ZeroDivisionError': 'Guard against dividing by zero before the division.',\n    }\n    return fixes.get(error_type, 'Read the error message carefully and check that line in your code.')\n\ndef format_report(error_text, code_line):\n    error_type = classify_error(error_text)\n    line_number = extract_line_number(error_text)\n    return {\n        'type': error_type,\n        'line': line_number,\n        'suggestion': suggest_fix(error_type),\n        'code_line': code_line,\n    }\n\ndef build_debug_summary(reports):\n    by_type = {}\n    for report in reports:\n        t = report['type']\n        by_type[t] = by_type.get(t, 0) + 1\n    most_common = max(by_type, key=by_type.get) if by_type else None\n    return {'total': len(reports), 'by_type': by_type, 'most_common': most_common}\n",
+    "explanation": "Production error monitoring tools (Sentry, Datadog, Rollbar) do exactly this: classify incoming errors by type, extract line context from tracebacks, attach actionable remediation hints, and aggregate patterns across thousands of reports so teams can see which error types appear most often and prioritise fixes."
   }
 ]

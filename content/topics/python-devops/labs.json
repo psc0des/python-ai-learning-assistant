@@ -147,5 +147,59 @@
     "hint": "Status depends on both prechecks and failures.",
     "solution": "def build_report(prechecks_ok, changed, failed_items):\n    failed_count = len(failed_items)\n    status = 'ok' if prechecks_ok and failed_count == 0 else 'failed'\n    return {\n        'status': status,\n        'changed': changed,\n        'failed_count': failed_count,\n    }\n",
     "explanation": "Structured summaries are essential for operational handoff and auditing."
+  },
+  {
+    "id": "devops-capstone-deploy-check",
+    "topic_id": "python-devops",
+    "title": "Capstone: Deployment Checker",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a four-function pre-deployment checker that validates environment configuration before a service starts.\n\n- `parse_env(env_string)` — parse a multi-line string of `KEY=VALUE` pairs into a dict. Skip blank lines and lines starting with `#`.\n- `check_required_vars(env, required)` — return a list of variable names from `required` that are missing from `env`.\n- `validate_port(port_str)` — return `[True, int(port)]` if port_str is a valid integer between 1 and 65535, else `[False, None]`.\n- `generate_report(service, env, required)` — return a dict with keys `service`, `missing` (list), `port_valid` (bool), `ok` (True only when missing is empty and port is valid). Read the port from `env.get('PORT', '')`.",
+    "starter": "def parse_env(env_string):\n    pass\n\ndef check_required_vars(env, required):\n    pass\n\ndef validate_port(port_str):\n    pass\n\ndef generate_report(service, env, required):\n    pass\n",
+    "tests": [
+      {
+        "label": "parse_env handles comments and blanks",
+        "call": "parse_env('HOST=localhost\\nPORT=8080\\n# comment\\n\\nDEBUG=true')",
+        "expected": {"HOST": "localhost", "PORT": "8080", "DEBUG": "true"}
+      },
+      {
+        "label": "check_required_vars finds missing",
+        "call": "check_required_vars({'HOST': 'localhost', 'PORT': '8080'}, ['HOST', 'PORT', 'SECRET'])",
+        "expected": ["SECRET"]
+      },
+      {
+        "label": "check_required_vars passes when all present",
+        "call": "check_required_vars({'HOST': 'localhost', 'PORT': '8080'}, ['HOST', 'PORT'])",
+        "expected": []
+      },
+      {
+        "label": "validate_port accepts valid port",
+        "call": "validate_port('8080')",
+        "expected": [true, 8080]
+      },
+      {
+        "label": "validate_port rejects out-of-range",
+        "call": "validate_port('99999')",
+        "expected": [false, null]
+      },
+      {
+        "label": "validate_port rejects non-numeric",
+        "call": "validate_port('abc')",
+        "expected": [false, null]
+      },
+      {
+        "label": "generate_report fails with missing var",
+        "call": "generate_report('api', {'PORT': '8080'}, ['PORT', 'SECRET'])",
+        "expected": {"service": "api", "missing": ["SECRET"], "port_valid": true, "ok": false}
+      },
+      {
+        "label": "generate_report passes when complete",
+        "call": "generate_report('api', {'PORT': '8080', 'SECRET': 'x'}, ['PORT', 'SECRET'])",
+        "expected": {"service": "api", "missing": [], "port_valid": true, "ok": true}
+      }
+    ],
+    "hint": "Build parse_env first (splitlines + partition on '='). check_required_vars is a list comprehension. validate_port wraps int() in try/except plus a range check. generate_report composes the other three.",
+    "solution": "def parse_env(env_string):\n    env = {}\n    for line in env_string.splitlines():\n        line = line.strip()\n        if not line or line.startswith('#'):\n            continue\n        if '=' in line:\n            key, _, value = line.partition('=')\n            env[key.strip()] = value.strip()\n    return env\n\ndef check_required_vars(env, required):\n    return [var for var in required if var not in env]\n\ndef validate_port(port_str):\n    try:\n        port = int(port_str)\n        if 1 <= port <= 65535:\n            return [True, port]\n        return [False, None]\n    except (TypeError, ValueError):\n        return [False, None]\n\ndef generate_report(service, env, required):\n    missing = check_required_vars(env, required)\n    port_ok, _ = validate_port(env.get('PORT', ''))\n    ok = len(missing) == 0 and port_ok\n    return {'service': service, 'missing': missing, 'port_valid': port_ok, 'ok': ok}\n",
+    "explanation": "Every real deployment pipeline runs a preflight check before touching production: are all required env vars present? Is the port valid? Only then does it proceed. This capstone puts together env parsing, config validation, and structured reporting — the same pattern used in Ansible, Terraform, and custom deploy scripts."
   }
 ]

@@ -1712,6 +1712,47 @@ button.secondary:hover {
   display: none;
 }
 
+.badge-ready {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.readiness-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.readiness-bar.rbar-progress {
+  background: var(--surface);
+  color: var(--ink-secondary);
+  border: 1px solid var(--line);
+}
+
+.readiness-bar.rbar-ready {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid rgba(63, 127, 93, 0.2);
+}
+
+.readiness-bar .rbar-next {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-family: inherit;
+}
+
 /* Mobile topic list toggle — hidden on wide screens */
 .topics-toggle {
   display: none;

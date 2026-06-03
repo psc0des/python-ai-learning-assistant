@@ -197,5 +197,54 @@
     "hint": "Whitelist output fields explicitly.",
     "solution": "def build_user_response(record):\n    required = ('id', 'name', 'email')\n    for key in required:\n        if key not in record:\n            return {'error': 'invalid_record'}\n    return {\n        'id': record['id'],\n        'name': record['name'],\n        'email': record['email'],\n    }\n",
     "explanation": "Response models prevent accidental leakage of internal fields and keep contracts stable."
+  },
+  {
+    "id": "fastapi-capstone-router",
+    "topic_id": "fastapi",
+    "title": "Capstone: Request Router",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a minimal HTTP router using four functions — no imports needed.\n\nA `router` is just a plain dict that maps `'METHOD:/path'` keys to handler name strings.\n\n- `register_route(router, method, path, handler)` — register a route and return the updated router dict.\n- `match_route(router, method, path)` — return the handler name string, or None if no match.\n- `validate_request(body, required)` — return `[True, body]` if all required fields are present and non-empty strings. Return `[False, {'field': name, 'code': 'required'}]` for the first missing or blank field.\n- `build_response(data, status)` — return `{'data': data, 'status': status, 'ok': status < 400}`.",
+    "starter": "def register_route(router, method, path, handler):\n    pass\n\ndef match_route(router, method, path):\n    pass\n\ndef validate_request(body, required):\n    pass\n\ndef build_response(data, status):\n    pass\n",
+    "tests": [
+      {
+        "label": "register adds route key",
+        "call": "register_route({}, 'GET', '/users', 'list_users')",
+        "expected": {"GET:/users": "list_users"}
+      },
+      {
+        "label": "match returns handler",
+        "call": "match_route({'GET:/items': 'list_items'}, 'GET', '/items')",
+        "expected": "list_items"
+      },
+      {
+        "label": "match returns None for missing route",
+        "call": "match_route({'GET:/items': 'list_items'}, 'GET', '/missing')",
+        "expected": null
+      },
+      {
+        "label": "validate passes complete body",
+        "call": "validate_request({'name': 'Ada', 'email': 'ada@x.com'}, ['name', 'email'])",
+        "expected": [true, {"name": "Ada", "email": "ada@x.com"}]
+      },
+      {
+        "label": "validate catches missing field",
+        "call": "validate_request({'name': 'Ada'}, ['name', 'email'])",
+        "expected": [false, {"field": "email", "code": "required"}]
+      },
+      {
+        "label": "build_response 200 is ok",
+        "call": "build_response({'id': 1}, 200)",
+        "expected": {"data": {"id": 1}, "status": 200, "ok": true}
+      },
+      {
+        "label": "build_response 404 is not ok",
+        "call": "build_response({'error': 'not found'}, 404)",
+        "expected": {"data": {"error": "not found"}, "status": 404, "ok": false}
+      }
+    ],
+    "hint": "Start with register_route and match_route — they are just dict get/set. Then build_response (one expression). validate_request last — iterate required, use .get() to check presence.",
+    "solution": "def register_route(router, method, path, handler):\n    key = f'{method.upper()}:{path}'\n    router[key] = handler\n    return router\n\ndef match_route(router, method, path):\n    key = f'{method.upper()}:{path}'\n    return router.get(key)\n\ndef validate_request(body, required):\n    for field in required:\n        value = body.get(field)\n        if value is None or (isinstance(value, str) and not value.strip()):\n            return [False, {'field': field, 'code': 'required'}]\n    return [True, body]\n\ndef build_response(data, status):\n    return {'data': data, 'status': status, 'ok': status < 400}\n",
+    "explanation": "FastAPI's router, dependency injection, request validation, and response models each map to one of these functions. Understanding them as pure data transformations — dicts in, dicts out — makes the framework's behaviour predictable and testable without running a server."
   }
 ]

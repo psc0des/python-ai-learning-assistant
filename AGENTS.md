@@ -153,6 +153,8 @@ When adding labs:
 - verify every solution passes its own tests;
 - prefer small functions that return values over print-only exercises.
 
+**Capstone labs** (one per major track, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate 3–5 concepts from the track into a multi-function challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All functions must be pure (no blocked imports). See existing capstones in `oop`, `fastapi`, `rag-vectors`, `python-devops`, and `errors-testing` for the pattern.
+
 ### Runner Safety
 
 `runner.py` applies two normalizations before comparing or serializing test results:

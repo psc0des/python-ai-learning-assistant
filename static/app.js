@@ -45,6 +45,7 @@ const els = {
   practiceQuestions: document.querySelector("#practiceQuestions"),
   checkTestBtn: document.querySelector("#checkTestBtn"),
   testResult: document.querySelector("#testResult"),
+  readinessBar: document.querySelector("#readinessBar"),
   scratchpad: document.querySelector("#scratchpad"),
   scratchToggle: document.querySelector("#scratchToggle"),
   scratchBody: document.querySelector("#scratchBody"),
@@ -137,6 +138,20 @@ function getTopicProgress(topicId) {
 function isExercisePassed(exerciseId) {
   const progress = loadProgress();
   return progress.exercises && progress.exercises[exerciseId] && progress.exercises[exerciseId].passed;
+}
+
+function getTopicLabStats(topicId) {
+  const topicExercises = exercises.filter((ex) => ex.topic_id === topicId);
+  const passed = topicExercises.filter((ex) => isExercisePassed(ex.id)).length;
+  return { passed, total: topicExercises.length };
+}
+
+function getTopicReadiness(topicId) {
+  const labs = getTopicLabStats(topicId);
+  const tp = getTopicProgress(topicId);
+  const testPct = tp.testTotal ? tp.testScore / tp.testTotal : null;
+  const isReady = testPct !== null && testPct >= 0.8 && labs.passed >= 3;
+  return { ...labs, testScore: tp.testScore, testTotal: tp.testTotal, testPct, isReady };
 }
 
 // ---------------------------------------------------------------------------
@@ -289,10 +304,16 @@ function renderTopicList() {
       button.type = "button";
 
       const topicProgress = progress[topic.id] || {};
+      const r = getTopicReadiness(topic.id);
       let badge = "";
-      if (topicProgress.testScore !== undefined) {
-        const pct = Math.round((topicProgress.testScore / topicProgress.testTotal) * 100);
-        badge = `<span class="progress-badge ${pct >= 80 ? 'badge-pass' : 'badge-partial'}">${pct}%</span>`;
+      if (r.isReady) {
+        badge = `<span class="progress-badge badge-ready">✓</span>`;
+      } else if (r.passed > 0 || r.testScore !== undefined) {
+        const parts = [];
+        if (r.passed > 0) parts.push(`${r.passed}/${r.total}`);
+        if (r.testScore !== undefined) parts.push(`${Math.round(r.testPct * 100)}%`);
+        const cls = r.testPct !== null && r.testPct >= 0.8 ? "badge-pass" : "badge-partial";
+        badge = `<span class="progress-badge ${cls}">${parts.join(" · ")}</span>`;
       } else if (topicProgress.visited) {
         badge = `<span class="progress-badge badge-visited">●</span>`;
       }
@@ -327,6 +348,7 @@ function selectTopic(topicId) {
   renderPracticeTest(topicId);
   setActiveTopicSection("overviewSection");
   markTopicVisited(topicId);
+  renderReadinessBar(topicId);
   // On narrow screens, collapse the topic list so the workspace is immediately visible
   if (window.innerWidth <= 1020) _collapseTopicList();
 }
@@ -470,7 +492,8 @@ function checkPracticeTest() {
 
   els.testResult.textContent = `Score: ${score}/${questions.length}`;
   markTestScore(selectedTopicId, score, questions.length);
-  renderTopicList(); // Update progress badges
+  renderTopicList();
+  renderReadinessBar(selectedTopicId);
 }
 
 function selectExercise(exerciseId) {
@@ -531,6 +554,8 @@ async function runCode() {
 
     if (result.ok) {
       markExercisePassed(selectedExercise.id);
+      renderReadinessBar(selectedTopicId);
+      renderTopicList();
       // Update only the checkmark on this option — avoids selectExercise() resetting testOutput
       const option = els.exerciseSelect.querySelector(`option[value="${selectedExercise.id}"]`);
       if (option && !option.textContent.startsWith("✓ ")) {
@@ -1451,6 +1476,43 @@ els.codePopupEditor.addEventListener("keydown", (e) => {
     runCodePopup();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Readiness bar
+// ---------------------------------------------------------------------------
+
+function renderReadinessBar(topicId) {
+  if (!els.readinessBar) return;
+  const r = getTopicReadiness(topicId);
+
+  if (r.isReady) {
+    const topicIdx = topics.findIndex((t) => t.id === topicId);
+    const nextTopic = topics[topicIdx + 1];
+    const nextBtn = nextTopic
+      ? `<button class="rbar-next" type="button" data-next="${nextTopic.id}">Next: ${escapeHtml(nextTopic.title)} →</button>`
+      : "";
+    els.readinessBar.className = "readiness-bar rbar-ready";
+    els.readinessBar.innerHTML = `<span>✓ Topic complete — Labs: ${r.passed}/${r.total} · Test: ${Math.round(r.testPct * 100)}%</span>${nextBtn}`;
+    els.readinessBar.hidden = false;
+  } else if (r.passed > 0 || r.testScore !== undefined) {
+    const parts = [];
+    if (r.total > 0) parts.push(`Labs: ${r.passed}/${r.total}`);
+    if (r.testScore !== undefined) parts.push(`Test: ${Math.round(r.testPct * 100)}%`);
+    els.readinessBar.className = "readiness-bar rbar-progress";
+    els.readinessBar.innerHTML = `<span>${parts.join(" · ")}</span>`;
+    els.readinessBar.hidden = false;
+  } else {
+    els.readinessBar.hidden = true;
+  }
+}
+
+// Next-topic button in readiness bar (event delegation)
+if (els.readinessBar) {
+  els.readinessBar.addEventListener("click", (e) => {
+    const btn = e.target.closest(".rbar-next");
+    if (btn && btn.dataset.next) selectTopic(btn.dataset.next);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Mobile topic list toggle
