@@ -82,6 +82,14 @@
           "a",
           "b"
         ]
+      },
+      {
+        "label": "case-insensitive overlap",
+        "call": "rank_context('PYTHON tools', [{'id': 'a', 'text': 'python agents use tools'}, {'id': 'b', 'text': 'plain notes'}])",
+        "expected": [
+          "a",
+          "b"
+        ]
       }
     ],
     "hint": "Tokenize with `split()`, use set intersections for overlap.",
@@ -174,5 +182,64 @@
     "hint": "Validate presence first, then types/ranges.",
     "solution": "def validate_response(payload):\n    required = ('answer', 'confidence', 'citations')\n    for key in required:\n        if key not in payload:\n            return [False, {'error': 'missing_field'}]\n\n    answer = payload.get('answer')\n    if not isinstance(answer, str) or not answer.strip():\n        return [False, {'error': 'invalid_answer'}]\n\n    confidence = payload.get('confidence')\n    if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):\n        return [False, {'error': 'invalid_confidence'}]\n\n    citations = payload.get('citations')\n    if not isinstance(citations, list):\n        return [False, {'error': 'invalid_citations'}]\n\n    return [True, payload]\n",
     "explanation": "Structured outputs reduce brittle parsing and improve downstream reliability."
+  },
+  {
+    "id": "langchain-capstone-pipeline",
+    "topic_id": "langchain",
+    "title": "Capstone: Prompt Pipeline",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a PromptPipeline class that chains named prompt templates, fills variables, and validates completeness — the core job of a LangChain chain.\n\nImplement:\n- __init__(self) — start with an empty list of steps.\n- add_template(self, name, template) — append {name, template} and return self (for chaining).\n- fill(self, template, variables) — replace every {key} placeholder with the matching value from variables. Leave unmatched placeholders unchanged.\n- run(self, variables) — return a list of {name, output} dicts, one per step, each with the filled template.\n- missing_vars(self, variables) — return a sorted list of placeholder names that appear across all templates but are absent from variables.",
+    "starter": "class PromptPipeline:\n    def __init__(self):\n        pass\n\n    def add_template(self, name, template):\n        pass\n\n    def fill(self, template, variables):\n        pass\n\n    def run(self, variables):\n        pass\n\n    def missing_vars(self, variables):\n        pass\n",
+    "tests": [
+      {
+        "label": "fill replaces placeholders",
+        "call": "PromptPipeline().fill('Hello {name}, you are {role}', {'name': 'Ada', 'role': 'engineer'})",
+        "expected": "Hello Ada, you are engineer"
+      },
+      {
+        "label": "fill leaves unknown placeholders unchanged",
+        "call": "PromptPipeline().fill('Hello {name}', {})",
+        "expected": "Hello {name}"
+      },
+      {
+        "label": "run returns filled steps in order",
+        "call": "PromptPipeline().add_template('intro', 'You are {role}').add_template('task', 'Solve: {problem}').run({'role': 'expert', 'problem': '2+2'})",
+        "expected": [
+          {
+            "name": "intro",
+            "output": "You are expert"
+          },
+          {
+            "name": "task",
+            "output": "Solve: 2+2"
+          }
+        ]
+      },
+      {
+        "label": "missing_vars finds absent placeholders",
+        "call": "PromptPipeline().add_template('a', 'You are {role}').add_template('b', 'Solve {problem} as {role}').missing_vars({'role': 'expert'})",
+        "expected": [
+          "problem"
+        ]
+      },
+      {
+        "label": "missing_vars deduplicates across steps",
+        "call": "PromptPipeline().add_template('a', '{x} and {y}').add_template('b', '{y} and {z}').missing_vars({})",
+        "expected": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      {
+        "label": "missing_vars empty when all provided",
+        "call": "PromptPipeline().add_template('a', 'Hello {name}').missing_vars({'name': 'Ada'})",
+        "expected": []
+      }
+    ],
+    "hint": "fill: loop over variables.items() and use template.replace('{' + key + '}', value). missing_vars: scan each template for {word} substrings by finding '{' then '}', extract the word between. Collect into a set, subtract provided keys, return sorted list.",
+    "solution": "class PromptPipeline:\n    def __init__(self):\n        self._steps = []\n\n    def add_template(self, name, template):\n        self._steps.append({'name': name, 'template': template})\n        return self\n\n    def fill(self, template, variables):\n        result = template\n        for key, value in variables.items():\n            result = result.replace('{' + key + '}', str(value))\n        return result\n\n    def run(self, variables):\n        return [{'name': step['name'], 'output': self.fill(step['template'], variables)} for step in self._steps]\n\n    def missing_vars(self, variables):\n        needed = set()\n        for step in self._steps:\n            t = step['template']\n            i = 0\n            while True:\n                start = t.find('{', i)\n                if start == -1:\n                    break\n                end = t.find('}', start)\n                if end == -1:\n                    break\n                needed.add(t[start + 1:end])\n                i = end + 1\n        return sorted(needed - set(variables.keys()))\n",
+    "explanation": "A LangChain chain is this class: a sequence of prompt templates sharing a variable namespace, filled at runtime. The missing_vars check is what LangChain calls input validation — it surfaces missing context before a call goes to the LLM, saving latency and tokens. Understanding the fill-and-validate loop makes prompt engineering systematic."
   }
 ]

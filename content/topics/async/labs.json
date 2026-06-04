@@ -191,5 +191,60 @@
     "hint": "Use a simple threshold for wait time and check cpu_heavy.",
     "solution": "def choose_execution_style(wait_ms, cpu_heavy):\n    if not cpu_heavy and wait_ms >= 10:\n        return 'async'\n    return 'sync'\n",
     "explanation": "Async is usually worthwhile when wait times dominate and CPU demand is low."
+  },
+  {
+    "id": "async-capstone-scheduler",
+    "topic_id": "async",
+    "title": "Capstone: Task Scheduler",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a TaskScheduler class that simulates the core decisions an async event loop makes: which tasks to run next, how many can run concurrently, and when they are done.\n\nImplement:\n- __init__(self, max_concurrent) — store the concurrency limit; start with empty pending and done lists.\n- submit(self, name, duration_ms) — add a task dict {name, duration_ms} to pending and return self (for chaining).\n- next_batch(self) — return a list of task names for the next batch: the max_concurrent shortest-duration pending tasks, sorted by duration_ms ascending (most responsive first).\n- complete(self, name) — move the named task from pending to done and return True. Return False if not found.\n- stats(self) — return {pending: int, done: int, capacity: int}.",
+    "starter": "class TaskScheduler:\n    def __init__(self, max_concurrent):\n        pass\n\n    def submit(self, name, duration_ms):\n        pass\n\n    def next_batch(self):\n        pass\n\n    def complete(self, name):\n        pass\n\n    def stats(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "next_batch returns shortest tasks first",
+        "call": "TaskScheduler(2).submit('fetch', 100).submit('parse', 50).next_batch()",
+        "expected": [
+          "parse",
+          "fetch"
+        ]
+      },
+      {
+        "label": "next_batch respects concurrency cap",
+        "call": "TaskScheduler(1).submit('a', 100).submit('b', 50).next_batch()",
+        "expected": [
+          "b"
+        ]
+      },
+      {
+        "label": "complete returns True when task exists",
+        "call": "(lambda s: (s.submit('a', 100), s.complete('a'))[-1])(TaskScheduler(2))",
+        "expected": true
+      },
+      {
+        "label": "complete returns False for unknown task",
+        "call": "(lambda s: (s.submit('a', 100), s.complete('missing'))[-1])(TaskScheduler(2))",
+        "expected": false
+      },
+      {
+        "label": "stats counts correctly",
+        "call": "(lambda s: (s.submit('a', 100), s.submit('b', 200), s.complete('a'), s.stats())[-1])(TaskScheduler(2))",
+        "expected": {
+          "pending": 1,
+          "done": 1,
+          "capacity": 2
+        }
+      },
+      {
+        "label": "completed task not in next_batch",
+        "call": "(lambda s: (s.submit('a', 100), s.submit('b', 50), s.complete('b'), s.next_batch())[-1])(TaskScheduler(2))",
+        "expected": [
+          "a"
+        ]
+      }
+    ],
+    "hint": "Use self._pending = [] and self._done = []. submit appends {name, duration_ms} and returns self. next_batch sorts pending by duration_ms, slices to max_concurrent, returns just the names. complete scans pending by name, removes from pending, appends to done.",
+    "solution": "class TaskScheduler:\n    def __init__(self, max_concurrent):\n        self._max = max_concurrent\n        self._pending = []\n        self._done = []\n\n    def submit(self, name, duration_ms):\n        self._pending.append({'name': name, 'duration_ms': duration_ms})\n        return self\n\n    def next_batch(self):\n        batch = sorted(self._pending, key=lambda t: t['duration_ms'])[:self._max]\n        return [t['name'] for t in batch]\n\n    def complete(self, name):\n        for task in self._pending:\n            if task['name'] == name:\n                self._pending = [t for t in self._pending if t['name'] != name]\n                self._done.append(name)\n                return True\n        return False\n\n    def stats(self):\n        return {'pending': len(self._pending), 'done': len(self._done), 'capacity': self._max}\n",
+    "explanation": "Python's asyncio event loop makes exactly these decisions on every iteration: which coroutines are ready, how many I/O slots are available, and which tasks to retire when done. Shortest-job-first scheduling minimises average wait time — the same principle behind async HTTP connection pools and database query queues."
   }
 ]

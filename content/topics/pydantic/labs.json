@@ -208,5 +208,88 @@
     "hint": "Create a new dict and add optional keys conditionally.",
     "solution": "def dump_ticket(ticket, include_none=False):\n    result = {\n        'title': ticket.get('title'),\n        'priority': ticket.get('priority'),\n    }\n\n    owner = ticket.get('owner')\n    if owner is not None or include_none:\n        result['owner'] = owner\n\n    tags = ticket.get('tags')\n    if isinstance(tags, list) and len(tags) > 0:\n        result['tags'] = list(tags)\n\n    return result\n",
     "explanation": "This mirrors serialization controls like include/exclude behavior used when exporting validated models."
+  },
+  {
+    "id": "pydantic-capstone-validator",
+    "topic_id": "pydantic",
+    "title": "Capstone: Schema Validator",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a TicketValidator class that validates and coerces input data against a schema — the same job Pydantic does under the hood.\n\nA schema is a list of field dicts, each with: field (str), type (\"str\"|\"int\"|\"bool\"), required (bool), and optionally default.\n\nImplement:\n- __init__(self, schema) — store the schema.\n- validate(self, data) — return [True, cleaned_dict] if all fields are valid, or [False, errors_dict] where errors maps field name to reason string. Coerce str to int with int(), strip str fields. Collect all errors, not just the first.\n- describe(self) — return a dict mapping each field name to its type string.",
+    "starter": "class TicketValidator:\n    def __init__(self, schema):\n        pass\n\n    def validate(self, data):\n        pass\n\n    def describe(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "validate passes and strips str field",
+        "call": "TicketValidator([{'field': 'title', 'type': 'str', 'required': True}]).validate({'title': ' Deploy '})",
+        "expected": [
+          true,
+          {
+            "title": "Deploy"
+          }
+        ]
+      },
+      {
+        "label": "validate catches missing required field",
+        "call": "TicketValidator([{'field': 'title', 'type': 'str', 'required': True}]).validate({})",
+        "expected": [
+          false,
+          {
+            "title": "required"
+          }
+        ]
+      },
+      {
+        "label": "validate coerces str to int",
+        "call": "TicketValidator([{'field': 'priority', 'type': 'int', 'required': True}]).validate({'priority': '3'})",
+        "expected": [
+          true,
+          {
+            "priority": 3
+          }
+        ]
+      },
+      {
+        "label": "validate rejects non-int value",
+        "call": "TicketValidator([{'field': 'priority', 'type': 'int', 'required': True}]).validate({'priority': 'high'})",
+        "expected": [
+          false,
+          {
+            "priority": "expected int"
+          }
+        ]
+      },
+      {
+        "label": "optional field uses default",
+        "call": "TicketValidator([{'field': 'active', 'type': 'bool', 'required': False, 'default': True}]).validate({})",
+        "expected": [
+          true,
+          {
+            "active": true
+          }
+        ]
+      },
+      {
+        "label": "describe returns field-to-type map",
+        "call": "TicketValidator([{'field': 'title', 'type': 'str', 'required': True}, {'field': 'count', 'type': 'int', 'required': True}]).describe()",
+        "expected": {
+          "title": "str",
+          "count": "int"
+        }
+      },
+      {
+        "label": "validate collects multiple errors",
+        "call": "TicketValidator([{'field': 'title', 'type': 'str', 'required': True}, {'field': 'priority', 'type': 'int', 'required': True}]).validate({})",
+        "expected": [
+          false,
+          {
+            "title": "required",
+            "priority": "required"
+          }
+        ]
+      }
+    ],
+    "hint": "Loop over the schema list in validate. For each rule, check if the field is in data. If missing and required, record 'required' in errors. If present, try coercion — catch ValueError/TypeError and record 'expected {type}'. Build cleaned only for fields with no error.",
+    "solution": "class TicketValidator:\n    def __init__(self, schema):\n        self._schema = schema\n\n    def validate(self, data):\n        errors = {}\n        cleaned = {}\n        for rule in self._schema:\n            field = rule['field']\n            type_name = rule.get('type', 'str')\n            value = data.get(field)\n            if value is None:\n                if rule.get('required'):\n                    errors[field] = 'required'\n                else:\n                    cleaned[field] = rule.get('default')\n            else:\n                try:\n                    if type_name == 'int':\n                        cleaned[field] = int(value)\n                    elif type_name == 'bool':\n                        if not isinstance(value, bool):\n                            raise ValueError()\n                        cleaned[field] = value\n                    else:\n                        cleaned[field] = str(value).strip()\n                except (ValueError, TypeError):\n                    errors[field] = f'expected {type_name}'\n        if errors:\n            return [False, errors]\n        return [True, cleaned]\n\n    def describe(self):\n        return {rule['field']: rule.get('type', 'str') for rule in self._schema}\n",
+    "explanation": "Pydantic does exactly this: it reads field definitions, validates each incoming value, coerces types, collects errors across all fields, and returns either a clean model or a ValidationError. Understanding this loop makes Pydantic error messages readable and custom validators predictable."
   }
 ]

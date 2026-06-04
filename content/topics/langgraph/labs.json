@@ -176,5 +176,64 @@
     "hint": "Validate command shape first, then action-specific rules.",
     "solution": "def validate_resume(command):\n    if not isinstance(command, dict):\n        return [False, 'invalid_command']\n\n    action = command.get('action')\n    if action not in {'approve', 'edit', 'reject'}:\n        return [False, 'invalid_action']\n\n    if action == 'edit':\n        text = command.get('edited_text')\n        if not isinstance(text, str) or not text.strip():\n            return [False, 'missing_edit_text']\n\n    return [True, 'ok']\n",
     "explanation": "Human-in-the-loop resumes should be validated like any other boundary input."
+  },
+  {
+    "id": "langgraph-capstone-state-graph",
+    "topic_id": "langgraph",
+    "title": "Capstone: State Graph Runner",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a StateGraph class that models a LangGraph-style directed graph: nodes are named processing steps, edges define allowed transitions, and state tracks what has run.\n\nImplement:\n- __init__(self) — start empty.\n- add_node(self, name, handler) — register a node and return self.\n- add_edge(self, from_node, to_node) — register a directed edge and return self.\n- set_state(self, data) — initialise state as {data, history: [], current: None} and return self.\n- step(self, node_name) — if node exists and state is set, record the step and return True. Return False otherwise.\n- can_go_to(self, from_node, to_node) — return True if the edge is registered.\n- history(self) — return a copy of the history list, or [] if state is not set.\n- describe(self) — return {nodes: sorted list of names, edges: dict of from to list-of-to}.",
+    "starter": "class StateGraph:\n    def __init__(self):\n        pass\n\n    def add_node(self, name, handler):\n        pass\n\n    def add_edge(self, from_node, to_node):\n        pass\n\n    def set_state(self, data):\n        pass\n\n    def step(self, node_name):\n        pass\n\n    def can_go_to(self, from_node, to_node):\n        pass\n\n    def history(self):\n        pass\n\n    def describe(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "describe shows nodes and edges",
+        "call": "StateGraph().add_node('start', 'h').add_node('end', 'h').add_edge('start', 'end').describe()",
+        "expected": {
+          "nodes": [
+            "end",
+            "start"
+          ],
+          "edges": {
+            "start": [
+              "end"
+            ]
+          }
+        }
+      },
+      {
+        "label": "can_go_to True for registered edge",
+        "call": "StateGraph().add_node('a', 'h').add_node('b', 'h').add_edge('a', 'b').can_go_to('a', 'b')",
+        "expected": true
+      },
+      {
+        "label": "can_go_to False for missing edge",
+        "call": "StateGraph().add_node('a', 'h').add_edge('a', 'b').can_go_to('a', 'c')",
+        "expected": false
+      },
+      {
+        "label": "step records history",
+        "call": "(lambda g: (g.add_node('init', 'h'), g.set_state({'x': 1}), g.step('init'), g.history())[-1])(StateGraph())",
+        "expected": [
+          "init"
+        ]
+      },
+      {
+        "label": "step accumulates multiple nodes",
+        "call": "(lambda g: (g.add_node('init', 'h'), g.add_node('process', 'h'), g.set_state({}), g.step('init'), g.step('process'), g.history())[-1])(StateGraph())",
+        "expected": [
+          "init",
+          "process"
+        ]
+      },
+      {
+        "label": "step returns False for unknown node",
+        "call": "(lambda g: (g.add_node('init', 'h'), g.set_state({}), g.step('missing'))[-1])(StateGraph())",
+        "expected": false
+      }
+    ],
+    "hint": "Use self._nodes = {}, self._edges = {}, self._state = None. add_edge uses setdefault(from_node, []).append(to_node). step checks node in self._nodes and self._state is not None, then appends to history and updates current. describe sorts node keys.",
+    "solution": "class StateGraph:\n    def __init__(self):\n        self._nodes = {}\n        self._edges = {}\n        self._state = None\n\n    def add_node(self, name, handler):\n        self._nodes[name] = handler\n        return self\n\n    def add_edge(self, from_node, to_node):\n        self._edges.setdefault(from_node, []).append(to_node)\n        return self\n\n    def set_state(self, data):\n        self._state = {'data': data, 'history': [], 'current': None}\n        return self\n\n    def step(self, node_name):\n        if node_name not in self._nodes or self._state is None:\n            return False\n        self._state['history'].append(node_name)\n        self._state['current'] = node_name\n        return True\n\n    def can_go_to(self, from_node, to_node):\n        return to_node in self._edges.get(from_node, [])\n\n    def history(self):\n        return list(self._state['history']) if self._state else []\n\n    def describe(self):\n        return {'nodes': sorted(self._nodes.keys()), 'edges': dict(self._edges)}\n",
+    "explanation": "A LangGraph StateGraph works exactly like this: nodes are agent or tool functions, edges declare what can run next, state accumulates as each node executes. Building it from scratch makes checkpoint, interrupt, and resume features intuitive — they are all operations on the state dict and the history list."
   }
 ]

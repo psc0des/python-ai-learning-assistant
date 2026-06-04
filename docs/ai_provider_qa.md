@@ -10,10 +10,10 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 
 | # | Step | Expected outcome |
 |---|------|-----------------|
-| 1 | Enter provider credentials in AI Settings and click Save & Apply | Button shows ✓ Saved, panel closes, settings button label updates to show provider + model |
-| 2 | Click the model dropdown refresh button (↻) | Model list populates within the AI models timeout (default 8 s); no JS error in console |
+| 1 | Enter provider credentials in AI Settings and click Save & Apply | Button shows ✓ Saved only after model refresh succeeds; failed local refresh keeps the panel open and shows an explicit error |
+| 2 | Click the model dropdown refresh button (↻) | Model list populates within the AI models timeout (default 8 s); local providers show only live installed/loaded models; no JS error in console |
 | 3 | Open any topic → Labs → type a question in the AI Coach box and click Send | Response arrives within the AI timeout (default 25 s); response is coherent and references the topic |
-| 4 | Open Execution Visualizer → run a short snippet → click Ask AI | Narration appears explaining the current step; no error banner |
+| 4 | Open Execution Visualizer → run a short snippet → optionally click Ask AI | Deterministic step explanation appears without AI; optional Ask AI explains the current step when provider is healthy |
 | 5 | Clear the API key field, save, and send a message | App shows explicit key error (not a blank response or crash); built-in feedback still appears |
 
 ---
@@ -22,12 +22,12 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 
 ### 1. Ollama (local)
 
-**Prerequisites:** Ollama installed and running (`ollama serve`). At least one model pulled (`ollama pull llama3.2`).
+**Prerequisites:** Ollama installed and running (`ollama serve`). At least one local model pulled.
 
 **Settings:**
 - Provider: Ollama (local)
 - Endpoint: `http://127.0.0.1:11434`
-- Model: any pulled model (e.g. `llama3.2`)
+- Model: choose from the live dropdown after refresh
 - API key: leave blank
 
 | Test | Pass | Fail | Notes | Sign-off |
@@ -35,7 +35,7 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 | 1 Settings save | | | | |
 | 2 Model list loads | | | | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | N/A — no key required | |
 
 ---
@@ -46,16 +46,16 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 
 **Settings:**
 - Provider: LM Studio (local)
-- Endpoint: `http://127.0.0.1:1234/v1/chat/completions`
-- Model: `local-model` (or whatever LM Studio reports)
+- Endpoint: `http://127.0.0.1:1234`
+- Model: choose from the live dropdown after LM Studio reports loaded models
 - API key: leave blank
 
 | Test | Pass | Fail | Notes | Sign-off |
 |------|------|------|-------|---------|
 | 1 Settings save | | | | |
-| 2 Model list loads | | | LM Studio may not expose a model list endpoint | |
+| 2 Model list loads | | | App calls `/v1/models` derived from the base endpoint | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | N/A — no key required | |
 
 ---
@@ -75,7 +75,7 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 | 1 Settings save | | | | |
 | 2 Model list loads | | | | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | Expect "AI Coach unavailable" + key error message | |
 
 ---
@@ -95,7 +95,7 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 | 1 Settings save | | | | |
 | 2 Model list loads | | | Anthropic does not expose a model-list endpoint; list may be static | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | Expect "AI Coach unavailable" + key error message | |
 
 ---
@@ -115,7 +115,7 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 | 1 Settings save | | | | |
 | 2 Model list loads | | | | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | Expect "AI Coach unavailable" + key error message | |
 
 ---
@@ -135,7 +135,7 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 | 1 Settings save | | | | |
 | 2 Model list loads | | | | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | Expect "AI Coach unavailable" + key error message | |
 
 ---
@@ -155,7 +155,7 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 | 1 Settings save | | | | |
 | 2 Model list loads | | | | |
 | 3 Coach responds | | | | |
-| 4 Visualizer narration | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
 | 5 Missing key fallback | | | Expect "AI Coach unavailable" + key error message | |
 
 ---

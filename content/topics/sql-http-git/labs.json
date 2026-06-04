@@ -88,6 +88,15 @@
           "modified": 0,
           "deleted": 0
         }
+      },
+      {
+        "label": "ignores unknown status",
+        "call": "summarize_git_changes(['R old.py -> new.py', 'A app.py'])",
+        "expected": {
+          "added": 1,
+          "modified": 0,
+          "deleted": 0
+        }
       }
     ],
     "hint": "Use first token to map into counters.",
@@ -115,6 +124,14 @@
         "label": "no match",
         "call": "filter_logs(['ok'], 'fail')",
         "expected": []
+      },
+      {
+        "label": "case-insensitive warning match",
+        "call": "filter_logs(['WARN disk', 'info ok', 'warning retry'], 'warn')",
+        "expected": [
+          "WARN disk",
+          "warning retry"
+        ]
       }
     ],
     "hint": "Lowercase both line and keyword.",
@@ -149,5 +166,82 @@
     "hint": "Use a dict mapping with default fallback.",
     "solution": "def next_debug_step(signal):\n    mapping = {\n        'http_5xx': 'check_logs',\n        'validation_4xx': 'check_request_schema',\n        'data_mismatch': 'check_sql_rows',\n        'recent_regression': 'check_git_diff',\n    }\n    return mapping.get(signal, 'gather_more_evidence')\n",
     "explanation": "Structured triage prevents random debugging and speeds root-cause isolation."
+  },
+  {
+    "id": "sql-capstone-log-analyzer",
+    "topic_id": "sql-http-git",
+    "title": "Capstone: HTTP Log Analyzer",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a LogAnalyzer class that processes structured HTTP access logs — the same work done by log aggregation tools like Datadog, Grafana Loki, and CloudWatch Logs Insights.\n\nEach log entry is a dict with: method (str), path (str), status (int), size_bytes (int).\n\nImplement:\n- __init__(self, logs) — store the log list.\n- filter_errors(self) — return entries where status >= 400.\n- group_by_status(self) — return a dict mapping each status code (as a string key) to a list of matching entries.\n- method_counts(self) — return a dict mapping each HTTP method to its count.\n- error_rate(self) — return the fraction of requests that are errors, rounded to 2 decimal places. Return 0.0 for empty logs.\n- summary(self) — return {total, errors, error_rate, methods} combining the above.",
+    "starter": "class LogAnalyzer:\n    def __init__(self, logs):\n        pass\n\n    def filter_errors(self):\n        pass\n\n    def group_by_status(self):\n        pass\n\n    def method_counts(self):\n        pass\n\n    def error_rate(self):\n        pass\n\n    def summary(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "filter_errors returns 4xx and 5xx",
+        "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200, 'size_bytes': 512}, {'method': 'GET', 'path': '/b', 'status': 404, 'size_bytes': 64}]).filter_errors()",
+        "expected": [
+          {
+            "method": "GET",
+            "path": "/b",
+            "status": 404,
+            "size_bytes": 64
+          }
+        ]
+      },
+      {
+        "label": "group_by_status buckets by code",
+        "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200}, {'method': 'POST', 'path': '/b', 'status': 404}]).group_by_status()",
+        "expected": {
+          "200": [
+            {
+              "method": "GET",
+              "path": "/a",
+              "status": 200
+            }
+          ],
+          "404": [
+            {
+              "method": "POST",
+              "path": "/b",
+              "status": 404
+            }
+          ]
+        }
+      },
+      {
+        "label": "method_counts tallies methods",
+        "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200}, {'method': 'POST', 'path': '/b', 'status': 200}, {'method': 'GET', 'path': '/c', 'status': 404}]).method_counts()",
+        "expected": {
+          "GET": 2,
+          "POST": 1
+        }
+      },
+      {
+        "label": "error_rate computes fraction",
+        "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200, 'size_bytes': 100}, {'method': 'GET', 'path': '/b', 'status': 500, 'size_bytes': 50}]).error_rate()",
+        "expected": 0.5
+      },
+      {
+        "label": "error_rate is 0.0 for empty logs",
+        "call": "LogAnalyzer([]).error_rate()",
+        "expected": 0.0
+      },
+      {
+        "label": "summary combines all metrics",
+        "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200, 'size_bytes': 100}, {'method': 'POST', 'path': '/b', 'status': 404, 'size_bytes': 50}, {'method': 'GET', 'path': '/c', 'status': 500, 'size_bytes': 50}]).summary()",
+        "expected": {
+          "total": 3,
+          "errors": 2,
+          "error_rate": 0.67,
+          "methods": {
+            "GET": 2,
+            "POST": 1
+          }
+        }
+      }
+    ],
+    "hint": "filter_errors is a list comprehension on status >= 400. group_by_status uses dict.setdefault(status, []).append(entry). method_counts uses counts.get(method, 0) + 1. error_rate divides len(filter_errors()) by len(self._logs). summary composes the other methods.",
+    "solution": "class LogAnalyzer:\n    def __init__(self, logs):\n        self._logs = logs\n\n    def filter_errors(self):\n        return [l for l in self._logs if l.get('status', 0) >= 400]\n\n    def group_by_status(self):\n        groups = {}\n        for log in self._logs:\n            status = log.get('status', 0)\n            groups.setdefault(str(status), []).append(log)\n        return groups\n\n    def method_counts(self):\n        counts = {}\n        for log in self._logs:\n            method = log.get('method', 'UNKNOWN')\n            counts[method] = counts.get(method, 0) + 1\n        return counts\n\n    def error_rate(self):\n        if not self._logs:\n            return 0.0\n        return round(len(self.filter_errors()) / len(self._logs), 2)\n\n    def summary(self):\n        return {\n            'total': len(self._logs),\n            'errors': len(self.filter_errors()),\n            'error_rate': self.error_rate(),\n            'methods': self.method_counts(),\n        }\n",
+    "explanation": "Every HTTP monitoring system does this work: filter errors, group by status to spot patterns (spike of 503s = overload, spike of 404s = bad deploy), tally method distribution, compute error rate. SQL, HTTP, and Git all produce structured records — learning to aggregate them programmatically is the core DevOps and SRE skill."
   }
 ]
