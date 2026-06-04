@@ -293,9 +293,12 @@ Six topics have an inline SVG concept diagram embedded in one lesson section (`d
 
 Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel. The modal is draggable — grab the header and move it anywhere on screen.
 
-Two error cases are handled for beginners:
-- **Runtime error** (e.g. `NameError`): some steps ran before the crash. The final step is highlighted and the AI narrates what went wrong with a fix hint.
-- **Compile-time error** (e.g. `SyntaxError`): no lines ran. The trace returns 0 steps and an `error_line` field. The offending line is highlighted in red and the AI explains the error in one plain sentence.
+Three cases are handled deterministically without AI:
+- **Runtime error** (e.g. `NameError`): some steps ran before the crash. The final step is highlighted with a plain-English note.
+- **Compile-time error** (e.g. `SyntaxError`): no lines ran. The trace returns 0 steps and an `error_line` field. The offending line is highlighted in red with a built-in explanation.
+- **Blocked construct** (e.g. `input()`, `open()`): caught by the AST scanner before the trace runs. A short deterministic note explains the block and what to do instead.
+
+AI narration is **not** automatic. The learner clicks "Ask AI" in the visualizer controls to request an AI explanation of the current step or error. This keeps the visualizer deterministic and avoids AI timeout noise.
 
 ### AI Coach
 

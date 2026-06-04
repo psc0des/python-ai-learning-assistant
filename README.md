@@ -60,7 +60,7 @@ The code runner executes snippets locally with a short timeout. Treat it as a pr
 
 AI request timeout defaults are intentionally short so the learning UI does not appear frozen if a provider is down:
 
-- `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` (default `25`) for coach/narration calls
+- `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` (default `25`) for AI coach calls
 - `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` (default `8`) for model list refresh
 
 UI theme note: dark mode has been removed for now. The app uses a single warm light theme to avoid inconsistent contrast and readability issues.

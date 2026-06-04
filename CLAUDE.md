@@ -88,6 +88,7 @@ Python_Learning_Assistant/
     test_curriculum.py          Curriculum metadata tests
     test_exercises.py           Exercise structure tests
     test_runtime_api.py         Live server smoke tests
+    test_ai_models.py           AI model listing and local provider contract tests
   CLAUDE.md               This file — project rules for Claude
   AGENTS.md               Contributor instructions and architectural notes
   README.md               Short project overview
@@ -107,7 +108,9 @@ Tests in `tests/test_origin_validation.py` cover: exact match, empty origin, hos
 
 ### Code runner
 
-`runner.py` runs learner code in a subprocess with a short timeout. It uses an AST scan to block dangerous imports (`os`, `subprocess`, `socket`, etc.), dangerous builtins (`exec`, `eval`, `__import__`, etc.), and `open()` entirely — learner code cannot read or write any files. This is a learning sandbox, not a production security boundary. **Do not expose this app to a network or multi-user environment.**
+`runner.py` runs learner code in a subprocess with a short timeout. It uses an AST scan to block dangerous imports (`os`, `subprocess`, `socket`, etc.), dangerous builtins (`exec`, `eval`, `__import__`, etc.), `open()` entirely, and `input()` — learner code cannot read or write files or prompt for keyboard input. This is a learning sandbox, not a production security boundary. **Do not expose this app to a network or multi-user environment.**
+
+`input()` is blocked before execution because the subprocess is non-interactive — a blocked `input()` call would silently wait until the run timeout, which looks like an infinite loop to a beginner. The runner returns a clear targeted message instead. Labs should use function parameters and sample variables, not `input()`.
 
 HTTP request bodies are capped at 100 KB (`MAX_REQUEST_BODY_BYTES` in `app.py`) before JSON parsing, so an oversized POST cannot consume memory before the runner's code-size check applies.
 
@@ -136,7 +139,9 @@ Every topic marked `quality_status: reference` must have:
 
 ### Capstone labs
 
-Each major track has one capstone lab (`difficulty: "Advanced"`, `difficulty_order: 6`) that integrates multiple concepts from the track. Capstone labs are added to `labs.json` only — no changes to `topic.json` or `lesson.md`. All code must be pure Python (no imports from `BLOCKED_MODULES`). Tracks with capstones: Python Core (`oop`), Backend (`fastapi`), AI Apps (`rag-vectors`), DevOps (`python-devops`), Engineering Habits (`errors-testing`).
+Each topic has one capstone lab (`difficulty: "Advanced"`, `difficulty_order: 6`) that integrates multiple concepts into a class-based multi-method challenge. Capstone labs are added to `labs.json` only — no changes to `topic.json` or `lesson.md`. All code must be pure Python (no imports from `BLOCKED_MODULES`). Every capstone must use a class with `__init__` and instance methods — not bare functions — so it genuinely exercises the OOP and encapsulation patterns the curriculum teaches.
+
+Topics with capstones: `oop` (TaskManager), `fastapi` (Request Router), `rag-vectors` (Mini RAG Pipeline), `python-devops` (Deployment Checker), `errors-testing` (Debug Report Builder), `pydantic` (Schema Validator), `async` (Task Scheduler), `langchain` (Prompt Pipeline), `langgraph` (State Graph Runner), `mcp` (Tool Registry), `sql-http-git` (HTTP Log Analyzer).
 
 ### Content writing style
 
@@ -228,7 +233,7 @@ Every code or content change must be accompanied by doc updates in the same comm
 
 ### 1. Tests before done
 
-Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 705 tests passing. Do not ship a regression.
+Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 792 tests passing. Do not ship a regression.
 
 ### 2. No CDN drift
 

@@ -153,7 +153,7 @@ When adding labs:
 - verify every solution passes its own tests;
 - prefer small functions that return values over print-only exercises.
 
-**Capstone labs** (one per major track, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate 3–5 concepts from the track into a multi-function challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All functions must be pure (no blocked imports). See existing capstones in `oop`, `fastapi`, `rag-vectors`, `python-devops`, and `errors-testing` for the pattern.
+**Capstone labs** (one per topic, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate concepts from the topic into a class-based multi-method challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All code must be pure Python (no blocked imports). Every capstone must use a class with `__init__` and instance methods. All 11 topics now have capstones: `oop`, `fastapi`, `rag-vectors`, `python-devops`, `errors-testing`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `sql-http-git`.
 
 ### Runner Safety
 
@@ -211,7 +211,7 @@ Tests: `tests/test_origin_validation.py` covers exact match, empty origin, hosti
 
 ### Code execution
 
-The AST scanner in `runner.py` blocks dangerous imports, dangerous builtins, and `open()` entirely — learner code cannot read or write files. HTTP request bodies are capped at 100 KB before JSON parsing (`MAX_REQUEST_BODY_BYTES` in `app.py`).
+The AST scanner in `runner.py` blocks dangerous imports, dangerous builtins, `open()` entirely, and `input()` — learner code cannot read or write files or prompt for keyboard input. `input()` is blocked before execution because the subprocess is non-interactive; a waiting `input()` call would silently time out, which looks like an infinite loop. HTTP request bodies are capped at 100 KB before JSON parsing (`MAX_REQUEST_BODY_BYTES` in `app.py`).
 
 Do not expose this app to a network or multiple users without reviewing:
 
