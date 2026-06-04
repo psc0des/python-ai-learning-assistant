@@ -5,7 +5,7 @@
     "title": "Basic Email Check",
     "difficulty": "Beginner",
     "difficulty_order": 1,
-    "prompt": "Write `is_basic_email(value)` that returns True when the string has exactly one `@` and at least one dot after `@`.",
+    "prompt": "Write `is_basic_email(value)` that returns True when the string has exactly one `@` and at least one dot after `@`. The tests call your function with sample strings, so `value` already contains the email text to check.",
     "starter": "def is_basic_email(value):\n    pass\n",
     "tests": [
       {
@@ -39,7 +39,7 @@
     "title": "Clamp a Value",
     "difficulty": "Beginner",
     "difficulty_order": 2,
-    "prompt": "Write `clamp(value, low, high)` that returns `value` constrained between `low` and `high` (inclusive).",
+    "prompt": "Write `clamp(value, low, high)` that returns `value` constrained between `low` and `high` (inclusive). The tests call your function with sample numbers such as `clamp(5, 1, 10)`, so those parameters already have values.",
     "starter": "def clamp(value, low, high):\n    pass\n",
     "tests": [
       {
@@ -73,7 +73,7 @@
     "title": "Append Safe With None Default",
     "difficulty": "Beginner",
     "difficulty_order": 3,
-    "prompt": "Write `append_safe(item, bucket=None)` that returns a list containing previous items plus the new item. Do not leak state between calls.",
+    "prompt": "Write `append_safe(item, bucket=None)` that returns a list containing previous items plus the new item. The tests call your function with and without the optional `bucket` argument. Do not leak state between calls.",
     "starter": "def append_safe(item, bucket=None):\n    # avoid mutable default pitfall\n    pass\n",
     "tests": [
       {
@@ -109,7 +109,7 @@
     "title": "Format Ticket Label",
     "difficulty": "Beginner",
     "difficulty_order": 4,
-    "prompt": "Write `format_ticket(title, priority=3, owner='unassigned')` that returns `\"[P{priority}] {title} -> {owner}\"`.",
+    "prompt": "Write `format_ticket(title, priority=3, owner='unassigned')` that returns `\"[P{priority}] {title} -> {owner}\"`. The tests pass `title`, and sometimes override `priority` or `owner`, so use the parameter values instead of asking for input.",
     "starter": "def format_ticket(title, priority=3, owner='unassigned'):\n    pass\n",
     "tests": [
       {
@@ -138,7 +138,7 @@
     "title": "Sum Selected Keys",
     "difficulty": "Intermediate",
     "difficulty_order": 5,
-    "prompt": "Write `sum_selected(record, *keys)` that returns the numeric sum of values found in `record` for provided keys. Ignore missing keys.",
+    "prompt": "Write `sum_selected(record, *keys)` that returns the numeric sum of values found in `record` for provided keys. The tests call your function with a dictionary and any number of key names; ignore missing keys.",
     "starter": "def sum_selected(record, *keys):\n    pass\n",
     "tests": [
       {

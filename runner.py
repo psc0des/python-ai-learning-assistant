@@ -2,6 +2,7 @@
 
 Executes learner code in a restricted subprocess with:
 - AST-based import and built-in blocking before execution
+- input() blocked before execution — labs use parameters or sample variables
 - open() blocked via AST scan — no file I/O from learner code
 - Strict timeout with process kill
 - Size limits on submitted code
@@ -99,6 +100,12 @@ def scan_for_dangerous_code(code: str) -> list[str]:
                 )
 
             # Block open() entirely — labs use input parameters, not files
+            if func_name == "input":
+                violations.append(
+                    f"Line {node.lineno}: input() is not available in this practice runner. "
+                    f"Use a function parameter or a sample variable instead."
+                )
+
             if func_name == "open":
                 violations.append(
                     f"Line {node.lineno}: open() is not available in this sandbox. "
@@ -332,16 +339,21 @@ def run_user_code(payload: dict[str, Any], exercises: list[dict[str, Any]]) -> d
     # --- Security scan ---
     violations = scan_for_dangerous_code(code)
     if violations:
+        feedback = ["Your code uses constructs that are blocked in this practice sandbox."]
+        violation_text = "\n".join(violations)
+        if "input()" in violation_text:
+            feedback.append("Rewrite interactive prompts as a function parameter or a sample variable, then run the code again.")
+        if "open()" in violation_text:
+            feedback.append("File reading and writing are blocked here; use variables, lists, dictionaries, or function parameters instead.")
+        if not any(name in violation_text for name in ("input()", "open()")):
+            feedback.append("System access is restricted so practice code stays focused on the exercise logic.")
+        feedback.append("Focus on Python's built-in data types, functions, control flow, and return values.")
         return {
             "ok": False,
             "stdout": "",
-            "stderr": "\n".join(violations),
+            "stderr": violation_text,
             "tests": [],
-            "feedback": [
-                "Your code uses constructs that are blocked in this practice sandbox.",
-                "This sandbox is designed for learning exercises — system access is restricted for safety.",
-                "Focus on the exercise logic using Python's built-in data types and standard operations.",
-            ],
+            "feedback": feedback,
         }
 
     # --- Build and run ---

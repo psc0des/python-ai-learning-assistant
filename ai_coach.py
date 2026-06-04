@@ -318,6 +318,24 @@ def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
     return _make_result(text, tokens_in, tokens_out, elapsed, gen_sec)
 
 
+def openai_compatible_chat_url(endpoint: str, default_base: str) -> str:
+    """Normalize an OpenAI-compatible base URL to its chat completions URL."""
+    base = (endpoint or default_base).rstrip("/")
+    if base.endswith("/chat/completions"):
+        return base
+    if base.endswith("/v1"):
+        return base + "/chat/completions"
+    return base + "/v1/chat/completions"
+
+
+def openai_compatible_models_url(endpoint: str, default_base: str) -> str:
+    """Normalize an OpenAI-compatible base/chat URL to its model-list URL."""
+    base = (endpoint or default_base).rstrip("/")
+    if base.endswith("/models"):
+        return base
+    return model_list_url(openai_compatible_chat_url(endpoint, default_base))
+
+
 def call_anthropic(url: str, api_key: str, model: str, prompt: str,
                    temperature: float = 0.2, top_p: float = 0.9) -> dict[str, Any]:
     """Call the Anthropic Messages API."""
@@ -411,13 +429,17 @@ def ask_ai_coach(
 
     try:
         if provider == "ollama":
-            call_result = call_ollama(endpoint or "http://127.0.0.1:11434", model or "llama3.2", prompt,
+            if not model:
+                raise ValueError("Choose an installed Ollama model from the live model dropdown.")
+            call_result = call_ollama(endpoint or "http://127.0.0.1:11434", model, prompt,
                                       temperature, top_p, top_k)
         elif provider == "lmstudio":
+            if not model:
+                raise ValueError("Choose a loaded LM Studio model from the live model dropdown.")
             call_result = call_openai_compatible(
-                endpoint or "http://127.0.0.1:1234/v1/chat/completions",
+                openai_compatible_chat_url(endpoint, "http://127.0.0.1:1234"),
                 api_key or "lm-studio",
-                model or "local-model",
+                model,
                 prompt, temperature, top_p,
             )
         elif provider == "openai":
@@ -510,117 +532,6 @@ def model_list_url(chat_endpoint: str) -> str:
     return chat_endpoint.rstrip("/") + "/models"
 
 
-def narrate_trace(payload: dict[str, Any]) -> dict[str, Any]:
-    """Generate beginner-friendly per-step narrations for the execution visualizer."""
-    provider = str(payload.get("provider", "ollama")).lower()
-    client_key = str(payload.get("api_key", ""))
-    api_key = resolve_api_key(provider, client_key)
-    model = str(payload.get("model", "")).strip()
-    endpoint = str(payload.get("endpoint", "")).strip()
-    code = str(payload.get("code", "")).strip()
-    steps = payload.get("steps", [])
-    run_error = str(payload.get("error", "")).strip()
-
-    if not code:
-        return {"ok": False, "narrations": {}, "error": "No code"}
-    if not steps and not run_error:
-        return {"ok": False, "narrations": {}, "error": "No steps to narrate"}
-
-    lines = code.splitlines()
-    def _get_line(n: int) -> str:
-        idx = n - 1
-        return lines[idx].strip() if 0 <= idx < len(lines) else "?"
-
-    # Compile-time error (SyntaxError etc.) — no lines ran, just explain the error.
-    error_only = not steps and bool(run_error)
-
-    if error_only:
-        prompt = (
-            "A complete beginner wrote this Python code and got an error before any code ran.\n"
-            "In ONE plain sentence explain what's wrong and exactly how to fix it. Start with 'Error:'.\n"
-            "Return ONLY valid JSON: {\"0\": \"...\"} — no markdown, no extra text\n\n"
-            f"CODE:\n```python\n{code}\n```\n\n"
-            f"ERROR: {run_error}"
-        )
-    else:
-        step_descriptions = []
-        for i, step in enumerate(steps, start=1):
-            line_num = step.get("line", 0)
-            line_code = _get_line(line_num)
-            vars_items = list(step.get("vars", {}).items())[:6]
-            vars_str = ", ".join(f"{k}={repr(v)}" for k, v in vars_items) or "none"
-            if step.get("final") and run_error:
-                step_descriptions.append(
-                    f"Step {i} (ERROR — Python stopped here): line `{line_code}` caused {run_error} | vars before crash: {{{vars_str}}}"
-                )
-            elif step.get("final"):
-                step_descriptions.append(f"Step {i} (FINAL — done): vars={{{vars_str}}}")
-            else:
-                step_descriptions.append(f"Step {i}: about to run `{line_code}` | vars so far: {{{vars_str}}}")
-
-        error_rule = (
-            "- For the ERROR step: explain what went wrong in plain words AND give a one-sentence fix hint a beginner can act on. "
-            "Start with 'Error:' — e.g. 'Error: sarathay has no quotes so Python treated it as a variable name; write lastname = \"sarathay\" instead.'\n"
-        ) if run_error else ""
-
-        prompt = (
-            "TASK: Explain each step of this Python code to a complete beginner.\n"
-            "Rules:\n"
-            "- ONE sentence per step, max 20 words\n"
-            "- Use the actual variable values shown\n"
-            "- Start with 'Python stores', 'Python checks', 'Python prints', 'Python adds', etc.\n"
-            + error_rule
-            + "- Return ONLY valid JSON: {\"1\": \"...\", \"2\": \"...\", ...} — no markdown, no extra text\n\n"
-            f"CODE:\n```python\n{code}\n```\n\n"
-            "STEPS:\n" + "\n".join(step_descriptions)
-        )
-
-    try:
-        if provider == "ollama":
-            result = call_ollama(endpoint or "http://127.0.0.1:11434", model or "llama3.2", prompt, 0.3, 0.9, 40)
-        elif provider == "lmstudio":
-            result = call_openai_compatible(endpoint or "http://127.0.0.1:1234/v1/chat/completions", api_key or "lm-studio", model or "local-model", prompt, 0.3, 0.9)
-        elif provider == "openai":
-            if not api_key:
-                raise ValueError("OpenAI API key required")
-            result = call_openai_compatible(endpoint or "https://api.openai.com/v1/chat/completions", api_key, model or "gpt-4.1-mini", prompt, 0.3, 0.9)
-        elif provider == "anthropic":
-            if not api_key:
-                raise ValueError("Anthropic API key required")
-            result = call_anthropic(endpoint or "https://api.anthropic.com/v1/messages", api_key, model or "claude-3-5-haiku-latest", prompt, 0.3, 0.9)
-        elif provider == "google":
-            if not api_key:
-                raise ValueError("Google API key required")
-            result = call_google(endpoint or "https://generativelanguage.googleapis.com/v1beta", api_key, model or "gemini-2.0-flash", prompt, 0.3, 0.9, 40)
-        elif provider == "grok":
-            if not api_key:
-                raise ValueError("Grok API key required")
-            result = call_openai_compatible(endpoint or "https://api.x.ai/v1/chat/completions", api_key, model or "grok-3-mini", prompt, 0.3, 0.9)
-        elif provider == "groq":
-            if not api_key:
-                raise ValueError("Groq API key required")
-            result = call_openai_compatible(endpoint or "https://api.groq.com/openai/v1/chat/completions", api_key, model or "llama-3.3-70b-versatile", prompt, 0.3, 0.9)
-        else:
-            raise ValueError(f"Unknown provider: {provider}")
-
-        text = result.get("text", "").strip()
-        # Strip any markdown code fences the model may have added
-        if "```" in text:
-            parts = text.split("```")
-            for part in parts:
-                part = part.lstrip("json").strip()
-                if part.startswith("{"):
-                    text = part
-                    break
-        narrations = json.loads(text)
-        return {"ok": True, "narrations": {str(k): str(v) for k, v in narrations.items()}}
-
-    except json.JSONDecodeError:
-        return {"ok": False, "narrations": {}, "error": "AI returned non-JSON"}
-    except Exception as exc:
-        return {"ok": False, "narrations": {}, "error": str(exc)}
-
-
 def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     """List available models for a given AI provider."""
     provider = str(payload.get("provider", "ollama")).lower()
@@ -629,8 +540,6 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     api_key = resolve_api_key(provider, client_key)
 
     fallback: dict[str, list[str]] = {
-        "ollama": ["llama3.2", "qwen2.5", "phi3.5"],
-        "lmstudio": ["local-model"],
         "openai": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
         "anthropic": ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
         "google": ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
@@ -644,7 +553,7 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
             data = get_json(url, {})
             models = [item["name"] for item in data.get("models", []) if item.get("name")]
         elif provider == "lmstudio":
-            url = endpoint or "http://127.0.0.1:1234/v1/models"
+            url = openai_compatible_models_url(endpoint, "http://127.0.0.1:1234")
             data = get_json(url, {"Authorization": f"Bearer {api_key or 'lm-studio'}"})
             models = [item["id"] for item in data.get("data", []) if item.get("id")]
         elif provider == "openai":

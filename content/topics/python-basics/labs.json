@@ -5,7 +5,7 @@
     "title": "Calculate Receipt Total",
     "difficulty": "Beginner",
     "difficulty_order": 1,
-    "prompt": "Write `calculate_total(prices, tax_rate)` that returns the rounded total for a list of prices after tax. This practices numbers, assignment, `sum()`, multiplication, and returning values.",
+    "prompt": "Write `calculate_total(prices, tax_rate)` that returns the rounded total for a list of prices after tax. The tests call your function with sample lists and tax rates, such as `calculate_total([10, 20], 0.1)`, so do not use `input()`. This practices numbers, assignment, `sum()`, multiplication, and returning values.",
     "starter": "def calculate_total(prices, tax_rate):\n    # subtotal is the sum of all prices\n    # tax is subtotal * tax_rate\n    # return the total rounded to 2 decimals\n    pass\n",
     "tests": [
       {
@@ -39,7 +39,7 @@
     "title": "Make Display Name",
     "difficulty": "Beginner",
     "difficulty_order": 2,
-    "prompt": "Write `make_display_name(first, last)` that trims extra spaces and returns a title-cased full name. This practices strings, methods, concatenation, and return values.",
+    "prompt": "Write `make_display_name(first, last)` that trims extra spaces and returns a title-cased full name. The tests pass sample names into `first` and `last`, so your job is to transform those parameter values and return the result. This practices strings, methods, concatenation, and return values.",
     "starter": "def make_display_name(first, last):\n    # clean first and last, then return the display name\n    pass\n",
     "tests": [
       {
@@ -73,7 +73,7 @@
     "title": "First and Last Items",
     "difficulty": "Beginner",
     "difficulty_order": 3,
-    "prompt": "Write `first_and_last(items)` that returns a two-item list containing the first and last values. If the input is empty, return an empty list. This practices lists, indexing, and guarding against IndexError.",
+    "prompt": "Write `first_and_last(items)` that returns a two-item list containing the first and last values. The tests call your function with sample lists, so `items` already contains the list to inspect. If the input is empty, return an empty list. This practices lists, indexing, and guarding against IndexError.",
     "starter": "def first_and_last(items):\n    # return [first, last], or [] for an empty list\n    pass\n",
     "tests": [
       {
@@ -116,7 +116,7 @@
     "title": "Reverse Words",
     "difficulty": "Beginner",
     "difficulty_order": 4,
-    "prompt": "Write `reverse_words(text)` that returns the words in reverse order. Extra spaces should not create empty words.",
+    "prompt": "Write `reverse_words(text)` that returns the words in reverse order. The tests pass sample strings into `text`; do not ask the user for text with `input()`. Extra spaces should not create empty words.",
     "starter": "def reverse_words(text):\n    # return the words in reverse order\n    pass\n",
     "tests": [
       {
@@ -150,7 +150,7 @@
     "title": "Even/Odd Filter",
     "difficulty": "Beginner",
     "difficulty_order": 5,
-    "prompt": "Write `filter_even(numbers)` that returns a list containing only the even numbers from the input list.",
+    "prompt": "Write `filter_even(numbers)` that returns a list containing only the even numbers from the input list. The tests pass sample lists into `numbers`, so return a new filtered list from that parameter.",
     "starter": "def filter_even(numbers):\n    # return only even numbers\n    pass\n",
     "tests": [
       {

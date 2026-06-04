@@ -192,6 +192,15 @@
         "expected": {
           "error": "invalid_record"
         }
+      },
+      {
+        "label": "strips internal fields",
+        "call": "build_user_response({'id': 2, 'name': 'Lin', 'email': 'lin@example.com', 'internal_note': 'admin', 'password_hash': 'secret'})",
+        "expected": {
+          "id": 2,
+          "name": "Lin",
+          "email": "lin@example.com"
+        }
       }
     ],
     "hint": "Whitelist output fields explicitly.",

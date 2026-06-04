@@ -172,6 +172,15 @@ class TestRunUserCode:
         assert result["ok"] is False
         assert "timed out" in result["stderr"].lower()
 
+    def test_input_is_blocked_before_timeout(self):
+        result = run_user_code(
+            {"code": "word = input('Enter a word: ')\nprint(word)", "exercise_id": ""},
+            EXERCISES,
+        )
+        assert result["ok"] is False
+        assert "input()" in result["stderr"]
+        assert "timed out" not in result["stderr"].lower()
+
 
 class TestOpenBlocking:
     def test_scan_blocks_open_bare(self):
@@ -201,3 +210,9 @@ class TestOpenBlocking:
         )
         assert result["ok"] is False
         assert "open()" in result["stderr"]
+
+
+class TestInputBlocking:
+    def test_scan_blocks_input(self):
+        violations = scan_for_dangerous_code("word = input('Enter a word: ')")
+        assert any("input()" in v for v in violations)

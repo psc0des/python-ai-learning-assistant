@@ -170,13 +170,7 @@ Endpoint: http://127.0.0.1:11434
 Model: choose from the dropdown
 ```
 
-Recommended models (pull if not installed):
-
-```text
-llama3.2
-qwen2.5
-phi3.5
-```
+Model names are read from your local Ollama installation. Use the dropdown after clicking refresh; the app should not show local models that are not actually installed.
 
 ### LM Studio
 
@@ -186,8 +180,10 @@ phi3.5
 
 ```text
 Provider: LM Studio
-Endpoint: http://127.0.0.1:1234/v1/chat/completions
+Endpoint: http://127.0.0.1:1234
 ```
+
+The app derives LM Studio's `/v1/models` and `/v1/chat/completions` routes from that base URL.
 
 ### OpenAI
 
@@ -317,7 +313,7 @@ If a provider is unavailable or slow, the app surfaces explicit fallback states:
 
 - AI Coach chat: `AI Coach unavailable (...)` + built-in feedback
 - Try It inline AI: transport/timeout error text in the popup panel
-- Visualizer narration: `AI explanation unavailable: ...` in the note area
+- Visualizer Ask AI: transport/timeout error text appears in the visualizer note area only after the learner clicks Ask AI
 
 ## Theme Behavior
 

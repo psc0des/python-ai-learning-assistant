@@ -44,6 +44,13 @@ class TestTraceBackend:
         assert "not allowed" in out["error"]
         assert out["steps"] == []
 
+    def test_input_is_rejected_before_trace_execution(self):
+        out = trace_user_code({"code": "word = input('Enter a word: ')\nprint(word)\n"})
+        assert out["ok"] is False
+        assert "input()" in out["error"]
+        assert "timed out" not in out["error"].lower()
+        assert out["steps"] == []
+
     def test_non_serializable_value_does_not_crash(self):
         # a set is not JSON-serializable; it must degrade to a safe repr string
         out = trace_user_code({"code": "s = {1, 2, 3}\nd = {'a': 1}\n"})

@@ -5,7 +5,7 @@
     "title": "Say Hello",
     "difficulty": "Beginner",
     "difficulty_order": 1,
-    "prompt": "Write a function `say_hello()` that returns the exact text `Hello, world!` (with the capital H, the comma, and the exclamation mark).",
+    "prompt": "Write a function `say_hello()` that returns the exact text `Hello, world!` (with the capital H, the comma, and the exclamation mark). You do not need `input()` here; the tests will call `say_hello()` directly and check the returned text.",
     "starter": "def say_hello():\n    # Replace pass with a return statement.\n    pass\n",
     "tests": [
       {
@@ -16,6 +16,11 @@
       {
         "label": "starts with Hello",
         "call": "say_hello().startswith('Hello')",
+        "expected": true
+      },
+      {
+        "label": "ends with exclamation",
+        "call": "say_hello().endswith('!')",
         "expected": true
       }
     ],
@@ -29,28 +34,28 @@
     "title": "Add Two Numbers",
     "difficulty": "Beginner",
     "difficulty_order": 2,
-    "prompt": "Write a function `add(a, b)` that returns the sum of the two numbers passed to it.",
+    "prompt": "Write a function `add(a, b)` that takes two numbers and returns their total. You do not need to ask the user for `a` or `b` with `input()`; the tests will call your function with sample values. For example, when the test calls `add(2, 3)`, your function should return `5` because `2 + 3 = 5`.",
     "starter": "def add(a, b):\n    pass\n",
     "tests": [
       {
-        "label": "two positives",
+        "label": "add(2, 3)",
         "call": "add(2, 3)",
         "expected": 5
       },
       {
-        "label": "with zero",
+        "label": "add(10, 0)",
         "call": "add(10, 0)",
         "expected": 10
       },
       {
-        "label": "negatives",
+        "label": "add(-4, 1)",
         "call": "add(-4, 1)",
         "expected": -3
       }
     ],
-    "hint": "The `+` operator adds numbers. Write `return a + b`.",
+    "hint": "`a` and `b` already receive values when the test calls `add(2, 3)` or `add(10, 0)`. Use the `+` operator and write `return a + b`.",
     "solution": "def add(a, b):\n    return a + b\n",
-    "explanation": "`a` and `b` are placeholders for the values passed in when the function is called. `a + b` adds them, and `return` hands the result back to whoever called the function."
+    "explanation": "`a` and `b` are parameters. They get their values when code calls the function, such as `add(2, 3)`. In that call, Python puts `2` into `a` and `3` into `b`; `a + b` adds them, and `return` sends the answer back."
   },
   {
     "id": "gs-greet-name",
@@ -58,7 +63,7 @@
     "title": "Greet by Name",
     "difficulty": "Beginner",
     "difficulty_order": 3,
-    "prompt": "Write a function `greet(name)` that returns `Hello, ` followed by the name and a `!`. For example, `greet('Sam')` should return `Hello, Sam!`.",
+    "prompt": "Write a function `greet(name)` that returns `Hello, ` followed by the name and a `!`. Do not use `input()`; when the test calls `greet('Sam')`, Python puts `'Sam'` into the `name` parameter, so the function should return `Hello, Sam!`.",
     "starter": "def greet(name):\n    pass\n",
     "tests": [
       {
@@ -70,6 +75,11 @@
         "label": "greets Mia",
         "call": "greet('Mia')",
         "expected": "Hello, Mia!"
+      },
+      {
+        "label": "greets a short name",
+        "call": "greet('Bo')",
+        "expected": "Hello, Bo!"
       }
     ],
     "hint": "Join text with `+`: `return 'Hello, ' + name + '!'`. Watch the spaces and the exclamation mark.",
@@ -82,7 +92,7 @@
     "title": "Is It Even?",
     "difficulty": "Beginner",
     "difficulty_order": 4,
-    "prompt": "Write a function `is_even(n)` that returns `True` if the number `n` is even, and `False` if it is odd.",
+    "prompt": "Write a function `is_even(n)` that returns `True` if the number `n` is even, and `False` if it is odd. The tests call your function with sample numbers such as `is_even(4)`, so `n` receives that number automatically.",
     "starter": "def is_even(n):\n    pass\n",
     "tests": [
       {
@@ -111,7 +121,7 @@
     "title": "Describe a Number",
     "difficulty": "Beginner",
     "difficulty_order": 5,
-    "prompt": "Write a function `describe_number(n)` that returns the text `positive` if `n` is greater than 0, `negative` if it is less than 0, and `zero` if it is exactly 0.",
+    "prompt": "Write a function `describe_number(n)` that returns the text `positive` if `n` is greater than 0, `negative` if it is less than 0, and `zero` if it is exactly 0. The tests call your function with sample numbers; do not ask the user for a number with `input()`.",
     "starter": "def describe_number(n):\n    pass\n",
     "tests": [
       {

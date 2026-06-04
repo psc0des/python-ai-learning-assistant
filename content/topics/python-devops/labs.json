@@ -19,6 +19,14 @@
         "expected": [
           "env"
         ]
+      },
+      {
+        "label": "multiple missing preserve order",
+        "call": "validate_config({'env':'prod'}, ['service','region','env'])",
+        "expected": [
+          "service",
+          "region"
+        ]
       }
     ],
     "hint": "Iterate required keys and collect missing ones.",
@@ -47,6 +55,13 @@
         "label": "empty",
         "call": "build_plan([])",
         "expected": []
+      },
+      {
+        "label": "single service",
+        "call": "build_plan(['scheduler'])",
+        "expected": [
+          "would_restart:scheduler"
+        ]
       }
     ],
     "hint": "A simple list comprehension is enough.",
@@ -77,6 +92,14 @@
           "success": 1,
           "failed": 0
         }
+      },
+      {
+        "label": "empty result list",
+        "call": "summarize_results([])",
+        "expected": {
+          "success": 0,
+          "failed": 0
+        }
       }
     ],
     "hint": "returncode == 0 means success.",
@@ -101,6 +124,11 @@
         "label": "different config",
         "call": "needs_update({'replicas':2}, {'replicas':3})",
         "expected": true
+      },
+      {
+        "label": "nested config same",
+        "call": "needs_update({'image': {'tag': 'v1'}}, {'image': {'tag': 'v1'}})",
+        "expected": false
       }
     ],
     "hint": "Direct dict comparison is valid here.",

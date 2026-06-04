@@ -88,8 +88,6 @@ let coachMessages = [];
 let solutionRevealed = false;
 let failedAttempts = 0;
 const AI_REQUEST_TIMEOUT_MS = 20000;
-const AI_NARRATION_TIMEOUT_MS = 18000;
-
 // ---------------------------------------------------------------------------
 // Progress tracking (localStorage)
 // ---------------------------------------------------------------------------
@@ -666,8 +664,8 @@ function loadAiSettings() {
 
 function applyProviderDefaults() {
   const defaults = {
-    ollama:    { model: "llama3.2",                   endpoint: "http://127.0.0.1:11434" },
-    lmstudio:  { model: "local-model",                endpoint: "http://127.0.0.1:1234/v1/chat/completions" },
+    ollama:    { model: "",                           endpoint: "http://127.0.0.1:11434" },
+    lmstudio:  { model: "",                           endpoint: "http://127.0.0.1:1234" },
     openai:    { model: "gpt-4.1-mini",               endpoint: "https://api.openai.com/v1/chat/completions" },
     anthropic: { model: "claude-3-5-haiku-latest",    endpoint: "https://api.anthropic.com/v1/messages" },
     google:    { model: "gemini-2.0-flash",           endpoint: "https://generativelanguage.googleapis.com/v1beta" },
@@ -680,10 +678,10 @@ function applyProviderDefaults() {
   loadModels();
 }
 
-async function loadModels() {
+async function loadModels(options = {}) {
+  const persistOnSuccess = options.persistOnSuccess !== false;
+  const notify = options.notify !== false;
   const providerDefaults = {
-    ollama:    ["llama3.2", "qwen2.5", "phi3.5"],
-    lmstudio:  ["local-model"],
     openai:    ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
     anthropic: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
     google:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
@@ -691,6 +689,7 @@ async function loadModels() {
     groq:      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
   };
   const fallback = providerDefaults[els.provider.value] || [];
+  const isLocalProvider = ["ollama", "lmstudio"].includes(els.provider.value);
   setModelOptions(fallback, preferredModel || fallback[0]);
 
   try {
@@ -700,17 +699,44 @@ async function loadModels() {
       endpoint: els.endpoint.value,
       api_key: els.apiKey.value,
     }, 10000);
-    const liveModels = result.models && result.models.length ? result.models : fallback;
-    const liveSelected = liveModels.includes(preferredModel) ? preferredModel : liveModels[0];
-    setModelOptions(liveModels, liveSelected);
-    saveAiSettings();
-    _updateSettingsBtnLabel();
-    els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no model selected"}`;
-    if (!result.ok && result.error) {
-      appendCoachMessage("assistant", `Could not refresh models: ${result.error}\nUsing fallback model list.`);
+    const liveModels = result.models && result.models.length ? result.models : [];
+    const models = result.ok ? (liveModels.length ? liveModels : fallback) : fallback;
+    if (isLocalProvider && (!result.ok || !liveModels.length)) {
+      const error = result.error || "No local models were reported by the provider.";
+      setModelOptions([], "");
+      _updateSettingsBtnLabel();
+      els.coachStatus.textContent = `${els.provider.value} / no live model selected`;
+      if (notify) {
+        appendCoachMessage(
+          "assistant",
+          `Could not refresh models: ${error}\nNo local fallback models were shown because local providers must reflect installed models.`
+        );
+      }
+      return { ok: false, error };
     }
+    const liveSelected = models.includes(preferredModel) ? preferredModel : models[0];
+    setModelOptions(models, liveSelected);
+    if (persistOnSuccess && result.ok && models.length) {
+      saveAiSettings();
+    }
+    _updateSettingsBtnLabel();
+    els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no live model selected"}`;
+    if (!result.ok && result.error) {
+      const suffix = isLocalProvider
+        ? "No local fallback models were shown because local providers must reflect installed models."
+        : "Using fallback model list.";
+      if (notify) appendCoachMessage("assistant", `Could not refresh models: ${result.error}\n${suffix}`);
+    }
+    return { ok: true };
   } catch (error) {
-    appendCoachMessage("assistant", `Could not refresh models: ${error}\nUsing fallback model list.`);
+    setModelOptions(fallback, fallback[0]);
+    _updateSettingsBtnLabel();
+    els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no live model selected"}`;
+    const suffix = isLocalProvider
+      ? "No local fallback models were shown because local providers must reflect installed models."
+      : "Using fallback model list.";
+    if (notify) appendCoachMessage("assistant", `Could not refresh models: ${error}\n${suffix}`);
+    return { ok: !isLocalProvider, error: String(error) };
   } finally {
     els.refreshModelsBtn.disabled = false;
   }
@@ -718,9 +744,6 @@ async function loadModels() {
 
 function setModelOptions(models, selectedModel) {
   const uniqueModels = [...new Set(models.filter(Boolean))];
-  if (selectedModel && !uniqueModels.includes(selectedModel)) {
-    uniqueModels.unshift(selectedModel);
-  }
   els.model.innerHTML = uniqueModels
     .map((model) => `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`)
     .join("");
@@ -779,13 +802,22 @@ function formatResult(result) {
     const passed = result.tests.filter((t) => t.passed).length;
     const total = result.tests.length;
     lines.push(`Tests: <span class="${passed === total ? 'pass' : 'fail'}">${passed}/${total} passed</span>`);
+    if (result.tests.some((test) => test.call)) {
+      lines.push("The tests called your code with these sample values:");
+    }
     result.tests.forEach((test) => {
       const status = test.passed ? "PASS" : "FAIL";
       const klass = test.passed ? "pass" : "fail";
+      const label = String(test.label || "");
+      const call = String(test.call || "");
+      const testName = call || label;
+      const prefix = call && label && call !== label
+        ? `${escapeHtml(label)} | ${escapeHtml(call)} returned `
+        : `${escapeHtml(testName)}${testName ? " returned " : "Returned "}`;
       lines.push(
-        `  <span class="${klass}">${status}</span> ${escapeHtml(test.label)} | expected ${escapeHtml(
-          JSON.stringify(test.expected)
-        )}, got ${escapeHtml(JSON.stringify(test.actual))}`
+        `  <span class="${klass}">${status}</span> ${prefix}${escapeHtml(
+          JSON.stringify(test.actual)
+        )} (expected ${escapeHtml(JSON.stringify(test.expected))})`
       );
     });
     lines.push("");
@@ -926,9 +958,7 @@ let vizState = {
   index: -1,
   lines: [],
   stdout: "",
-  narrations: {},
-  narrationLoading: false,
-  narrationError: "",
+  notes: {},
 };
 
 function openVizOverlay(lines) {
@@ -936,6 +966,20 @@ function openVizOverlay(lines) {
     .map((line, i) => `<span class="viz-ln" data-i="${i}">${escapeHtml(line) || " "}</span>`)
     .join("");
   els.vizOverlay.hidden = false;
+}
+
+function visualizerBuiltInErrorNote(error) {
+  const text = String(error || "");
+  if (/input\(\) is not available/i.test(text)) {
+    return "input() is blocked here because this runner cannot pause and wait for keyboard input. Use a sample variable or pass a value into your function instead.";
+  }
+  if (/open\(\) is not available/i.test(text)) {
+    return "open() is blocked in this learning runner so code cannot read or write local files. Use variables, lists, dictionaries, or function parameters instead.";
+  }
+  if (/not allowed in the practice sandbox|not allowed in this sandbox|restricted in the sandbox/i.test(text)) {
+    return "This code uses something the local learning runner blocks before execution. The block keeps practice code focused on Python logic instead of system access.";
+  }
+  return "";
 }
 
 async function openVisualizer(code, sourceBtn) {
@@ -956,9 +1000,7 @@ async function openVisualizer(code, sourceBtn) {
       error_line: result.error_line || 0,
       truncated: result.truncated,
       stdout: (result.stdout || "").trimEnd(),
-      narrations: {},
-      narrationLoading: false,
-      narrationError: "",
+      notes: {},
     };
     openVizOverlay(vizState.lines);
     if (!vizState.steps.length) {
@@ -971,17 +1013,17 @@ async function openVisualizer(code, sourceBtn) {
       els.vizPrev.disabled = true;
       els.vizNext.disabled = true;
       els.vizCount.textContent = "";
-      // Set fallback note then ask AI to explain (overrides if AI responds)
+      const builtInNote = visualizerBuiltInErrorNote(vizState.error);
+      // Deterministic visualizer path: AI runs only when the learner clicks Ask AI.
       els.vizNote.textContent = vizState.error
         ? `Error — ${vizState.error}`
         : "No executable steps.";
-      if (vizState.error && !/rate limit/i.test(vizState.error)) {
-        _loadNarrations(cleaned, [], vizState.error);
+      if (builtInNote) {
+        els.vizNote.textContent = builtInNote;
+        vizState.notes["0"] = builtInNote;
       }
     } else {
       stepViz(1);
-      // Kick off AI narration in background — updates the note as it arrives
-      _loadNarrations(cleaned, vizState.steps, vizState.error);
     }
   } catch (err) {
     openVizOverlay(cleaned.split("\n"));
@@ -996,43 +1038,11 @@ async function openVisualizer(code, sourceBtn) {
   }
 }
 
-async function _loadNarrations(code, steps, error) {
-  const provider = els.provider.value;
-  if (!provider) return;
-  vizState.narrationLoading = true;
-  vizState.narrationError = "";
-  renderViz(); // show "AI explaining..." in note
-  try {
-    const data = await postJsonWithTimeout("/api/narrate", {
-      code,
-      steps,
-      error: error || "",
-      provider: els.provider.value,
-      model: els.model.value,
-      endpoint: els.endpoint.value,
-      api_key: els.apiKey.value,
-    }, AI_NARRATION_TIMEOUT_MS);
-    if (data.ok && data.narrations) {
-      vizState.narrations = data.narrations;
-    } else if (data.error) {
-      vizState.narrationError = data.error;
-    }
-  } catch (err) {
-    vizState.narrationError = String(err);
-  }
-  vizState.narrationLoading = false;
-  renderViz(); // re-render with narrations
-}
-
 function renderViz() {
-  // 0-steps case: compile-time error (SyntaxError etc.) — AI note only, no navigation
+  // 0-steps case: compile-time error or blocked code, no navigation.
   if (!vizState.steps.length) {
-    if (vizState.narrations["0"]) {
-      els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations["0"])}`;
-    } else if (vizState.narrationLoading) {
-      els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
-    } else if (vizState.narrationError) {
-      els.vizNote.textContent = `AI explanation unavailable: ${vizState.narrationError}`;
+    if (vizState.notes["0"]) {
+      els.vizNote.innerHTML = `<span class="viz-ai-badge">Runner</span> ${escapeHtml(vizState.notes["0"])}`;
     } else {
       els.vizNote.textContent = vizState.error
         ? `Error — ${vizState.error}`
@@ -1073,17 +1083,10 @@ function renderViz() {
   }
   els.vizVarList.innerHTML = html;
 
-  // --- Note: AI narration if available, loading indicator, or line number fallback ---
-  const stepKey = String(vizState.index + 1);
-  if (vizState.narrations[stepKey]) {
-    els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${escapeHtml(vizState.narrations[stepKey])}`;
-  } else if (vizState.narrationLoading) {
-    els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>explaining…</em>`;
-  } else if (vizState.narrationError) {
-    els.vizNote.textContent = `AI explanation unavailable: ${vizState.narrationError}`;
-  } else if (step.final) {
+  // --- Note: deterministic line-number fallback. Ask AI is manual.
+  if (step.final) {
     els.vizNote.textContent = vizState.error
-      ? `Python stopped here with an error — ${vizState.error}. (Connect an AI provider for a plain-English explanation.)`
+      ? `Python stopped here with an error — ${vizState.error}.`
       : "Done — execution complete.";
   } else {
     els.vizNote.textContent = `About to run line ${step.line}.`;
@@ -1109,9 +1112,8 @@ function closeViz() {
     steps: [],
     index: -1,
     lines: [],
-    narrations: {},
-    narrationLoading: false,
-    narrationError: "",
+    stdout: "",
+    notes: {},
   };
   // Reset any position set by dragging so next open re-centers
   els.vizModal.style.transform = "";
@@ -1308,8 +1310,8 @@ els.model.addEventListener("change", () => {
   saveAiSettings();
   _updateSettingsBtnLabel();
 });
-els.endpoint.addEventListener("change", saveAiSettings);
-els.apiKey.addEventListener("change", saveAiSettings);
+els.endpoint.addEventListener("change", () => { els.coachStatus.textContent = "AI settings changed — click Save & Apply"; });
+els.apiKey.addEventListener("change", () => { els.coachStatus.textContent = "AI settings changed — click Save & Apply"; });
 els.refreshModelsBtn.addEventListener("click", loadModels);
 document.querySelectorAll(".mode-button").forEach((button) => {
   button.addEventListener("click", () => setActiveTopicSection(button.dataset.section));
@@ -1372,7 +1374,11 @@ els.vizAskAiBtn.addEventListener("click", () => {
 els.vizOverlay.addEventListener("click", (e) => { if (e.target === els.vizOverlay) closeViz(); });
 document.addEventListener("keydown", (e) => {
   if (els.vizOverlay.hidden) return;
-  if (e.key === "Escape") closeViz();
+  if (e.key === "Escape") {
+    closeViz();
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
   else if (e.key === "ArrowRight") stepViz(1);
   else if (e.key === "ArrowLeft") stepViz(-1);
 });
@@ -1581,12 +1587,19 @@ _aiSettingsBtn.addEventListener("click", (e) => {
   _aiSettingsPanel.hidden = false;
 });
 
-document.querySelector("#aiSettingsSaveBtn").addEventListener("click", () => {
-  saveAiSettings();
-  loadModels();
+document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () => {
   const saveBtn = document.querySelector("#aiSettingsSaveBtn");
-  saveBtn.textContent = "✓ Saved";
+  saveBtn.textContent = "Checking…";
   saveBtn.disabled = true;
+  const refresh = await loadModels({ persistOnSuccess: false });
+  if (!refresh.ok) {
+    saveBtn.textContent = "Save failed";
+    saveBtn.disabled = false;
+    els.coachStatus.textContent = `Settings not saved — ${refresh.error || "model refresh failed"}`;
+    return;
+  }
+  saveAiSettings();
+  saveBtn.textContent = "✓ Saved";
   setTimeout(() => {
     _aiSettingsPanel.hidden = true;
     saveBtn.textContent = "Save & Apply";
@@ -1649,6 +1662,11 @@ async function askInlinePopup(question) {
 async function askInlineViz(question) {
   const code = vizState.lines.join("\n");
   const step = vizState.index >= 0 ? vizState.steps[vizState.index] : null;
+  const builtInNote = visualizerBuiltInErrorNote(vizState.error);
+  if (builtInNote && !step) {
+    els.vizNote.innerHTML = `<span class="viz-ai-badge">Runner</span> ${escapeHtml(builtInNote)}`;
+    return;
+  }
   let ctx = `\n\nCode:\n\`\`\`python\n${code}\n\`\`\``;
   if (vizState.error) ctx += `\n\nError: ${vizState.error}`;
   if (step) {

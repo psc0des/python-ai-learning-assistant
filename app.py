@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from ai_coach import ask_ai_coach, list_ai_models, narrate_trace
+from ai_coach import ask_ai_coach, list_ai_models
 from content_loader import load_content
 from models import validate_content_at_startup
 from runner import run_user_code, trace_user_code
@@ -170,7 +170,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:
-        allowed_endpoints = {"/api/run", "/api/trace", "/api/narrate", "/api/ai-coach", "/api/ai-models"}
+        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-models"}
         if self.path not in allowed_endpoints:
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
@@ -244,8 +244,6 @@ class Handler(SimpleHTTPRequestHandler):
                 result = run_user_code(payload, EXERCISES)
             elif self.path == "/api/trace":
                 result = trace_user_code(payload)
-            elif self.path == "/api/narrate":
-                result = narrate_trace(payload)
             elif self.path == "/api/ai-models":
                 result = list_ai_models(payload)
             else:

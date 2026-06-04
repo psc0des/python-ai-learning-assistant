@@ -63,6 +63,17 @@
         "label": "empty chunks",
         "call": "build_chunk_records([], 'doc-2')",
         "expected": []
+      },
+      {
+        "label": "single chunk starts at one",
+        "call": "build_chunk_records(['intro'], 'guide')",
+        "expected": [
+          {
+            "chunk_id": "guide#1",
+            "source_id": "guide",
+            "text": "intro"
+          }
+        ]
       }
     ],
     "hint": "Use `enumerate(chunks, start=1)`.",
@@ -156,6 +167,11 @@
             "id": "x"
           }
         ]
+      },
+      {
+        "label": "empty candidates",
+        "call": "rerank([])",
+        "expected": []
       }
     ],
     "hint": "Use `sorted(..., key=..., reverse=True)` and keep original objects.",
@@ -188,6 +204,17 @@
         "expected": {
           "answer": "No evidence",
           "citations": []
+        }
+      },
+      {
+        "label": "preserves first citation order",
+        "call": "build_answer('Grounded', ['b#2', 'a#1', 'b#2'])",
+        "expected": {
+          "answer": "Grounded",
+          "citations": [
+            "b#2",
+            "a#1"
+          ]
         }
       }
     ],
