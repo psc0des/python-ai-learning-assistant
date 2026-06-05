@@ -243,7 +243,7 @@ API key: your Groq API key
 
 Recommended free models: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`.
 
-When a hosted provider key is configured, click **Save & Apply** — the model dropdown will show verified models fetched from the provider instead of suggestions.
+When a hosted provider key is configured, click **Save & Apply** — the model dropdown will show verified models fetched from the provider instead of suggestions. If no API key is entered, the button shows "API key required" and nothing is saved.
 
 ### Server-side API key environment variables
 

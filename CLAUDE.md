@@ -153,6 +153,19 @@ Each topic has one capstone lab (`difficulty: "Advanced"`, `difficulty_order: 6`
 
 Topics with capstones: `oop` (TaskManager), `fastapi` (Request Router), `rag-vectors` (Mini RAG Pipeline), `python-devops` (Deployment Checker), `errors-testing` (Debug Report Builder), `pydantic` (Schema Validator), `async` (Task Scheduler), `langchain` (Prompt Pipeline), `langgraph` (State Graph Runner), `mcp` (Tool Registry), `sql-http-git` (HTTP Log Analyzer).
 
+### Try-it buttons in lesson.md
+
+A "▶ Try it" button appears in the UI only for code fences tagged ` ```python run `. Blocks without the `run` tag render as static code.
+
+Add `run` only when ALL of the following are true:
+- All names called are defined within the block itself (no external object refs like `app`, `chain`, `graph`, `client`, `router`, `llm`)
+- No third-party imports (fastapi, pydantic, langchain, langgraph, etc.)
+- No `input()` or `open()` calls
+- Not a traceback, bash, shell, sql, or diff block
+- Top-level `async def` is only used if followed by `asyncio.run()`
+
+`tests/test_content_quality.py::test_lesson_run_blocks_execute_cleanly` runs every tagged block through the runner and asserts zero stderr. If a block fails, remove the `run` tag rather than patching the snippet.
+
 ### Content writing style
 
 - Cite official docs (`source_label` / `source_url` on each section, `docs` list on the topic).
