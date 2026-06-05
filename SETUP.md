@@ -178,7 +178,7 @@ Model names are read from your local Ollama installation. Use the dropdown after
 
 1. Start LM Studio.
 2. Enable the local OpenAI-compatible server.
-3. In the app, use:
+3. In the app, open **AI Settings** in the left sidebar and select:
 
 ```text
 Provider: LM Studio
@@ -189,7 +189,7 @@ The app derives LM Studio's `/v1/models` and `/v1/chat/completions` routes from 
 
 ### OpenAI
 
-Use:
+In the app, open **AI Settings** in the left sidebar and enter:
 
 ```text
 Provider: OpenAI
@@ -199,7 +199,7 @@ API key: your OpenAI API key
 
 ### Anthropic
 
-Use:
+In the app, open **AI Settings** in the left sidebar and enter:
 
 ```text
 Provider: Anthropic
@@ -209,7 +209,7 @@ API key: your Anthropic API key
 
 ### Google AI Studio (free tier available)
 
-Get a free API key at `https://aistudio.google.com`. Use:
+Get a free API key at `https://aistudio.google.com`. In the app, open **AI Settings** and enter:
 
 ```text
 Provider: Google AI Studio
@@ -221,7 +221,7 @@ Recommended free models: `gemini-2.0-flash`, `gemini-2.0-flash-lite`.
 
 ### Grok (xAI)
 
-Get an API key at `https://console.x.ai`. Use:
+Get an API key at `https://console.x.ai`. In the app, open **AI Settings** and enter:
 
 ```text
 Provider: Grok (xAI)
@@ -233,7 +233,7 @@ Recommended model: `grok-3-mini` (has a free tier).
 
 ### Groq Cloud (free tier available)
 
-Get a free API key at `https://console.groq.com`. Groq runs open models (Llama, Gemma, Mistral) on custom inference hardware — very fast responses. Use:
+Get a free API key at `https://console.groq.com`. Groq runs open models (Llama, Gemma, Mistral) on custom inference hardware — very fast responses. In the app, open **AI Settings** and enter:
 
 ```text
 Provider: Groq Cloud
@@ -242,6 +242,8 @@ API key: your Groq API key
 ```
 
 Recommended free models: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`.
+
+When a hosted provider key is configured, click **Save & Apply** — the model dropdown will show verified models fetched from the provider instead of suggestions.
 
 ### Server-side API key environment variables
 
