@@ -59,26 +59,28 @@ CONTENT_LOADED_AT = datetime.now(timezone.utc).isoformat()
 
 
 # ---------------------------------------------------------------------------
-# Rate limiting (per-IP, for /api/run only)
+# Rate limiting (per-IP, per-bucket)
 # ---------------------------------------------------------------------------
 
 RATE_LIMIT_WINDOW = 60   # seconds
 RATE_LIMIT_MAX = 15      # max code-run requests per IP per window
+AI_RATE_LIMIT_MAX = 10   # max AI coach requests per IP per window
 
 _rate_lock = threading.Lock()
 _rate_buckets: collections.defaultdict[str, list[float]] = collections.defaultdict(list)
 
 
-def check_rate_limit(ip: str) -> bool:
-    """Return True if the IP is within its rate limit, False if throttled."""
+def check_rate_limit(ip: str, bucket: str = "code", max_requests: int = RATE_LIMIT_MAX) -> bool:
+    """Return True if the IP is within its rate limit for the given bucket, False if throttled."""
+    key = f"{bucket}:{ip}"
     now = time.monotonic()
     with _rate_lock:
-        _rate_buckets[ip] = [
-            t for t in _rate_buckets[ip] if now - t < RATE_LIMIT_WINDOW
+        _rate_buckets[key] = [
+            t for t in _rate_buckets[key] if now - t < RATE_LIMIT_WINDOW
         ]
-        if len(_rate_buckets[ip]) >= RATE_LIMIT_MAX:
+        if len(_rate_buckets[key]) >= max_requests:
             return False
-        _rate_buckets[ip].append(now)
+        _rate_buckets[key].append(now)
         return True
 
 
@@ -185,10 +187,21 @@ class Handler(SimpleHTTPRequestHandler):
             )
             return
 
+        # Rate limiting on AI endpoints
+        if self.path == "/api/ai-coach":
+            client_ip = self.client_address[0]
+            if not check_rate_limit(client_ip, bucket="ai", max_requests=AI_RATE_LIMIT_MAX):
+                logger.warning("AI rate limit exceeded for IP: %s", client_ip)
+                self.send_json(
+                    {"ok": False, "reply": f"Rate limit exceeded: max {AI_RATE_LIMIT_MAX} AI requests per {RATE_LIMIT_WINDOW}s. Wait a moment."},
+                    status=429,
+                )
+                return
+
         # Rate limiting on the code-execution endpoints
         if self.path in ("/api/run", "/api/trace"):
             client_ip = self.client_address[0]
-            if not check_rate_limit(client_ip):
+            if not check_rate_limit(client_ip, bucket="code", max_requests=RATE_LIMIT_MAX):
                 logger.warning("Rate limit exceeded for IP: %s", client_ip)
                 message = (
                     f"Rate limit exceeded: max {RATE_LIMIT_MAX} code runs per "

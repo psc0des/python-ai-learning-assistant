@@ -10,7 +10,7 @@
         "Ignore return codes."
       ],
       "answer": 2,
-      "explanation": "Preflight checks and dry runs reduce risk before side effects."
+      "explanation": "Generating a dry-run plan first shows exactly what will change without touching real state; executing immediately means you discover problems only after side effects have already occurred."
     },
     {
       "question": "Why is `subprocess.run([...])` generally safer than shell strings?",
@@ -21,7 +21,7 @@
         "It prevents timeout usage."
       ],
       "answer": 0,
-      "explanation": "List arguments bypass shell parsing and are more predictable."
+      "explanation": "Passing a list bypasses the shell entirely so special characters in arguments cannot be interpreted as shell syntax; a shell string like 'rm ' + user_input is a classic injection vector."
     },
     {
       "question": "What does idempotent automation mean?",
@@ -32,7 +32,7 @@
         "All commands must return zero."
       ],
       "answer": 1,
-      "explanation": "Idempotency avoids duplicate unintended changes."
+      "explanation": "An idempotent script checks current state before acting and only makes changes when needed; running it twice produces the same result as running it once, so re-runs after failures are safe."
     },
     {
       "question": "Why separate planning logic from execution logic?",
@@ -43,7 +43,7 @@
         "It improves testability and allows safe dry-run behavior."
       ],
       "answer": 3,
-      "explanation": "Separation supports safer design and easier verification."
+      "explanation": "When planning logic is separate, you can call the planning step alone in tests and verify what actions would be taken without executing anything; combined logic cannot be safely tested this way."
     },
     {
       "question": "What should a run summary include?",
@@ -54,7 +54,7 @@
         "No output to keep logs small."
       ],
       "answer": 0,
-      "explanation": "Operators need complete outcome visibility."
+      "explanation": "Operators running automation in production need to see the full outcome — what succeeded, what failed, and what was skipped — to confirm the run completed as intended or to diagnose problems."
     },
     {
       "question": "Which path-handling approach is most robust in Python automation?",
@@ -65,7 +65,7 @@
         "Use pathlib objects and explicit joins."
       ],
       "answer": 3,
-      "explanation": "pathlib helps keep path logic portable and less error-prone."
+      "explanation": "pathlib's Path objects handle separators correctly on every OS, support method chaining for joins, and expose helpers like .exists() and .suffix; manual string concatenation silently produces wrong paths on Windows."
     },
     {
       "question": "When should automation fail fast?",
@@ -76,7 +76,7 @@
         "Only for network errors."
       ],
       "answer": 2,
-      "explanation": "Failing fast on precondition issues prevents unsafe execution."
+      "explanation": "Stopping immediately when a precondition fails prevents the script from reaching destructive operations with invalid state; continuing past a failed check often causes harder-to-diagnose errors downstream."
     },
     {
       "question": "Why are logs crucial in DevOps scripts?",
@@ -87,7 +87,7 @@
         "They improve model quality directly."
       ],
       "answer": 1,
-      "explanation": "Logs are the evidence trail for operational behavior."
+      "explanation": "Logs record what each step did, what it found, and what it changed; during an incident, that record is often the only way to reconstruct the sequence of events and identify the point of failure."
     }
   ]
 }

@@ -164,7 +164,7 @@ When adding labs:
 
 ### Execution Tracer
 
-`runner.py` also exposes `trace_user_code(code)` which runs the snippet under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max `MAX_TRACE_STEPS = 300`). Non-serializable values degrade to `repr`. Dangerous imports are blocked by the same AST scan used by the lab runner. The `/api/trace` endpoint in `app.py` is rate-limited and concurrency-capped identically to `/api/run`.
+`runner.py` also exposes `trace_user_code(code)` which runs the snippet under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max `MAX_TRACE_STEPS = 300`). Non-serializable values degrade to `repr`. Dangerous imports are blocked by the same AST scan used by the lab runner. The `/api/trace` endpoint in `app.py` is rate-limited and concurrency-capped identically to `/api/run`. The `/api/ai-coach` endpoint has its own rate-limit bucket (10 requests per 60s per IP, separate from the 15/60s code-run limit).
 
 ## AI Coach
 

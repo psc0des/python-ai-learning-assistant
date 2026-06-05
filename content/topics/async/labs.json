@@ -105,6 +105,20 @@
         "label": "single item",
         "call": "asyncio.run(fetch_all([7]))",
         "expected": [{"id": 7, "data": "item_7"}]
+      },
+      {
+        "label": "different ids order preserved",
+        "call": "asyncio.run(fetch_all([10, 20, 30]))",
+        "expected": [
+          {"id": 10, "data": "item_10"},
+          {"id": 20, "data": "item_20"},
+          {"id": 30, "data": "item_30"}
+        ]
+      },
+      {
+        "label": "two items",
+        "call": "asyncio.run(fetch_all([5, 99]))",
+        "expected": [{"id": 5, "data": "item_5"}, {"id": 99, "data": "item_99"}]
       }
     ],
     "hint": "Use `await asyncio.gather(*[fetch_item(i) for i in item_ids])` and wrap the result in `list()`.",

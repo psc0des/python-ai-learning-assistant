@@ -110,7 +110,7 @@ class TestTraceEndpoint:
         assert payload["steps"][-1]["vars"].get("b") == 3
 
     def test_trace_endpoint_rate_limit_payload_shape(self, monkeypatch):
-        monkeypatch.setattr(app, "check_rate_limit", lambda _ip: False)
+        monkeypatch.setattr(app, "check_rate_limit", lambda _ip, **kw: False)
         server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
         host, port = server.server_address
         thread = threading.Thread(target=server.serve_forever, daemon=True)

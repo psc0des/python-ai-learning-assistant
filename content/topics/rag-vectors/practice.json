@@ -10,7 +10,7 @@
         "Generate SQL queries directly."
       ],
       "answer": 1,
-      "explanation": "Embeddings enable semantic nearest-neighbor retrieval."
+      "explanation": "Embeddings map text into a vector space where semantically similar content lands nearby; this is what allows retrieval to find relevant passages even when the query wording differs from the document text."
     },
     {
       "question": "Why does chunking strategy matter?",
@@ -21,7 +21,7 @@
         "It impacts retrieval relevance, context coherence, and token cost."
       ],
       "answer": 3,
-      "explanation": "Chunking controls both recall and precision behavior."
+      "explanation": "Chunks that are too small miss surrounding context; chunks that are too large waste tokens and dilute relevance scores; the right strategy depends on document structure and query patterns."
     },
     {
       "question": "Which statement about top-k retrieval is most accurate?",
@@ -32,7 +32,7 @@
         "Top-k eliminates hallucinations fully."
       ],
       "answer": 2,
-      "explanation": "Candidate retrieval is one stage, not the final quality guarantee."
+      "explanation": "Top-k returns the k most similar vectors as candidates, but similarity score alone does not guarantee relevance; reranking, metadata filtering, or threshold checks are often needed to improve final quality."
     },
     {
       "question": "Why should metadata be stored with vectors?",
@@ -43,7 +43,7 @@
         "To remove the need for citations."
       ],
       "answer": 0,
-      "explanation": "Metadata is essential for practical, trustworthy retrieval workflows."
+      "explanation": "Metadata like source URL, date, and section enables pre-filter queries, powers source citations in responses, and gives developers a way to inspect which documents contributed to an answer."
     },
     {
       "question": "What does reranking usually improve?",
@@ -54,7 +54,7 @@
         "Final ordering quality of retrieved evidence."
       ],
       "answer": 3,
-      "explanation": "Reranking helps select better context from candidate hits."
+      "explanation": "A reranker applies a more precise relevance model to the top-k candidates and reorders them; this improves the quality of evidence placed in the prompt without requiring a full dense search re-run."
     },
     {
       "question": "Does RAG remove hallucinations completely?",
@@ -65,7 +65,7 @@
         "Only with one specific model provider."
       ],
       "answer": 1,
-      "explanation": "Grounding helps but does not guarantee correctness."
+      "explanation": "RAG grounds the model in retrieved evidence but cannot prevent hallucination entirely; the model can still ignore or misread context, and irrelevant retrievals can actively mislead the answer."
     },
     {
       "question": "What should RAG evaluation include?",
@@ -76,7 +76,7 @@
         "Only model benchmark numbers."
       ],
       "answer": 0,
-      "explanation": "You need evidence-focused metrics, not just fluent outputs."
+      "explanation": "Evaluating RAG requires checking whether the right sources were retrieved, whether the answer is grounded in those sources, and whether the claim is factually correct — latency and fluency alone are insufficient."
     },
     {
       "question": "If answers are wrong, what is often the best first debug step?",
@@ -87,7 +87,7 @@
         "Disable citations."
       ],
       "answer": 2,
-      "explanation": "Many RAG failures originate in retrieval, not generation."
+      "explanation": "Most RAG failures trace back to retrieval — wrong chunks, stale data, or overly broad filters — so inspecting what was actually retrieved before tuning prompts or generation settings saves significant debugging time."
     }
   ]
 }

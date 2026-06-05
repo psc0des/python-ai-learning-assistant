@@ -291,6 +291,16 @@
             "priority": "required"
           }
         ]
+      },
+      {
+        "label": "bool field rejects string yes",
+        "call": "TicketValidator([{'field': 'active', 'type': 'bool', 'required': True}]).validate({'active': 'yes'})",
+        "expected": [false, {"active": "expected bool"}]
+      },
+      {
+        "label": "bool field rejects integer 1",
+        "call": "TicketValidator([{'field': 'active', 'type': 'bool', 'required': True}]).validate({'active': 1})",
+        "expected": [false, {"active": "expected bool"}]
       }
     ],
     "hint": "Loop over the schema list in validate. For each rule, check if the field is in data. If missing and required, record 'required' in errors. If present, try coercion — catch ValueError/TypeError and record 'expected {type}'. Build cleaned only for fields with no error.",

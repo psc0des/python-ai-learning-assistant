@@ -29,18 +29,18 @@
         "dict.get(key, default)",
         "dict.find(key)",
         "dict[key]",
-        "dict.fetch(key)"
+        "dict.setdefault(key) with no second argument"
       ],
       "answer": 0,
-      "explanation": "dict.get(key, default) returns the default value when the key is absent instead of raising KeyError; dict[key] is the direct access form that will raise if the key is missing."
+      "explanation": "dict.get(key, default) returns the default value when the key is absent instead of raising KeyError; dict[key] raises if the key is missing; dict.find() does not exist; dict.setdefault() also inserts the key, which is a side effect you usually don't want for a read."
     },
     {
       "question": "What is the main advantage of a tuple over a list?",
       "options": [
-        "Tuples support more mutating methods.",
-        "Tuples can hold more elements than lists.",
+        "Tuples support append and remove methods like lists do.",
+        "Tuples can hold mixed types but lists cannot.",
         "Tuples are immutable, making them safe for fixed records and as dictionary keys.",
-        "Tuples are always faster in every operation."
+        "Tuples automatically sort their contents."
       ],
       "answer": 2,
       "explanation": "Immutability means a tuple's contents cannot change after creation, making it safe to use as a dictionary key and a reliable container for fixed data records."

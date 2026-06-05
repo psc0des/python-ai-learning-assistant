@@ -54,7 +54,7 @@
         "3, 2, 1"
       ],
       "answer": 2,
-      "explanation": "range(3) produces integers from 0 up to (but not including) 3."
+      "explanation": "range(3) starts at 0 and stops before 3, producing exactly three values: 0, 1, and 2. Beginners often expect it to start at 1 or include the endpoint, but it does neither."
     },
     {
       "question": "Which statement best describes `pass`?",
@@ -87,7 +87,29 @@
         "TypeError"
       ],
       "answer": 0,
-      "explanation": "The tutorial shows that trying to access an undefined variable raises NameError."
+      "explanation": "Python raises NameError when you reference a name that has never been assigned in the current scope; it is not a TypeError because Python does not know the type of a variable that does not exist yet."
+    },
+    {
+      "question": "What does this code print?\n```\nscore = 75\nif score >= 90:\n    print('A')\nelif score >= 70:\n    print('B')\nelse:\n    print('C')\n```",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "AB"
+      ],
+      "answer": 1,
+      "explanation": "score is 75. The first condition (>= 90) is False, so Python tries the elif. 75 >= 70 is True, so Python prints 'B' and skips the else entirely. Only the first matching branch in an if/elif/else chain runs."
+    },
+    {
+      "question": "In an `if/elif/else` chain, what happens if two conditions are both True?",
+      "options": [
+        "Both matching branches run.",
+        "Python raises a ValueError.",
+        "Only the first matching branch runs; the rest are skipped.",
+        "Python chooses the branch with the stricter condition."
+      ],
+      "answer": 2,
+      "explanation": "Python evaluates conditions top to bottom and runs only the first branch that is True, then jumps past the rest of the chain. This is why the order of conditions matters — put more specific checks before broader ones."
     }
   ]
 }

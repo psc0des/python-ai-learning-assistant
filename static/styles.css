@@ -1683,6 +1683,22 @@ button.secondary:hover {
   background: var(--red-soft);
 }
 
+.answer-option.option-correct {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.answer-option.option-selected-wrong {
+  border-color: var(--red);
+  background: var(--red-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--red);
+}
+
+.answer-option input:disabled {
+  opacity: 0.5;
+}
+
 .test-result {
   border-top: 1px solid var(--line);
   padding: 14px 16px;

@@ -260,6 +260,21 @@
         "label": "format_citation produces bracketed reference",
         "call": "MiniRagPipeline().format_citation('Python docs', 1)",
         "expected": "[1] Python docs"
+      },
+      {
+        "label": "add_document empty text returns empty",
+        "call": "MiniRagPipeline().add_document('', 2)",
+        "expected": []
+      },
+      {
+        "label": "add_document zero max_words returns empty",
+        "call": "MiniRagPipeline().add_document('a b c', 0)",
+        "expected": []
+      },
+      {
+        "label": "add_document negative max_words returns empty",
+        "call": "MiniRagPipeline().add_document('a b c', -1)",
+        "expected": []
       }
     ],
     "hint": "In __init__, set self._chunks = []. add_document splits text, builds chunk strings with a range loop, extends self._chunks, and returns the new chunks. score_relevance is a one-liner using set intersection on .lower().split(). retrieve_top_k scores self._chunks against the query, sorts descending, and slices [:k]. build_prompt joins with '\\n- ' prefix. format_citation is an f-string.",

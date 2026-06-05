@@ -27,6 +27,26 @@
         "label": "301",
         "call": "classify_status(301)",
         "expected": "other"
+      },
+      {
+        "label": "201 is ok range",
+        "call": "classify_status(201)",
+        "expected": "ok"
+      },
+      {
+        "label": "422 is client_error range",
+        "call": "classify_status(422)",
+        "expected": "client_error"
+      },
+      {
+        "label": "503 is server_error range",
+        "call": "classify_status(503)",
+        "expected": "server_error"
+      },
+      {
+        "label": "302 is other",
+        "call": "classify_status(302)",
+        "expected": "other"
       }
     ],
     "hint": "Use integer division by 100.",
@@ -161,6 +181,16 @@
         "label": "unknown signal",
         "call": "next_debug_step('maybe')",
         "expected": "gather_more_evidence"
+      },
+      {
+        "label": "validation signal",
+        "call": "next_debug_step('validation_4xx')",
+        "expected": "check_request_schema"
+      },
+      {
+        "label": "regression signal",
+        "call": "next_debug_step('recent_regression')",
+        "expected": "check_git_diff"
       }
     ],
     "hint": "Use a dict mapping with default fallback.",

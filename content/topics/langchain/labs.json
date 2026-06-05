@@ -177,6 +177,21 @@
             "error": "invalid_confidence"
           }
         ]
+      },
+      {
+        "label": "empty answer rejected",
+        "call": "validate_response({'answer': '', 'confidence': 0.8, 'citations': ['doc-1']})",
+        "expected": [false, {"error": "invalid_answer"}]
+      },
+      {
+        "label": "citations not a list",
+        "call": "validate_response({'answer': 'yes', 'confidence': 0.5, 'citations': 'doc-1'})",
+        "expected": [false, {"error": "invalid_citations"}]
+      },
+      {
+        "label": "answer not a string",
+        "call": "validate_response({'answer': 42, 'confidence': 0.5, 'citations': []})",
+        "expected": [false, {"error": "invalid_answer"}]
       }
     ],
     "hint": "Validate presence first, then types/ranges.",

@@ -120,17 +120,35 @@ function markExercisePassed(exerciseId) {
   saveProgress(progress);
 }
 
-function markTestScore(topicId, score, total) {
+function practiceContentHash(questions) {
+  return questions.slice(0, 3).map(q => (q.question || '').slice(0, 24)).join('|');
+}
+
+function markTestScore(topicId, score, total, questions) {
   const progress = loadProgress();
   if (!progress[topicId]) progress[topicId] = {};
   progress[topicId].testScore = score;
   progress[topicId].testTotal = total;
+  if (questions && questions.length) {
+    progress[topicId].practiceHash = practiceContentHash(questions);
+    progress[topicId].practiceSubmitted = true;
+  }
   saveProgress(progress);
 }
 
 function getTopicProgress(topicId) {
   const progress = loadProgress();
-  return progress[topicId] || {};
+  const tp = progress[topicId] || {};
+  // Invalidate stale practice score if content has changed
+  if (tp.practiceHash !== undefined && practiceTests) {
+    const test = practiceTests.find(t => t.topic_id === topicId);
+    const questions = test ? (test.questions || []) : [];
+    if (questions.length && practiceContentHash(questions) !== tp.practiceHash) {
+      const { testScore, testTotal, practiceHash, practiceSubmitted, ...rest } = tp;
+      return rest;
+    }
+  }
+  return tp;
 }
 
 function isExercisePassed(exerciseId) {
@@ -316,7 +334,11 @@ function renderTopicList() {
       const r = getTopicReadiness(topic.id);
       let badge = "";
       if (r.isReady) {
-        badge = `<span class="progress-badge badge-ready">✓</span>`;
+        const capstoneEx = exercises.find(ex => ex.topic_id === topic.id && ex.difficulty === 'Advanced');
+        const capDone = !capstoneEx || isExercisePassed(capstoneEx.id);
+        badge = capDone
+          ? `<span class="progress-badge badge-ready">✓</span>`
+          : `<span class="progress-badge badge-pass" title="Core labs done — capstone pending">~</span>`;
       } else if (r.passed > 0 || r.testScore !== undefined) {
         const parts = [];
         if (r.passed > 0) parts.push(`${r.passed}/${r.total}`);
@@ -481,13 +503,30 @@ function renderPracticeTest(topicId) {
       `;
     })
     .join("");
-  els.testResult.textContent = "Choose an answer, then check your result.";
+
+  const tp = getTopicProgress(topicId);
+  if (tp.practiceSubmitted) {
+    // Restore locked state after page refresh — score is already recorded
+    document.querySelectorAll('.answer-options input[type="radio"]').forEach(r => { r.disabled = true; });
+    els.testResult.textContent = tp.testTotal
+      ? `Score: ${tp.testScore}/${tp.testTotal} (submitted)`
+      : "You have already submitted this test.";
+  } else {
+    els.testResult.textContent = "Choose an answer, then check your result.";
+  }
 }
 
 function checkPracticeTest() {
   const test = practiceTests.find((item) => item.topic_id === selectedTopicId);
   const questions = test ? test.questions : [];
   if (!questions.length) return;
+
+  // Block re-submission after first attempt
+  const tp = getTopicProgress(selectedTopicId);
+  if (tp.practiceSubmitted) {
+    els.testResult.textContent = "You have already submitted this test. Your first-attempt score counts toward readiness.";
+    return;
+  }
 
   document.querySelectorAll('.unanswered-highlight').forEach((c) => c.classList.remove('unanswered-highlight'));
   const unanswered = questions.filter(
@@ -517,6 +556,11 @@ function checkPracticeTest() {
     if (correct) score += 1;
     card.classList.toggle("correct", correct);
     card.classList.toggle("incorrect", !correct);
+    // Option-level feedback: mark selected wrong answer and correct answer
+    card.querySelectorAll('.answer-option').forEach((lbl, idx) => {
+      lbl.classList.toggle('option-selected-wrong', !correct && idx === selectedValue);
+      lbl.classList.toggle('option-correct', idx === question.answer);
+    });
     const explanationEl = card.querySelector(".answer-explanation");
     if (correct) {
       explanationEl.textContent = `✓ Correct. ${question.explanation}`;
@@ -526,8 +570,11 @@ function checkPracticeTest() {
     }
   });
 
+  // Lock radio inputs so the score cannot be gamed by re-submitting
+  document.querySelectorAll('.answer-options input[type="radio"]').forEach(r => { r.disabled = true; });
+
   els.testResult.textContent = `Score: ${score}/${questions.length}`;
-  markTestScore(selectedTopicId, score, questions.length);
+  markTestScore(selectedTopicId, score, questions.length, questions);
   renderTopicList();
   renderReadinessBar(selectedTopicId);
 }
@@ -694,6 +741,14 @@ function loadAiSettings() {
     if (settings.provider) els.provider.value = settings.provider;
     if (settings.model) preferredModel = settings.model;
     if (settings.endpoint) els.endpoint.value = settings.endpoint;
+    // Sanitize: if old builds stored api_key, re-save without it
+    if (settings.api_key !== undefined) {
+      localStorage.setItem("pySkillLabSettings", JSON.stringify({
+        provider: settings.provider,
+        model: settings.model,
+        endpoint: settings.endpoint,
+      }));
+    }
     localStorage.removeItem("pyInterviewAiSettings");
   } catch {
     localStorage.removeItem("pySkillLabSettings");
@@ -899,12 +954,12 @@ function isRunnableSnippet(code, lang) {
 function renderLessonMarkdown(text) {
   if (!text) return '';
   const segments = [];
-  const codeBlockRe = /```([\w]+(?:\s+[\w]+)*)?\n?([\s\S]*?)```/g;
+  const codeBlockRe = /```([^\n`]*)\n([\s\S]*?)```/g;
   let lastIdx = 0;
   let m;
   while ((m = codeBlockRe.exec(text)) !== null) {
     if (m.index > lastIdx) segments.push({ type: 'text', content: text.slice(lastIdx, m.index) });
-    segments.push({ type: 'code', content: m[2].replace(/^\n/, '').replace(/\n$/, ''), lang: m[1] || '' });
+    segments.push({ type: 'code', content: m[2].replace(/^\n/, '').replace(/\n$/, ''), lang: (m[1] || '').trim() });
     lastIdx = m.index + m[0].length;
   }
   if (lastIdx < text.length) segments.push({ type: 'text', content: text.slice(lastIdx) });
@@ -1553,13 +1608,16 @@ function renderReadinessBar(topicId) {
   const r = getTopicReadiness(topicId);
 
   if (r.isReady) {
+    const capstone = exercises.find(ex => ex.topic_id === topicId && ex.difficulty === 'Advanced');
+    const capstoneDone = !capstone || isExercisePassed(capstone.id);
+    const readyLabel = capstoneDone ? '✓ Topic complete' : '✓ Core labs done';
     const topicIdx = topics.findIndex((t) => t.id === topicId);
     const nextTopic = topics[topicIdx + 1];
     const nextBtn = nextTopic
       ? `<button class="rbar-next" type="button" data-next="${nextTopic.id}">Next: ${escapeHtml(nextTopic.title)} →</button>`
       : "";
     els.readinessBar.className = "readiness-bar rbar-ready";
-    els.readinessBar.innerHTML = `<span>✓ Topic complete — Labs: ${r.passed}/${r.total} · Test: ${Math.round(r.testPct * 100)}%</span>${nextBtn}`;
+    els.readinessBar.innerHTML = `<span>${readyLabel} — Labs: ${r.passed}/${r.total} · Test: ${Math.round(r.testPct * 100)}%</span>${nextBtn}`;
     els.readinessBar.hidden = false;
   } else if (r.passed > 0 || r.testScore !== undefined) {
     const parts = [];

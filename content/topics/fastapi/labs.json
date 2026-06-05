@@ -124,6 +124,26 @@
             "code": "invalid"
           }
         ]
+      },
+      {
+        "label": "empty name rejected",
+        "call": "validate_create_user({'name': '', 'email': 'ada@example.com'})",
+        "expected": [false, {"field": "name", "code": "required"}]
+      },
+      {
+        "label": "whitespace-only name rejected",
+        "call": "validate_create_user({'name': '   ', 'email': 'ada@example.com'})",
+        "expected": [false, {"field": "name", "code": "required"}]
+      },
+      {
+        "label": "missing name rejected",
+        "call": "validate_create_user({'email': 'ada@example.com'})",
+        "expected": [false, {"field": "name", "code": "required"}]
+      },
+      {
+        "label": "active false preserved",
+        "call": "validate_create_user({'name': 'Bo', 'email': 'bo@example.com', 'active': False})",
+        "expected": [true, {"name": "Bo", "email": "bo@example.com", "active": false}]
       }
     ],
     "hint": "Return errors as structured dictionaries, not plain strings.",
@@ -217,9 +237,9 @@
     "starter": "class RequestRouter:\n    def __init__(self):\n        pass\n\n    def register_route(self, method, path, handler):\n        pass\n\n    def match_route(self, method, path):\n        pass\n\n    def validate_request(self, body, required):\n        pass\n\n    def build_response(self, data, status):\n        pass\n",
     "tests": [
       {
-        "label": "register stores route key",
-        "call": "(lambda r: (r.register_route('GET', '/users', 'list_users'), r._routes)[-1])(RequestRouter())",
-        "expected": {"GET:/users": "list_users"}
+        "label": "chained register returns handler via match",
+        "call": "(lambda r: r.register_route('GET', '/a', 'h1').register_route('POST', '/b', 'h2').match_route('POST', '/b'))(RequestRouter())",
+        "expected": "h2"
       },
       {
         "label": "match returns handler after register",

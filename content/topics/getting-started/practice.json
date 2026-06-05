@@ -88,6 +88,28 @@
       ],
       "answer": 2,
       "explanation": "A NameError means you used a name Python has not seen yet. The fix is to make sure you assign the variable (for example `total = 0`) before you use it. Reading the last line of an error tells you exactly what went wrong."
+    },
+    {
+      "question": "What does this code print?\n```\nx = 10\nif x > 5:\n    print('big')\nelse:\n    print('small')\n```",
+      "options": [
+        "small",
+        "big",
+        "big small",
+        "Nothing — the code needs an elif to work"
+      ],
+      "answer": 1,
+      "explanation": "x is 10, which is greater than 5, so the `if` branch runs and prints 'big'. Python runs only one branch of an if/else — whichever condition is True."
+    },
+    {
+      "question": "What does this code print?\n```\nscore = 60\nif score >= 70:\n    print('pass')\nelse:\n    print('retry')\n```",
+      "options": [
+        "pass",
+        "retry",
+        "pass retry",
+        "Nothing — 60 is not equal to 70"
+      ],
+      "answer": 1,
+      "explanation": "score is 60, which is not >= 70, so the condition is False. Python runs the `else` block instead and prints 'retry'. The `>=` operator means 'greater than or equal to', not 'equal to'."
     }
   ]
 }

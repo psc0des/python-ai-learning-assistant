@@ -5,23 +5,23 @@
       "question": "What is the most accurate role of FastAPI in a backend project?",
       "options": [
         "Replace your database engine.",
-        "Compile Python into machine code.",
+        "Serve static HTML files only.",
         "Define typed API routes and validate request/response data.",
         "Automatically fix all business logic bugs."
       ],
       "answer": 2,
-      "explanation": "FastAPI handles HTTP routing, input validation, and OpenAPI documentation through type hints; it does not replace your database, compile code, or fix business logic errors."
+      "explanation": "FastAPI handles HTTP routing, input validation, and OpenAPI documentation through type hints; it does not replace your database, serve only static files, or fix business logic errors."
     },
     {
       "question": "Which parameter location is best for resource identity like user ID?",
       "options": [
         "Response header.",
-        "Cookies only.",
-        "Randomly choose between body and query.",
+        "Request body (all parameters belong in the body).",
+        "Query string (after the `?` in the URL).",
         "Path parameter (for example `/users/{user_id}`)."
       ],
       "answer": 3,
-      "explanation": "Path parameters encode the identity of the resource being acted on; query parameters are for optional filters and response headers carry metadata, not request identifiers."
+      "explanation": "Path parameters encode the identity of the resource being acted on; query parameters are for optional filters; response headers carry metadata, not request identifiers. Bodies are for larger structured payloads, not simple IDs."
     },
     {
       "question": "What is a common purpose of query parameters?",
@@ -48,9 +48,9 @@
     {
       "question": "Why are response models useful?",
       "options": [
-        "They make status codes unnecessary.",
-        "They disable OpenAPI generation.",
-        "They prevent writing unit tests.",
+        "They automatically generate database migrations.",
+        "They remove the need to handle HTTP status codes.",
+        "They cache every response for faster repeated calls.",
         "They enforce consistent output shape and reduce accidental field leaks."
       ],
       "answer": 3,

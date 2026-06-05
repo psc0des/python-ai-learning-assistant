@@ -6,7 +6,7 @@
       "options": [
         "To avoid writing any tests.",
         "To replace HTTP APIs entirely.",
-        "To make prompts unnecessary.",
+        "To run LLMs faster by caching all responses.",
         "To compose models, tools, retrieval, and parsing with reusable interfaces."
       ],
       "answer": 3,
@@ -37,10 +37,10 @@
     {
       "question": "Which issue most directly causes weak RAG answers?",
       "options": [
-        "Adding structured output.",
+        "Using structured output instead of plain text.",
         "Retrieving irrelevant or stale context chunks.",
-        "Having too many status codes.",
-        "Using a typed language."
+        "Chunking documents into pieces that are too large.",
+        "Calling the LLM API more than once per request."
       ],
       "answer": 1,
       "explanation": "RAG quality is bounded by retrieval quality — if the retrieved chunks are irrelevant or outdated, even a capable model cannot produce a correct answer from bad context."

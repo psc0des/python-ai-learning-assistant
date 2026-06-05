@@ -22,6 +22,16 @@
         "label": "invalid",
         "call": "normalize_capability_type('action')",
         "expected": null
+      },
+      {
+        "label": "prompt type accepted",
+        "call": "normalize_capability_type('prompt')",
+        "expected": "prompt"
+      },
+      {
+        "label": "PROMPT case-insensitive",
+        "call": "normalize_capability_type('PROMPT')",
+        "expected": "prompt"
       }
     ],
     "hint": "Use a set of allowed lowercase values.",

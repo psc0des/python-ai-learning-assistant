@@ -22,6 +22,26 @@
         "label": "unknown",
         "call": "next_node('x')",
         "expected": "unknown"
+      },
+      {
+        "label": "classify",
+        "call": "next_node('classify')",
+        "expected": "retrieve"
+      },
+      {
+        "label": "draft",
+        "call": "next_node('draft')",
+        "expected": "review"
+      },
+      {
+        "label": "review",
+        "call": "next_node('review')",
+        "expected": "done"
+      },
+      {
+        "label": "done is terminal",
+        "call": "next_node('done')",
+        "expected": "unknown"
       }
     ],
     "hint": "Use a dictionary transition map.",
@@ -56,6 +76,26 @@
         "label": "invalid type",
         "call": "route_by_risk('5')",
         "expected": "invalid"
+      },
+      {
+        "label": "exactly 8 is human_review boundary",
+        "call": "route_by_risk(8)",
+        "expected": "human_review"
+      },
+      {
+        "label": "exactly 4 is safe_diagnostics low boundary",
+        "call": "route_by_risk(4)",
+        "expected": "safe_diagnostics"
+      },
+      {
+        "label": "exactly 7 is safe_diagnostics high boundary",
+        "call": "route_by_risk(7)",
+        "expected": "safe_diagnostics"
+      },
+      {
+        "label": "exactly 3 is auto_answer boundary",
+        "call": "route_by_risk(3)",
+        "expected": "auto_answer"
       }
     ],
     "hint": "Validate input type before range checks.",

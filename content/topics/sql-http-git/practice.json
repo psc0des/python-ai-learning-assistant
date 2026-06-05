@@ -10,7 +10,7 @@
         "Authentication is missing or invalid."
       ],
       "answer": 3,
-      "explanation": "401 indicates unauthenticated access."
+      "explanation": "401 Unauthorized means the server cannot identify who is making the request — a missing or invalid token triggers it. 403 is the related code for when identity is known but access is still denied."
     },
     {
       "question": "What does HTTP 403 usually mean?",
@@ -21,7 +21,7 @@
         "Request timeout."
       ],
       "answer": 1,
-      "explanation": "403 means access is forbidden despite known identity."
+      "explanation": "403 Forbidden means the server knows who you are but has decided you are not allowed to perform this action; returning 401 instead would incorrectly imply that logging in would help."
     },
     {
       "question": "Why is `WHERE` critical in UPDATE/DELETE statements?",
@@ -32,7 +32,7 @@
         "It is required only in PostgreSQL."
       ],
       "answer": 0,
-      "explanation": "Missing filters can cause broad destructive changes."
+      "explanation": "An UPDATE or DELETE without a WHERE clause applies to every row in the table; this is one of the most common causes of irreversible data loss in production databases."
     },
     {
       "question": "What is the main purpose of `git diff` before commit?",
@@ -43,7 +43,7 @@
         "Reset branch history."
       ],
       "answer": 2,
-      "explanation": "Diff review catches mistakes early and improves commit quality."
+      "explanation": "Running git diff before staging shows exactly which lines changed; reviewing this catches accidental debug code, leftover prints, or wrong-file edits before they become a permanent part of history."
     },
     {
       "question": "Why should secrets never be committed to Git?",
@@ -54,7 +54,7 @@
         "Secrets cannot be read from files."
       ],
       "answer": 1,
-      "explanation": "History persistence makes exposed secrets a long-term risk."
+      "explanation": "Once a secret appears in any commit, it is stored permanently in repository history; deleting the file in a later commit does not remove it — anyone with history access can still retrieve it."
     },
     {
       "question": "Which Linux workflow is best for initial runtime investigation?",
@@ -65,7 +65,7 @@
         "Skip logs and query database first always."
       ],
       "answer": 2,
-      "explanation": "Evidence-first inspection avoids unnecessary disruption."
+      "explanation": "Restarting services immediately erases the current process state and in-memory evidence; inspecting logs and process state first preserves the diagnostic signals you need to find the root cause."
     },
     {
       "question": "What is a strong cross-layer debugging habit?",
@@ -76,7 +76,7 @@
         "Correlate HTTP behavior, logs, SQL state, and recent code changes."
       ],
       "answer": 3,
-      "explanation": "Cross-layer correlation reduces blind spots."
+      "explanation": "Bugs in production systems often span multiple layers — an HTTP 500 might be caused by a SQL constraint triggered by a recent schema change; looking at only one layer leaves the others invisible."
     },
     {
       "question": "What is the safest style for operational fixes?",
@@ -87,7 +87,7 @@
         "Skipping tests to save time."
       ],
       "answer": 0,
-      "explanation": "Scoped, verifiable fixes lower incident risk."
+      "explanation": "Small, focused fixes are easier to review, faster to roll back, and less likely to introduce new problems; large changes during incidents compound risk when the system is already in a degraded state."
     }
   ]
 }
