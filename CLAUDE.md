@@ -153,9 +153,11 @@ Each topic has one capstone lab (`difficulty: "Advanced"`, `difficulty_order: 6`
 
 Topics with capstones: `oop` (TaskManager), `fastapi` (Request Router), `rag-vectors` (Mini RAG Pipeline), `python-devops` (Deployment Checker), `errors-testing` (Debug Report Builder), `pydantic` (Schema Validator), `async` (Task Scheduler), `langchain` (Prompt Pipeline), `langgraph` (State Graph Runner), `mcp` (Tool Registry), `sql-http-git` (HTTP Log Analyzer).
 
-### Try-it buttons in lesson.md
+### Try-it buttons in lesson sections
 
 A "▶ Try it" button appears in the UI only for code fences tagged ` ```python run `. Blocks without the `run` tag render as static code.
+
+**Important:** The live app renders lessons from `topic.json` `lesson_sections[].body`, not from `lesson.md`. The `run` tag must be present in **both** the `lesson.md` fence AND the matching `topic.json` body string so the tag is visible to the renderer and to the test suite. When you add or remove a `run` tag, update both files.
 
 Add `run` only when ALL of the following are true:
 - All names called are defined within the block itself (no external object refs like `app`, `chain`, `graph`, `client`, `router`, `llm`)
@@ -164,7 +166,11 @@ Add `run` only when ALL of the following are true:
 - Not a traceback, bash, shell, sql, or diff block
 - Top-level `async def` is only used if followed by `asyncio.run()`
 
-`tests/test_content_quality.py::test_lesson_run_blocks_execute_cleanly` runs every tagged block through the runner and asserts zero stderr. If a block fails, remove the `run` tag rather than patching the snippet.
+Two tests enforce this:
+- `test_lesson_run_blocks_execute_cleanly` — runs every `run`-tagged block in `lesson.md` through the runner and asserts zero stderr.
+- `test_topic_json_run_blocks_execute_cleanly` — same check for `topic.json` body fields (the source the app actually renders).
+
+If a block fails either test, remove the `run` tag from both files rather than patching the snippet.
 
 ### Content writing style
 
@@ -272,7 +278,7 @@ Do not add features, refactor, or introduce abstractions beyond what the task re
 
 ### 5. Security is load-bearing
 
-The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes.
+The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers two independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP) and AI coach (`/api/ai-coach` — 10 req/60s per IP).
 
 ### 6. Verify before reporting
 
