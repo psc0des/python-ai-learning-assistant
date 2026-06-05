@@ -37,7 +37,7 @@ python scripts/vendor_fonts.py
 $env:PY_SKILL_LAB_STRICT_CONTENT="1"; python app.py
 
 # Run on a different port
-$env:PY_INTERVIEW_PORT="9000"; python app.py
+$env:PY_SKILL_LAB_PORT="9000"; python app.py
 ```
 
 ## Architecture
@@ -233,7 +233,7 @@ Every code or content change must be accompanied by doc updates in the same comm
 
 ### 1. Tests before done
 
-Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 792 tests passing. Do not ship a regression.
+Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 795 tests passing. Do not ship a regression.
 
 ### 2. No CDN drift
 

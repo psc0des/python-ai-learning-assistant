@@ -115,6 +115,15 @@ def test_ollama_chat_requires_live_selected_model():
     assert "Choose an installed Ollama model" in result["error"]
 
 
+def test_hosted_provider_no_key_returns_suggestions_only():
+    for provider in ("openai", "anthropic", "google", "grok", "groq"):
+        result = ai_coach.list_ai_models({"provider": provider, "api_key": ""})
+        assert result["ok"] is False, f"{provider}: expected ok=False when no key"
+        assert result.get("suggestions_only") is True, f"{provider}: expected suggestions_only=True"
+        assert len(result["models"]) > 0, f"{provider}: expected non-empty fallback model list"
+        assert "API key" in result["error"], f"{provider}: expected key-related error message"
+
+
 def test_lmstudio_chat_requires_live_selected_model():
     result = ai_coach.ask_ai_coach(
         {

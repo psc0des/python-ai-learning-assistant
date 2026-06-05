@@ -24,6 +24,13 @@ class TestOriginAllowed:
         # No Origin header = same-origin browser request or non-browser client
         assert _is_allowed_origin("", HOST, PORT) is True
 
+    def test_localhost_same_port_allowed(self):
+        # Learners naturally type localhost; it must reach the POST APIs
+        assert _is_allowed_origin(f"http://localhost:{PORT}", HOST, PORT) is True
+
+    def test_localhost_wrong_port_blocked(self):
+        assert _is_allowed_origin("http://localhost:9999", HOST, PORT) is False
+
 
 class TestOriginBlocked:
     def test_hostile_prefix_domain_blocked(self):

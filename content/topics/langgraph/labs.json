@@ -137,7 +137,7 @@
     "title": "Interrupt Resume Validator",
     "difficulty": "Intermediate",
     "difficulty_order": 5,
-    "prompt": "Write `validate_resume(command)` where command is a dict.\n\nRules:\n- Must include key `action` with one of: `approve`, `edit`, `reject`.\n- If action is `edit`, key `edited_text` must be a non-empty string.\n- Return `(True, 'ok')` when valid, else `(False, '<reason>')`.",
+    "prompt": "Write `validate_resume(command)` where command is a dict.\n\nRules:\n- Must include key `action` with one of: `approve`, `edit`, `reject`.\n- If action is `edit`, key `edited_text` must be a non-empty string.\n- Return `[True, 'ok']` when valid, else `[False, '<reason>']`.",
     "starter": "def validate_resume(command):\n    pass\n",
     "tests": [
       {

@@ -26,7 +26,7 @@
     ],
     "hint": "Loop through dict items and replace exact `{key}` tokens.",
     "solution": "def fill_template(template, variables):\n    result = template\n    for key, value in variables.items():\n        token = '{' + str(key) + '}'\n        result = result.replace(token, str(value))\n    return result\n",
-    "explanation": "Prompt templating should be explicit and predictable, especially when variables are optional."
+    "explanation": "Prompt templating should be explicit and predictable, especially when variables are optional. This lab practices the pure-Python string logic that LangChain's PromptTemplate uses — install langchain to build real chains with model calls."
   },
   {
     "id": "choose-orchestrator",
@@ -141,7 +141,7 @@
     "title": "Structured Output Validator",
     "difficulty": "Intermediate",
     "difficulty_order": 5,
-    "prompt": "Write `validate_response(payload)`.\n\nRules:\n- Required keys: `answer` (non-empty str), `confidence` (float/int 0..1), `citations` (list).\n- Return `(True, payload)` if valid.\n- Else return `(False, {'error': '<code>'})` with code one of `missing_field`, `invalid_answer`, `invalid_confidence`, `invalid_citations`.",
+    "prompt": "Write `validate_response(payload)`.\n\nRules:\n- Required keys: `answer` (non-empty str), `confidence` (float/int 0..1), `citations` (list).\n- Return `[True, payload]` if valid.\n- Else return `[False, {'error': '<code>'}]` with code one of `missing_field`, `invalid_answer`, `invalid_confidence`, `invalid_citations`.",
     "starter": "def validate_response(payload):\n    pass\n",
     "tests": [
       {

@@ -75,10 +75,10 @@
           </div>
 
           <div class="mode-tabs" role="tablist" aria-label="Topic sections">
-            <button class="mode-button active" type="button" data-section="overviewSection">Overview</button>
-            <button class="mode-button" type="button" data-section="lessonSection">Lesson</button>
-            <button class="mode-button" type="button" data-section="labsSection">Labs</button>
-            <button class="mode-button" type="button" data-section="testSection">Practice Test</button>
+            <button class="mode-button active" type="button" role="tab" aria-selected="true" aria-controls="overviewSection" data-section="overviewSection">Overview</button>
+            <button class="mode-button" type="button" role="tab" aria-selected="false" aria-controls="lessonSection" data-section="lessonSection">Lesson</button>
+            <button class="mode-button" type="button" role="tab" aria-selected="false" aria-controls="labsSection" data-section="labsSection">Labs</button>
+            <button class="mode-button" type="button" role="tab" aria-selected="false" aria-controls="testSection" data-section="testSection">Practice Test</button>
           </div>
           <div id="readinessBar" class="readiness-bar" hidden></div>
 
@@ -236,10 +236,10 @@
 
     <!-- Code try-it overlay (centered modal) -->
     <div id="codePopup" class="code-popup" hidden>
-      <div class="code-popup-modal" id="codePopupModal">
+      <div class="code-popup-modal" id="codePopupModal" role="dialog" aria-modal="true" aria-labelledby="codePopupTitle">
         <div class="code-popup-header">
           <div class="scratchpad-dots"><span></span><span></span><span></span></div>
-          <span class="code-popup-title">Try it · Ctrl+Enter to run</span>
+          <span class="code-popup-title" id="codePopupTitle">Try it · Ctrl+Enter to run</span>
           <div class="code-popup-header-btns">
             <button id="codePopupMaxBtn" type="button" class="code-popup-icon-btn" aria-label="Maximize" title="Maximize">⤢</button>
             <button id="codePopupClose" type="button" class="code-popup-icon-btn" aria-label="Close">✕</button>
@@ -264,9 +264,9 @@
     </div>
 
     <div id="vizOverlay" class="viz-overlay" hidden>
-      <div class="viz-modal">
+      <div class="viz-modal" role="dialog" aria-modal="true" aria-labelledby="vizModalTitle">
         <div class="viz-modal-head">
-          <strong>&#128270; Execution Visualizer</strong>
+          <strong id="vizModalTitle">&#128270; Execution Visualizer</strong>
           <span class="viz-modal-hint">step through your code line by line</span>
           <button id="vizClose" type="button" class="viz-x" aria-label="Close">✕</button>
         </div>

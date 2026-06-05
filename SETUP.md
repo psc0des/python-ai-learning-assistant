@@ -143,7 +143,7 @@ Defaults are intentionally short so the UI fails fast with clear fallback feedba
 To use another port:
 
 ```powershell
-$env:PY_INTERVIEW_PORT="9000"
+$env:PY_SKILL_LAB_PORT="9000"
 python app.py
 ```
 
@@ -153,6 +153,8 @@ Then open:
 http://127.0.0.1:9000
 ```
 
+`PY_SKILL_LAB_PORT` is the primary env var. The legacy alias `PY_INTERVIEW_PORT` also works but is not recommended for new setups.
+
 ## AI Coach Setup
 
 The app works without AI. Local tests and built-in feedback still run.
@@ -161,7 +163,7 @@ The app works without AI. Local tests and built-in feedback still run.
 
 1. Start Ollama.
 2. Make sure at least one model is installed.
-3. In the app, go to `Labs` -> `AI provider settings`.
+3. In the app, open **AI Settings** in the left sidebar.
 4. Select:
 
 ```text
@@ -240,6 +242,20 @@ API key: your Groq API key
 ```
 
 Recommended free models: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`.
+
+### Server-side API key environment variables
+
+Instead of entering keys in the UI, you can set them as environment variables before starting the server. The app reads these on startup and they take priority over any UI-entered key.
+
+| Provider | Environment variable |
+|---|---|
+| OpenAI | `PY_SKILL_LAB_OPENAI_KEY` |
+| Anthropic | `PY_SKILL_LAB_ANTHROPIC_KEY` |
+| Google AI Studio | `PY_SKILL_LAB_GOOGLE_KEY` |
+| Grok (xAI) | `PY_SKILL_LAB_GROK_KEY` |
+| Groq Cloud | `PY_SKILL_LAB_GROQ_KEY` |
+
+When a server-side key is set, the model list refresh will connect to the provider directly and the UI will show verified models rather than suggestions.
 
 ## Local Deployment
 

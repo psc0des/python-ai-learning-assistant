@@ -547,6 +547,14 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
         "groq": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
     }
 
+    if provider in {"openai", "anthropic", "google", "grok", "groq"} and not api_key:
+        return {
+            "ok": False,
+            "models": fallback.get(provider, []),
+            "suggestions_only": True,
+            "error": "No API key configured — showing suggested models only.",
+        }
+
     try:
         if provider == "ollama":
             url = (endpoint or "http://127.0.0.1:11434").rstrip("/") + "/api/tags"
@@ -557,48 +565,30 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
             data = get_json(url, {"Authorization": f"Bearer {api_key or 'lm-studio'}"})
             models = [item["id"] for item in data.get("data", []) if item.get("id")]
         elif provider == "openai":
-            if not api_key:
-                models = fallback[provider]
-            else:
-                url = model_list_url(endpoint or "https://api.openai.com/v1/chat/completions")
-                data = get_json(url, {"Authorization": f"Bearer {api_key}"})
-                models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
+            url = model_list_url(endpoint or "https://api.openai.com/v1/chat/completions")
+            data = get_json(url, {"Authorization": f"Bearer {api_key}"})
+            models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
         elif provider == "anthropic":
-            if not api_key:
-                models = fallback[provider]
-            else:
-                url = model_list_url(endpoint or "https://api.anthropic.com/v1/messages")
-                data = get_json(
-                    url,
-                    {
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                    },
-                )
-                models = [item["id"] for item in data.get("data", []) if item.get("id")]
+            url = model_list_url(endpoint or "https://api.anthropic.com/v1/messages")
+            data = get_json(url, {"x-api-key": api_key, "anthropic-version": "2023-06-01"})
+            models = [item["id"] for item in data.get("data", []) if item.get("id")]
         elif provider in ("grok", "groq"):
-            if not api_key:
-                models = fallback[provider]
-            else:
-                default_endpoint = (
-                    "https://api.x.ai/v1/chat/completions" if provider == "grok"
-                    else "https://api.groq.com/openai/v1/chat/completions"
-                )
-                url = model_list_url(endpoint or default_endpoint)
-                data = get_json(url, {"Authorization": f"Bearer {api_key}"})
-                models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
+            default_endpoint = (
+                "https://api.x.ai/v1/chat/completions" if provider == "grok"
+                else "https://api.groq.com/openai/v1/chat/completions"
+            )
+            url = model_list_url(endpoint or default_endpoint)
+            data = get_json(url, {"Authorization": f"Bearer {api_key}"})
+            models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
         elif provider == "google":
-            if not api_key:
-                models = fallback[provider]
-            else:
-                base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
-                data = get_json(f"{base}/models?key={api_key}", {})
-                models = [
-                    item["name"].replace("models/", "")
-                    for item in data.get("models", [])
-                    if item.get("name", "").startswith("models/gemini")
-                    and "generateContent" in item.get("supportedGenerationMethods", [])
-                ]
+            base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+            data = get_json(f"{base}/models?key={api_key}", {})
+            models = [
+                item["name"].replace("models/", "")
+                for item in data.get("models", [])
+                if item.get("name", "").startswith("models/gemini")
+                and "generateContent" in item.get("supportedGenerationMethods", [])
+            ]
         else:
             raise ValueError(f"Unknown provider: {provider}")
 

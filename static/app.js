@@ -87,7 +87,7 @@ let preferredModel = "";
 let coachMessages = [];
 let solutionRevealed = false;
 let failedAttempts = 0;
-const AI_REQUEST_TIMEOUT_MS = 20000;
+const AI_REQUEST_TIMEOUT_MS = 32000;
 // ---------------------------------------------------------------------------
 // Progress tracking (localStorage)
 // ---------------------------------------------------------------------------
@@ -140,15 +140,16 @@ function isExercisePassed(exerciseId) {
 
 function getTopicLabStats(topicId) {
   const topicExercises = exercises.filter((ex) => ex.topic_id === topicId);
+  const nonCapstone = topicExercises.filter((ex) => ex.difficulty !== 'Advanced');
   const passed = topicExercises.filter((ex) => isExercisePassed(ex.id)).length;
-  return { passed, total: topicExercises.length };
+  return { passed, total: topicExercises.length, required: nonCapstone.length };
 }
 
 function getTopicReadiness(topicId) {
   const labs = getTopicLabStats(topicId);
   const tp = getTopicProgress(topicId);
   const testPct = tp.testTotal ? tp.testScore / tp.testTotal : null;
-  const isReady = testPct !== null && testPct >= 0.8 && labs.passed >= 3;
+  const isReady = testPct !== null && testPct >= 0.8 && labs.passed >= labs.required;
   return { ...labs, testScore: tp.testScore, testTotal: tp.testTotal, testPct, isReady };
 }
 
@@ -281,12 +282,22 @@ function renderTopicList() {
   const progress = loadProgress();
   els.topicList.innerHTML = "";
 
+  const filteredTopics = topics.filter((topic) => {
+    const haystack = `${topic.title} ${topic.track} ${topic.intro}`.toLowerCase();
+    return haystack.includes(query);
+  });
+
+  if (filteredTopics.length === 0 && query) {
+    els.topicList.innerHTML = `<p class="topic-search-empty">No topics match "<strong>${escapeHtml(query)}</strong>". <button type="button" class="topic-search-clear">Clear</button></p>`;
+    els.topicList.querySelector('.topic-search-clear')?.addEventListener('click', () => {
+      els.search.value = '';
+      renderTopicList();
+    });
+    return;
+  }
+
   let currentTrack = "";
-  topics
-    .filter((topic) => {
-      const haystack = `${topic.title} ${topic.track} ${topic.intro}`.toLowerCase();
-      return haystack.includes(query);
-    })
+  filteredTopics
     .forEach((topic) => {
       // Track separator
       if (topic.track !== currentTrack) {
@@ -332,6 +343,16 @@ function selectTopic(topicId) {
   els.mentalModel.textContent = topic.mental_model || "";
   els.learningOutcome.textContent = topic.outcome || buildLearningOutcome(topic);
   els.lessonSections.innerHTML = renderLessonSections(topic.lesson_sections || []);
+  const askAiLessonBtn = document.createElement("button");
+  askAiLessonBtn.type = "button";
+  askAiLessonBtn.className = "ask-ai-lesson-btn";
+  askAiLessonBtn.textContent = "Ask AI about this lesson";
+  askAiLessonBtn.addEventListener("click", () => {
+    els.coachInput.value = `Explain the "${topic.title}" lesson to me with a simple real-world analogy and a code example.`;
+    setActiveTopicSection("labsSection");
+    els.coachInput.focus();
+  });
+  els.lessonSections.appendChild(askAiLessonBtn);
   els.syntax.textContent = topic.syntax;
   els.example.textContent = topic.example;
   els.realWorld.innerHTML = renderList(topic.real_world || []);
@@ -468,11 +489,22 @@ function checkPracticeTest() {
   const questions = test ? test.questions : [];
   if (!questions.length) return;
 
+  document.querySelectorAll('.unanswered-highlight').forEach((c) => c.classList.remove('unanswered-highlight'));
   const unanswered = questions.filter(
     (_, i) => !document.querySelector(`input[name="question-${i}"]:checked`)
   ).length;
   if (unanswered) {
     els.testResult.textContent = `${unanswered} question${unanswered > 1 ? "s" : ""} unanswered — please answer all before checking.`;
+    const firstIdx = questions.findIndex(
+      (_, i) => !document.querySelector(`input[name="question-${i}"]:checked`)
+    );
+    if (firstIdx !== -1) {
+      const firstCard = document.querySelector(`[data-question-index="${firstIdx}"]`);
+      if (firstCard) {
+        firstCard.classList.add('unanswered-highlight');
+        firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
     return;
   }
 
@@ -485,7 +517,13 @@ function checkPracticeTest() {
     if (correct) score += 1;
     card.classList.toggle("correct", correct);
     card.classList.toggle("incorrect", !correct);
-    card.querySelector(".answer-explanation").textContent = `${correct ? "✓ Correct." : "✗ Review this."} ${question.explanation}`;
+    const explanationEl = card.querySelector(".answer-explanation");
+    if (correct) {
+      explanationEl.textContent = `✓ Correct. ${question.explanation}`;
+    } else {
+      const correctText = question.options[question.answer];
+      explanationEl.textContent = `✗ Correct answer: "${correctText}". ${question.explanation}`;
+    }
   });
 
   els.testResult.textContent = `Score: ${score}/${questions.length}`;
@@ -720,12 +758,18 @@ async function loadModels(options = {}) {
       saveAiSettings();
     }
     _updateSettingsBtnLabel();
-    els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no live model selected"}`;
-    if (!result.ok && result.error) {
+    if (result.suggestions_only) {
+      els.coachStatus.textContent = `${els.provider.value} / suggested models — no API key set`;
+    } else {
+      els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no live model selected"}`;
+    }
+    if (!result.ok && result.error && !result.suggestions_only) {
       const suffix = isLocalProvider
         ? "No local fallback models were shown because local providers must reflect installed models."
         : "Using fallback model list.";
       if (notify) appendCoachMessage("assistant", `Could not refresh models: ${result.error}\n${suffix}`);
+    } else if (result.suggestions_only && notify) {
+      appendCoachMessage("assistant", "No API key set — showing suggested model names only. Enter your key in AI Settings and click Save & Apply to verify.");
     }
     return { ok: true };
   } catch (error) {
@@ -840,16 +884,24 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function isRunnableSnippet(code, lang) {
+  if (lang && lang !== 'python') return false;
+  const blocked = /\b(?:import|from)\s+(?:os|sys|subprocess|shutil|socket|pathlib|urllib|http|ctypes|signal|multiprocessing|threading|pickle|importlib|runpy)\b/;
+  const thirdParty = /\b(?:import|from)\s+(?:fastapi|pydantic|langchain|langgraph|mcp|uvicorn|anthropic|openai|numpy|pandas|aiohttp|httpx|starlette|sqlalchemy)\b/;
+  const banned = /\binput\s*\(|\bopen\s*\(/;
+  return !blocked.test(code) && !thirdParty.test(code) && !banned.test(code);
+}
+
 /** Markdown renderer for lesson section bodies — supports paragraphs, code blocks, inline code, bold. */
 function renderLessonMarkdown(text) {
   if (!text) return '';
   const segments = [];
-  const codeBlockRe = /```(?:\w+)?\n?([\s\S]*?)```/g;
+  const codeBlockRe = /```(\w+)?\n?([\s\S]*?)```/g;
   let lastIdx = 0;
   let m;
   while ((m = codeBlockRe.exec(text)) !== null) {
     if (m.index > lastIdx) segments.push({ type: 'text', content: text.slice(lastIdx, m.index) });
-    segments.push({ type: 'code', content: m[1].replace(/^\n/, '').replace(/\n$/, '') });
+    segments.push({ type: 'code', content: m[2].replace(/^\n/, '').replace(/\n$/, ''), lang: m[1] || '' });
     lastIdx = m.index + m[0].length;
   }
   if (lastIdx < text.length) segments.push({ type: 'text', content: text.slice(lastIdx) });
@@ -883,7 +935,11 @@ function renderLessonMarkdown(text) {
   let html = '';
   for (const seg of segments) {
     if (seg.type === 'code') {
-      html += `<div class="lesson-code-wrap"><pre class="lesson-code"><code>${escapeHtml(seg.content)}</code></pre><button type="button" class="lesson-try-btn" data-code="${escapeHtml(seg.content)}" title="Load in scratchpad">&#9654; Try it</button></div>`;
+      const canRun = isRunnableSnippet(seg.content, seg.lang);
+      const codeAction = canRun
+        ? `<button type="button" class="lesson-try-btn" data-code="${escapeHtml(seg.content)}" title="Load in scratchpad">&#9654; Try it</button>`
+        : `<span class="lesson-code-note">Illustration only</span>`;
+      html += `<div class="lesson-code-wrap"><pre class="lesson-code"><code>${escapeHtml(seg.content)}</code></pre>${codeAction}</div>`;
     } else {
       const paras = seg.content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
       for (const para of paras) html += `<p>${inlineMarkdown(para)}</p>`;
@@ -1185,7 +1241,9 @@ function setActiveTopicSection(sectionId) {
     section.classList.toggle("active", section.id === sectionId);
   });
   document.querySelectorAll(".mode-button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.section === sectionId);
+    const isActive = button.dataset.section === sectionId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 }
 

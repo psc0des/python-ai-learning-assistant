@@ -28,7 +28,7 @@ http://127.0.0.1:8765
 If port `8765` is busy, set another port:
 
 ```powershell
-$env:PY_INTERVIEW_PORT="9000"
+$env:PY_SKILL_LAB_PORT="9000"
 python app.py
 ```
 

@@ -26,7 +26,7 @@
     ],
     "hint": "Use a set of allowed lowercase values.",
     "solution": "def normalize_capability_type(value):\n    if not isinstance(value, str):\n        return None\n    v = value.strip().lower()\n    if v in {'tool', 'resource', 'prompt'}:\n        return v\n    return None\n",
-    "explanation": "Clear capability typing is foundational for MCP interoperability."
+    "explanation": "Clear capability typing is foundational for MCP interoperability. This lab practices the pure-Python validation logic behind MCP capability handling — in a real MCP project you define tools, resources, and prompts using the MCP SDK."
   },
   {
     "id": "discover-enabled-capabilities",
@@ -66,7 +66,7 @@
     "title": "Tool Contract Validator",
     "difficulty": "Intermediate",
     "difficulty_order": 3,
-    "prompt": "Write `validate_tool_call(call, required_keys)`.\n\nRules:\n- `call` must be dict with string key `tool` and dict key `args`.\n- All `required_keys` must exist in `call['args']`.\n- Return `(True, 'ok')` or `(False, '<reason>')` with reasons:\n  - `invalid_shape`\n  - `missing_required_arg`",
+    "prompt": "Write `validate_tool_call(call, required_keys)`.\n\nRules:\n- `call` must be dict with string key `tool` and dict key `args`.\n- All `required_keys` must exist in `call['args']`.\n- Return `[True, 'ok']` or `[False, '<reason>']` with reasons:\n  - `invalid_shape`\n  - `missing_required_arg`",
     "starter": "def validate_tool_call(call, required_keys):\n    pass\n",
     "tests": [
       {

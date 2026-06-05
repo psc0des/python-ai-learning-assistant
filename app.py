@@ -126,7 +126,7 @@ def _is_allowed_origin(origin: str, host: str, port: int) -> bool:
     try:
         parsed = urlparse(origin)
         origin_port = parsed.port if parsed.port is not None else (80 if parsed.scheme == "http" else 443)
-        return parsed.scheme == "http" and parsed.hostname == host and origin_port == port
+        return parsed.scheme == "http" and parsed.hostname in (host, "localhost") and origin_port == port
     except Exception:
         return False
 

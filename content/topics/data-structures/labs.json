@@ -9,16 +9,16 @@
     "starter": "def count_frequency(items):\n    counts = {}\n    # update counts here\n    return counts\n",
     "tests": [
       {
-        "label": "numbers",
-        "call": "count_frequency([1, 2, 1, 3, 2, 1])",
+        "label": "word list",
+        "call": "count_frequency(['cat', 'dog', 'cat', 'bird', 'dog', 'cat'])",
         "expected": {
-          "1": 3,
-          "2": 2,
-          "3": 1
+          "cat": 3,
+          "dog": 2,
+          "bird": 1
         }
       },
       {
-        "label": "words",
+        "label": "short words",
         "call": "count_frequency(['api', 'ai', 'api'])",
         "expected": {
           "api": 2,
@@ -31,9 +31,9 @@
         "expected": {}
       }
     ],
-    "hint": "Use `str(item)` as the key so numbers and strings behave consistently when sent as JSON.",
-    "solution": "def count_frequency(items):\n    counts = {}\n    for item in items:\n        key = str(item)\n        counts[key] = counts.get(key, 0) + 1\n    return counts\n",
-    "explanation": "We use str(item) as the key because JSON serialization converts integer keys to strings. The dict.get() method returns a default value (0) when the key does not exist yet."
+    "hint": "Use `dict.get(item, 0)` to retrieve the current count with a default of 0, then add 1.",
+    "solution": "def count_frequency(items):\n    counts = {}\n    for item in items:\n        counts[item] = counts.get(item, 0) + 1\n    return counts\n",
+    "explanation": "dict.get(key, default) returns the stored count or 0 if the key has not been seen yet. Incrementing by 1 and storing back is the standard Python frequency-counting pattern."
   },
   {
     "id": "merge-dicts",

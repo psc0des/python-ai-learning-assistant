@@ -36,7 +36,7 @@
     ],
     "hint": "Attempt conversion in a try/except path, then apply the 1..5 constraint.",
     "solution": "def coerce_priority_lax(value):\n    candidate = value\n    if isinstance(candidate, str):\n        candidate = candidate.strip()\n    try:\n        parsed = int(candidate)\n    except (TypeError, ValueError):\n        return None\n    if 1 <= parsed <= 5:\n        return parsed\n    return None\n",
-    "explanation": "This simulates lax parsing behavior: parse where safe, then enforce domain constraints."
+    "explanation": "This simulates lax parsing behavior: parse where safe, then enforce domain constraints. This lab practices the validation logic Pydantic models run internally — install pydantic to use real BaseModel declarations."
   },
   {
     "id": "coerce-priority-strict",
