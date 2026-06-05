@@ -203,6 +203,11 @@
             "urgent"
           ]
         }
+      },
+      {
+        "label": "does not mutate input",
+        "call": "(lambda t: (dump_ticket(t), len(t))[-1])({'title': 'A', 'priority': 1, 'owner': None, 'tags': []})",
+        "expected": 4
       }
     ],
     "hint": "Create a new dict and add optional keys conditionally.",

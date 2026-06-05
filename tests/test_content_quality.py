@@ -1,6 +1,9 @@
 """Baseline quality-gate tests for curriculum maturity."""
 
+import json
+import re
 from collections import Counter
+from pathlib import Path
 
 from content_loader import load_content
 
@@ -36,4 +39,44 @@ def test_non_reference_topics_are_explicitly_draft():
             assert topic.get("quality_status") == "draft", (
                 f"Topic '{topic['id']}' should be marked as draft until fully upgraded."
             )
+
+
+def test_practice_answer_diversity():
+    """No topic should use the predictable [0,1,2,3,0,1,2,3] answer pattern."""
+    uniform_pattern = [0, 1, 2, 3, 0, 1, 2, 3]
+    loaded = load_content()
+    violations = []
+    for pt in loaded.practice_tests:
+        questions = pt.get("questions", [])
+        if len(questions) == 8:
+            indices = [q["answer"] for q in questions]
+            if indices == uniform_pattern:
+                violations.append(pt["topic_id"])
+    assert not violations, (
+        f"Topics with predictable [0,1,2,3,0,1,2,3] answer pattern (easy to game): "
+        f"{violations}"
+    )
+
+
+def test_lesson_run_blocks_execute_cleanly():
+    """All 'python run' code fences in lesson.md files must execute without error."""
+    from runner import run_user_code
+
+    content_dir = Path(__file__).parent.parent / "content" / "topics"
+    code_block_re = re.compile(r"```python run\n([\s\S]*?)```", re.MULTILINE)
+    failures = []
+    for lesson_file in sorted(content_dir.glob("*/lesson.md")):
+        topic = lesson_file.parent.name
+        text = lesson_file.read_text(encoding="utf-8")
+        for match in code_block_re.finditer(text):
+            snippet = match.group(1).rstrip("\n")
+            result = run_user_code({"code": snippet, "exercise_id": ""}, [])
+            if result.get("stderr"):
+                failures.append(
+                    f"{topic}: {result['stderr'][:200]!r}\n  code: {snippet[:120]!r}"
+                )
+    assert not failures, (
+        f"{len(failures)} 'python run' lesson block(s) failed in runner:\n"
+        + "\n---\n".join(failures)
+    )
 

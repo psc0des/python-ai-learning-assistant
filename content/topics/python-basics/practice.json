@@ -16,11 +16,11 @@
       "question": "What does `17 // 3` return?",
       "options": [
         "5.666666666666667",
-        "5",
         "2",
+        "5",
         "6"
       ],
-      "answer": 1,
+      "answer": 2,
       "explanation": "`//` performs floor division, so it discards the fractional part. `/` would return a float, and `%` would return the remainder."
     },
     {
@@ -28,32 +28,32 @@
       "options": [
         "The first index in Python is 1, not 0.",
         "Strings cannot be indexed in Python.",
-        "Strings are immutable, so indexed characters cannot be assigned.",
-        "Single-letter strings are not allowed."
+        "Single-letter strings are not allowed.",
+        "Strings are immutable, so indexed characters cannot be assigned."
       ],
-      "answer": 2,
+      "answer": 3,
       "explanation": "Strings support indexing and slicing, but they cannot be changed in place. Create a new string when you need different text."
     },
     {
       "question": "What does slicing a list usually return?",
       "options": [
         "A dictionary of index positions.",
+        "A new list containing the selected items.",
         "The original list permanently shortened.",
-        "Only one item.",
-        "A new list containing the selected items."
+        "Only one item."
       ],
-      "answer": 3,
+      "answer": 1,
       "explanation": "Lists are sequences, so indexing returns one item while slicing returns a new list with the selected range."
     },
     {
       "question": "What does `for i in range(3)` produce?",
       "options": [
-        "0, 1, 2",
         "1, 2, 3",
         "0, 1, 2, 3",
+        "0, 1, 2",
         "3, 2, 1"
       ],
-      "answer": 0,
+      "answer": 2,
       "explanation": "range(3) produces integers from 0 up to (but not including) 3."
     },
     {
@@ -72,21 +72,21 @@
       "options": [
         "It prints the last expression.",
         "It returns the last variable assigned.",
-        "It returns None.",
-        "It raises NameError."
+        "It raises NameError.",
+        "It returns None."
       ],
-      "answer": 2,
+      "answer": 3,
       "explanation": "A function without a return value returns None. This is why labs usually ask you to return values rather than only print them."
     },
     {
       "question": "What error do you expect from reading a name before assigning it?",
       "options": [
+        "NameError",
         "ZeroDivisionError",
         "IndexError",
-        "TypeError",
-        "NameError"
+        "TypeError"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "The tutorial shows that trying to access an undefined variable raises NameError."
     }
   ]

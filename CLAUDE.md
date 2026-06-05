@@ -100,11 +100,11 @@ Python_Learning_Assistant/
 
 ### Origin validation (P0 — do not weaken)
 
-Every POST in `app.py` is protected by `_is_allowed_origin(origin, HOST, PORT)`. This function uses `urllib.parse.urlparse` and requires an **exact match** of scheme (`http`), hostname (`127.0.0.1`), and port (`8765` or configured port). An empty `Origin` header is allowed (same-origin browser request). Every other origin is rejected with 403.
+Every POST in `app.py` is protected by `_is_allowed_origin(origin, HOST, PORT)`. This function uses `urllib.parse.urlparse` and requires an **exact match** of scheme (`http`), hostname (`127.0.0.1` **or** `localhost`), and port (`8765` or configured port). An empty `Origin` header is allowed (same-origin browser request). Every other origin is rejected with 403.
 
 **Never replace this with `startswith()`** — that was the previous security bug. A prefix match allows `http://127.0.0.1.evil.com` through.
 
-Tests in `tests/test_origin_validation.py` cover: exact match, empty origin, hostile prefix domain, wrong port, default port 80, external domain, https scheme, null origin string, malformed input. All 9 must pass.
+Tests in `tests/test_origin_validation.py` cover: exact match, empty origin, localhost same port, localhost wrong port, hostile prefix domain, wrong port, default port 80, external domain, https scheme, null origin string, malformed input. All 11 must pass.
 
 ### Code runner
 
@@ -119,6 +119,16 @@ Two normalizations in the runner are intentional and must not be removed:
 - `_norm(value)` — recursively converts tuples to lists so beginner code returning `(1, 2)` matches `expected=[1, 2]`
 
 ## Content Rules
+
+### practice.json schema
+
+Each question object uses `"answer"` (not `"correct_index"`) for the zero-based correct option index:
+
+```json
+{"question": "...", "options": ["A", "B", "C", "D"], "answer": 0, "explanation": "..."}
+```
+
+`tests/test_curriculum.py` and `tests/test_content_quality.py` both read `q["answer"]`. Never use `correct_index`.
 
 ### Source of truth
 

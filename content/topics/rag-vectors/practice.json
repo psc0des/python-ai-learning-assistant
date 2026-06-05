@@ -4,23 +4,23 @@
     {
       "question": "What is the core purpose of embeddings in RAG?",
       "options": [
-        "Represent semantic meaning for similarity retrieval.",
         "Encrypt document text.",
+        "Represent semantic meaning for similarity retrieval.",
         "Replace all model prompts.",
         "Generate SQL queries directly."
       ],
-      "answer": 0,
+      "answer": 1,
       "explanation": "Embeddings enable semantic nearest-neighbor retrieval."
     },
     {
       "question": "Why does chunking strategy matter?",
       "options": [
         "It only affects storage size, not quality.",
-        "It impacts retrieval relevance, context coherence, and token cost.",
         "Chunking is optional in all vector systems.",
-        "Smaller chunks are always best."
+        "Smaller chunks are always best.",
+        "It impacts retrieval relevance, context coherence, and token cost."
       ],
-      "answer": 1,
+      "answer": 3,
       "explanation": "Chunking controls both recall and precision behavior."
     },
     {
@@ -37,23 +37,23 @@
     {
       "question": "Why should metadata be stored with vectors?",
       "options": [
+        "For filtering, source attribution, and debugging retrieval.",
         "Because embeddings cannot be queried otherwise.",
         "Only to improve model temperature.",
-        "To remove the need for citations.",
-        "For filtering, source attribution, and debugging retrieval."
+        "To remove the need for citations."
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Metadata is essential for practical, trustworthy retrieval workflows."
     },
     {
       "question": "What does reranking usually improve?",
       "options": [
-        "Final ordering quality of retrieved evidence.",
         "Database write throughput.",
         "Prompt tokenization speed.",
-        "Model context window size."
+        "Model context window size.",
+        "Final ordering quality of retrieved evidence."
       ],
-      "answer": 0,
+      "answer": 3,
       "explanation": "Reranking helps select better context from candidate hits."
     },
     {
@@ -70,12 +70,12 @@
     {
       "question": "What should RAG evaluation include?",
       "options": [
+        "Expected sources, retrieval quality, and answer correctness checks.",
         "Only latency metrics.",
         "Only subjective readability scores.",
-        "Expected sources, retrieval quality, and answer correctness checks.",
         "Only model benchmark numbers."
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "You need evidence-focused metrics, not just fluent outputs."
     },
     {
@@ -83,10 +83,10 @@
       "options": [
         "Rewrite the entire app.",
         "Increase temperature.",
-        "Disable citations.",
-        "Inspect retrieved chunks and metadata filters before prompt tweaks."
+        "Inspect retrieved chunks and metadata filters before prompt tweaks.",
+        "Disable citations."
       ],
-      "answer": 3,
+      "answer": 2,
       "explanation": "Many RAG failures originate in retrieval, not generation."
     }
   ]

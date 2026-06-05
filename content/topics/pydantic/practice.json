@@ -4,35 +4,35 @@
     {
       "question": "What is the best description of a Pydantic model in application architecture?",
       "options": [
-        "A schema contract that validates and shapes boundary data.",
         "A database migration script.",
+        "A schema contract that validates and shapes boundary data.",
         "A replacement for HTTP status codes.",
         "A task scheduler for async workers."
       ],
-      "answer": 0,
-      "explanation": "Pydantic models define expected data shape and validation rules at boundaries."
+      "answer": 1,
+      "explanation": "Pydantic models declare the expected shape and rules for data at system boundaries — API inputs, config files, external payloads — and raise structured errors when incoming data violates those rules."
     },
     {
       "question": "According to Pydantic docs, what does validation guarantee?",
       "options": [
         "The original raw input was perfectly typed already.",
-        "The resulting model output conforms to declared types and constraints.",
         "All fields are always optional by default.",
+        "The resulting model output conforms to declared types and constraints.",
         "Validation never performs parsing or coercion."
       ],
-      "answer": 1,
-      "explanation": "Validation is an output guarantee after parsing/validation, not a claim about raw input quality."
+      "answer": 2,
+      "explanation": "Pydantic's guarantee is about the output model, not the raw input; it will parse and coerce input values into the right types, then raise ValidationError if the result still cannot conform."
     },
     {
       "question": "What does `Field(ge=1, le=5)` mean for an integer field?",
       "options": [
+        "Accepted values must be between 1 and 5 inclusive.",
         "The field becomes optional.",
         "Only 1 and 5 are valid values.",
-        "Accepted values must be between 1 and 5 inclusive.",
         "The field is converted to string."
       ],
-      "answer": 2,
-      "explanation": "ge/le apply numeric boundary constraints, inclusive on both ends."
+      "answer": 0,
+      "explanation": "ge means 'greater than or equal to' and le means 'less than or equal to', so the field accepts any integer from 1 through 5 inclusive; values outside that range raise a ValidationError."
     },
     {
       "question": "Which statement correctly distinguishes Optional and default values?",
@@ -43,29 +43,29 @@
         "Optional[T] allows None; a default allows omission."
       ],
       "answer": 3,
-      "explanation": "Optional controls nullability, while defaults control whether the field may be omitted."
+      "explanation": "Optional[T] annotates a field as nullable so None is a valid value; a default value means the field can be omitted from input entirely — the two mechanisms control different things and can be combined."
     },
     {
       "question": "When should strict mode be preferred over default coercion?",
       "options": [
-        "When exact type safety matters more than convenience.",
         "Never; strict mode is always an anti-pattern.",
         "Only when returning JSON responses.",
-        "Only in unit tests, not in runtime code."
+        "Only in unit tests, not in runtime code.",
+        "When exact type safety matters more than convenience."
       ],
-      "answer": 0,
-      "explanation": "Strict mode is useful for high-risk fields where silent coercion is undesirable."
+      "answer": 3,
+      "explanation": "Strict mode rejects coercion so a string '5' passed where an integer is expected raises an error rather than being silently converted; this is valuable for fields where implicit conversion could mask a caller bug."
     },
     {
       "question": "What is the primary value of `ValidationError` in APIs?",
       "options": [
-        "It retries failed requests automatically.",
         "It provides structured field-level error details.",
+        "It retries failed requests automatically.",
         "It bypasses schema checks for performance.",
         "It converts all values to strings."
       ],
-      "answer": 1,
-      "explanation": "ValidationError supports precise client feedback and easier debugging."
+      "answer": 0,
+      "explanation": "ValidationError carries a list of field-level failures with locations and messages, giving API clients precise feedback about what was wrong instead of a generic 400 error with no actionable detail."
     },
     {
       "question": "Which method is the standard way to serialize model data to a Python dict in Pydantic v2?",
@@ -76,18 +76,18 @@
         "serialize()"
       ],
       "answer": 2,
-      "explanation": "model_dump() is the standard export method in Pydantic v2."
+      "explanation": "model_dump() is the official Pydantic v2 method for exporting model data to a dictionary; the Pydantic v1 method was .dict() which is deprecated and will be removed in future versions."
     },
     {
       "question": "What is a good production pattern for handling external payloads?",
       "options": [
         "Use print statements instead of structured validation errors.",
+        "Validate at the boundary, then pass model output to business logic.",
         "Skip validation for performance and fix errors later.",
-        "Validate only after writing raw payload to the database.",
-        "Validate at the boundary, then pass model output to business logic."
+        "Validate only after writing raw payload to the database."
       ],
-      "answer": 3,
-      "explanation": "Boundary validation keeps downstream logic cleaner and safer."
+      "answer": 1,
+      "explanation": "Validating at the entry point means downstream functions receive already-safe typed objects; skipping validation and passing raw dicts means every downstream function must defensively check fields it receives."
     }
   ]
 }

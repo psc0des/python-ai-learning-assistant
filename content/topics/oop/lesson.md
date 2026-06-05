@@ -8,7 +8,7 @@ A class is a blueprint — like an architectural drawing for a house. The drawin
 
 Imagine you are designing a dog shelter. Every dog has a name, a breed, and an age — but each dog is different. Instead of creating separate variables for every dog, you create a **class** called `Dog` that describes what every dog has. Then you create individual dogs (instances) from that blueprint.
 
-```python
+```python run
 
 class Dog:
     def __init__(self, name, breed):
@@ -54,7 +54,7 @@ class ServiceMonitor:
 
 `self` is how an instance refers to itself. Inside any instance method, `self` is the first parameter and Python fills it in automatically — you never pass it manually when calling methods.
 
-```python
+```python run
 class BankAccount:
     def __init__(self, owner, initial_balance=0):
         self.owner = owner              # set on THIS specific account
@@ -92,7 +92,7 @@ This is one of the most important distinctions in OOP — and one of the most co
 - **Instance variables** (set via `self.name = ...`) belong to each individual object
 - **Class variables** (set at class level, outside any method) are **shared by all instances**
 
-```python
+```python run
 # Layman analogy: all employees share the same company name,
 # but each has their own personal name and salary
 class Employee:
@@ -113,7 +113,7 @@ print(emp2.name)      # Bob — each has their own
 
 **The dangerous trap:** if your class variable is a **mutable** object (a list or dict), all instances will share and accidentally modify the same object.
 
-```python
+```python run
 # BUG: all instances share the same list!
 class BadQueue:
     items = []             # WRONG — this is a class variable!
@@ -138,7 +138,7 @@ A method is a function defined inside a class. The key difference from a regular
 
 Good methods have a **single clear responsibility**. If a method name requires 'and' to describe it, it probably does too much.
 
-```python
+```python run
 
 class Counter:
     def __init__(self, start=0):
@@ -161,7 +161,7 @@ c.reset()
 print(c.value())   # 0
 ```
 
-```python
+```python run
 
 class RetryPolicy:
     def __init__(self, max_attempts, backoff_seconds=1.0):
@@ -188,7 +188,7 @@ Note how the retry logic and its configuration live together in one place. If yo
 
 **Composition** means a class *contains* another class as an attribute. Use it when the relationship is 'has-a': a `Car` **has a** `Engine`.
 
-```python
+```python run
 # Inheritance: Animal → Dog is a true 'is-a' relationship
 class Animal:
     def __init__(self, name):
@@ -206,7 +206,7 @@ print(rex.describe())   # Rex is an animal  — inherited
 print(rex.speak())      # Rex barks          — own method
 ```
 
-```python
+```python run
 # Composition: Router 'has-a' Logger — not 'is-a' Logger
 class Logger:
     def log(self, message):
@@ -240,7 +240,7 @@ class Config:
         self.debug = debug
 ```
 
-```python
+```python run
 # With dataclass — much cleaner
 from dataclasses import dataclass, field
 

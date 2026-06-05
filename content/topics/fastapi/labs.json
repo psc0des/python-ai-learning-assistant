@@ -213,47 +213,52 @@
     "title": "Capstone: Request Router",
     "difficulty": "Advanced",
     "difficulty_order": 6,
-    "prompt": "Build a minimal HTTP router using four functions — no imports needed.\n\nA `router` is just a plain dict that maps `'METHOD:/path'` keys to handler name strings.\n\n- `register_route(router, method, path, handler)` — register a route and return the updated router dict.\n- `match_route(router, method, path)` — return the handler name string, or None if no match.\n- `validate_request(body, required)` — return `[True, body]` if all required fields are present and non-empty strings. Return `[False, {'field': name, 'code': 'required'}]` for the first missing or blank field.\n- `build_response(data, status)` — return `{'data': data, 'status': status, 'ok': status < 400}`.",
-    "starter": "def register_route(router, method, path, handler):\n    pass\n\ndef match_route(router, method, path):\n    pass\n\ndef validate_request(body, required):\n    pass\n\ndef build_response(data, status):\n    pass\n",
+    "prompt": "Build a `RequestRouter` class that owns a route registry and handles request validation — no imports needed.\n\nImplement:\n- `__init__(self)` — initialise an empty routes dict stored on the instance.\n- `register_route(self, method, path, handler)` — store `'METHOD:/path'` → handler name in the instance routes dict. Return `self` so calls can be chained.\n- `match_route(self, method, path)` — return the handler name string for the matching key, or None if not found.\n- `validate_request(self, body, required)` — return `[True, body]` if all required fields are present as non-empty strings. Return `[False, {'field': name, 'code': 'required'}]` for the first missing, blank, or non-string field.\n- `build_response(self, data, status)` — return `{'data': data, 'status': status, 'ok': status < 400}`.",
+    "starter": "class RequestRouter:\n    def __init__(self):\n        pass\n\n    def register_route(self, method, path, handler):\n        pass\n\n    def match_route(self, method, path):\n        pass\n\n    def validate_request(self, body, required):\n        pass\n\n    def build_response(self, data, status):\n        pass\n",
     "tests": [
       {
-        "label": "register adds route key",
-        "call": "register_route({}, 'GET', '/users', 'list_users')",
+        "label": "register stores route key",
+        "call": "(lambda r: (r.register_route('GET', '/users', 'list_users'), r._routes)[-1])(RequestRouter())",
         "expected": {"GET:/users": "list_users"}
       },
       {
-        "label": "match returns handler",
-        "call": "match_route({'GET:/items': 'list_items'}, 'GET', '/items')",
+        "label": "match returns handler after register",
+        "call": "(lambda r: (r.register_route('GET', '/items', 'list_items'), r.match_route('GET', '/items'))[-1])(RequestRouter())",
         "expected": "list_items"
       },
       {
-        "label": "match returns None for missing route",
-        "call": "match_route({'GET:/items': 'list_items'}, 'GET', '/missing')",
+        "label": "match returns None for unregistered route",
+        "call": "RequestRouter().match_route('GET', '/missing')",
         "expected": null
       },
       {
         "label": "validate passes complete body",
-        "call": "validate_request({'name': 'Ada', 'email': 'ada@x.com'}, ['name', 'email'])",
+        "call": "RequestRouter().validate_request({'name': 'Ada', 'email': 'ada@x.com'}, ['name', 'email'])",
         "expected": [true, {"name": "Ada", "email": "ada@x.com"}]
       },
       {
         "label": "validate catches missing field",
-        "call": "validate_request({'name': 'Ada'}, ['name', 'email'])",
+        "call": "RequestRouter().validate_request({'name': 'Ada'}, ['name', 'email'])",
         "expected": [false, {"field": "email", "code": "required"}]
       },
       {
+        "label": "validate rejects non-string field",
+        "call": "RequestRouter().validate_request({'name': 123, 'email': 'ada@x.com'}, ['name', 'email'])",
+        "expected": [false, {"field": "name", "code": "required"}]
+      },
+      {
         "label": "build_response 200 is ok",
-        "call": "build_response({'id': 1}, 200)",
+        "call": "RequestRouter().build_response({'id': 1}, 200)",
         "expected": {"data": {"id": 1}, "status": 200, "ok": true}
       },
       {
         "label": "build_response 404 is not ok",
-        "call": "build_response({'error': 'not found'}, 404)",
+        "call": "RequestRouter().build_response({'error': 'not found'}, 404)",
         "expected": {"data": {"error": "not found"}, "status": 404, "ok": false}
       }
     ],
-    "hint": "Start with register_route and match_route — they are just dict get/set. Then build_response (one expression). validate_request last — iterate required, use .get() to check presence.",
-    "solution": "def register_route(router, method, path, handler):\n    key = f'{method.upper()}:{path}'\n    router[key] = handler\n    return router\n\ndef match_route(router, method, path):\n    key = f'{method.upper()}:{path}'\n    return router.get(key)\n\ndef validate_request(body, required):\n    for field in required:\n        value = body.get(field)\n        if value is None or (isinstance(value, str) and not value.strip()):\n            return [False, {'field': field, 'code': 'required'}]\n    return [True, body]\n\ndef build_response(data, status):\n    return {'data': data, 'status': status, 'ok': status < 400}\n",
-    "explanation": "FastAPI's router, dependency injection, request validation, and response models each map to one of these functions. Understanding them as pure data transformations — dicts in, dicts out — makes the framework's behaviour predictable and testable without running a server."
+    "hint": "In __init__, set self._routes = {}. register_route builds a 'METHOD:/path' key, stores it in self._routes, and returns self. match_route calls self._routes.get(). validate_request iterates required fields and checks isinstance(value, str) and value.strip(). build_response is a one-expression return.",
+    "solution": "class RequestRouter:\n    def __init__(self):\n        self._routes = {}\n\n    def register_route(self, method, path, handler):\n        self._routes[f'{method.upper()}:{path}'] = handler\n        return self\n\n    def match_route(self, method, path):\n        return self._routes.get(f'{method.upper()}:{path}')\n\n    def validate_request(self, body, required):\n        for field in required:\n            value = body.get(field)\n            if not isinstance(value, str) or not value.strip():\n                return [False, {'field': field, 'code': 'required'}]\n        return [True, body]\n\n    def build_response(self, data, status):\n        return {'data': data, 'status': status, 'ok': status < 400}\n",
+    "explanation": "FastAPI's router, request validation, and response models each map to one of these methods. Encapsulating the route table in the class means every match call operates on a consistent view of registered routes — the same pattern used internally by Starlette and similar frameworks where a Router object owns its route tree."
   }
 ]

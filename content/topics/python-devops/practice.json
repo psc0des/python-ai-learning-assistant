@@ -4,34 +4,34 @@
     {
       "question": "What is the best first step before making infrastructure changes?",
       "options": [
-        "Run validation and generate a dry-run plan.",
         "Execute commands immediately.",
         "Skip config checks for speed.",
+        "Run validation and generate a dry-run plan.",
         "Ignore return codes."
       ],
-      "answer": 0,
+      "answer": 2,
       "explanation": "Preflight checks and dry runs reduce risk before side effects."
     },
     {
       "question": "Why is `subprocess.run([...])` generally safer than shell strings?",
       "options": [
-        "Shell strings are always required on Windows.",
         "Argument lists avoid shell injection and quoting issues.",
+        "Shell strings are always required on Windows.",
         "It hides command failures.",
         "It prevents timeout usage."
       ],
-      "answer": 1,
+      "answer": 0,
       "explanation": "List arguments bypass shell parsing and are more predictable."
     },
     {
       "question": "What does idempotent automation mean?",
       "options": [
         "Scripts cannot read config files.",
-        "Scripts must run only once.",
         "Repeated runs converge to the same desired state safely.",
+        "Scripts must run only once.",
         "All commands must return zero."
       ],
-      "answer": 2,
+      "answer": 1,
       "explanation": "Idempotency avoids duplicate unintended changes."
     },
     {
@@ -60,11 +60,11 @@
       "question": "Which path-handling approach is most robust in Python automation?",
       "options": [
         "Concatenate strings with slash manually.",
-        "Use pathlib objects and explicit joins.",
         "Hardcode absolute paths for all environments.",
-        "Use random temporary directories."
+        "Use random temporary directories.",
+        "Use pathlib objects and explicit joins."
       ],
-      "answer": 1,
+      "answer": 3,
       "explanation": "pathlib helps keep path logic portable and less error-prone."
     },
     {
@@ -82,11 +82,11 @@
       "question": "Why are logs crucial in DevOps scripts?",
       "options": [
         "They remove need for permission checks.",
+        "They provide auditability and support debugging during incidents.",
         "They replace all tests.",
-        "They improve model quality directly.",
-        "They provide auditability and support debugging during incidents."
+        "They improve model quality directly."
       ],
-      "answer": 3,
+      "answer": 1,
       "explanation": "Logs are the evidence trail for operational behavior."
     }
   ]

@@ -10,7 +10,7 @@ A function signature is the promise your function makes to the world: 'give me t
 
 `def` creates the function, parentheses hold the parameter names, and the indented block is where the work happens. When you call the function, you provide arguments — the actual values that fill in those parameter slots.
 
-```python
+```python run
 
 def greet(first_name, last_name):
     return f'Hello, {first_name} {last_name}!'
@@ -18,7 +18,7 @@ def greet(first_name, last_name):
 print(greet('Ada', 'Lovelace'))   # Hello, Ada Lovelace!
 ```
 
-```python
+```python run
 
 def normalize_name(raw: str) -> str:
     """Strip whitespace and title-case a name."""
@@ -33,7 +33,7 @@ print(normalize_name('  ada lovelace  '))  # Ada Lovelace
 
 Default argument values let you make some parameters optional. Callers who do not provide that argument get the default value automatically — great for settings that have sensible common values.
 
-```python
+```python run
 
 def order_pizza(topping, size='medium'):
     return f'Ordered: {size} pizza with {topping}'
@@ -44,7 +44,7 @@ print(order_pizza('peppers', 'large'))     # Ordered: large pizza with peppers
 
 **The mutable default trap** is one of Python's most notorious beginner bugs. Default values are evaluated **once when the function is defined** — not every time it is called. So if you use a list or dict as a default, every call shares the same list object:
 
-```python
+```python run
 # BUG — do NOT do this:
 def add_item(item, cart=[]):
     cart.append(item)
@@ -78,7 +78,7 @@ book_flight('London', '2025-06-01', 'business', True)
 book_flight('London', date='2025-06-01', seat_class='business', window=True)
 ```
 
-```python
+```python run
 
 def send_notification(user_id, message, channel='email', priority='normal'):
     return {'user': user_id, 'msg': message, 'via': channel, 'prio': priority}
@@ -95,7 +95,7 @@ print(result)
 
 Sometimes you want a function that can accept any number of values — like a `sum()` that works on 2 numbers or 20. `*args` collects any extra positional arguments into a tuple. `**kwargs` collects any extra keyword arguments into a dictionary.
 
-```python
+```python run
 
 def add_all(*numbers):
     return sum(numbers)
@@ -104,7 +104,7 @@ print(add_all(1, 2, 3))          # 6
 print(add_all(10, 20, 30, 40))   # 100
 ```
 
-```python
+```python run
 
 def log_and_call(func, *args, **kwargs):
     print(f'Calling {func.__name__} with args={args} kwargs={kwargs}')
@@ -128,7 +128,7 @@ A function communicates its result through `return`. Without a `return` statemen
 
 **Scope** means that variables created inside a function are local to that function. They do not exist outside it, and they do not interfere with variables of the same name elsewhere.
 
-```python
+```python run
 # Scope example
 x = 100  # outer variable
 
@@ -162,7 +162,7 @@ A docstring is a short description written as the first line inside a function. 
 
 Neither replaces tests, but together they make your code much easier for others (and future-you) to use correctly.
 
-```python
+```python run
 # Minimal docstring + type hints
 def celsius_to_fahrenheit(celsius: float) -> float:
     """Convert a temperature from Celsius to Fahrenheit."""
@@ -171,7 +171,7 @@ def celsius_to_fahrenheit(celsius: float) -> float:
 print(celsius_to_fahrenheit(100))  # 212.0
 ```
 
-```python
+```python run
 
 def summarize_scores(scores: list[int], passing: int = 60) -> dict:
     """

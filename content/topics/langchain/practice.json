@@ -4,46 +4,46 @@
     {
       "question": "Why do teams adopt LangChain in production LLM apps?",
       "options": [
-        "To compose models, tools, retrieval, and parsing with reusable interfaces.",
         "To avoid writing any tests.",
         "To replace HTTP APIs entirely.",
-        "To make prompts unnecessary."
+        "To make prompts unnecessary.",
+        "To compose models, tools, retrieval, and parsing with reusable interfaces."
       ],
-      "answer": 0,
-      "explanation": "LangChain provides reusable orchestration building blocks and interfaces."
+      "answer": 3,
+      "explanation": "LangChain provides standardized building blocks — chains, retrievers, tools, parsers — so teams can wire together LLM workflows without reimplementing integration plumbing for every new component."
     },
     {
       "question": "When is a deterministic chain usually better than an agent?",
       "options": [
         "When there are many unknown tool choices at runtime.",
-        "When workflow steps are fixed and predictable.",
         "When you need human-in-the-loop pauses.",
+        "When workflow steps are fixed and predictable.",
         "When every request must branch differently."
       ],
-      "answer": 1,
-      "explanation": "Deterministic chains are simpler and easier to test for fixed workflows."
+      "answer": 2,
+      "explanation": "A deterministic chain follows a fixed sequence that is easy to test and trace; agents introduce dynamic tool selection which adds unpredictability and debugging cost that is only justified when the workflow is genuinely open-ended."
     },
     {
       "question": "What is a primary purpose of tools in LangChain?",
       "options": [
+        "Allow model-driven calls to external capabilities.",
         "Convert SQL to Python syntax.",
         "Replace retrieval systems.",
-        "Allow model-driven calls to external capabilities.",
         "Store vector embeddings automatically."
       ],
-      "answer": 2,
-      "explanation": "Tools expose callable actions like search, APIs, or business operations."
+      "answer": 0,
+      "explanation": "Tools give the model a way to call external capabilities like search engines, APIs, or databases; without tools the model can only generate text from its training data."
     },
     {
       "question": "Which issue most directly causes weak RAG answers?",
       "options": [
         "Adding structured output.",
+        "Retrieving irrelevant or stale context chunks.",
         "Having too many status codes.",
-        "Using a typed language.",
-        "Retrieving irrelevant or stale context chunks."
+        "Using a typed language."
       ],
-      "answer": 3,
-      "explanation": "RAG quality depends heavily on retrieval quality."
+      "answer": 1,
+      "explanation": "RAG quality is bounded by retrieval quality — if the retrieved chunks are irrelevant or outdated, even a capable model cannot produce a correct answer from bad context."
     },
     {
       "question": "Why is structured output important?",
@@ -54,40 +54,40 @@
         "It works only with one provider."
       ],
       "answer": 0,
-      "explanation": "Structured outputs make integration and validation more reliable."
+      "explanation": "Structured outputs return typed fields that downstream code can access reliably; free-text responses require fragile string parsing that breaks whenever the model changes its phrasing."
     },
     {
       "question": "What should observability logs include for debugging LLM workflows?",
       "options": [
         "Only final answers.",
-        "Prompts, retrieved context, tool calls, outputs, and errors.",
         "Only latency numbers.",
+        "Prompts, retrieved context, tool calls, outputs, and errors.",
         "Only model name and temperature."
       ],
-      "answer": 1,
-      "explanation": "End-to-end tracing is needed to locate root causes across components."
+      "answer": 2,
+      "explanation": "End-to-end tracing across prompts, retrieved chunks, tool invocations, and model outputs is necessary to locate where a workflow produces wrong results — latency alone tells you nothing about correctness."
     },
     {
       "question": "What is a common safety practice for tool-enabled agents?",
       "options": [
         "Skip input schemas for faster execution.",
         "Grant full write access by default.",
-        "Limit tool scope and enforce permission policies.",
-        "Disable error handling to expose raw traces."
+        "Disable error handling to expose raw traces.",
+        "Limit tool scope and enforce permission policies."
       ],
-      "answer": 2,
-      "explanation": "Tool guardrails reduce risk from incorrect or unsafe model decisions."
+      "answer": 3,
+      "explanation": "Restricting what tools can read or write limits damage when the model makes an incorrect decision; granting broad access by default amplifies every model mistake into a potentially destructive action."
     },
     {
       "question": "How should provider changes be handled in a LangChain app?",
       "options": [
         "Remove retrieval before migrating providers.",
+        "Use shared interfaces and evaluate behavior changes with tests and traces.",
         "Hardcode one provider forever.",
-        "Switch providers without retesting.",
-        "Use shared interfaces and evaluate behavior changes with tests and traces."
+        "Switch providers without retesting."
       ],
-      "answer": 3,
-      "explanation": "Shared interfaces help portability, but behavior must still be evaluated."
+      "answer": 1,
+      "explanation": "Shared interfaces isolate the provider swap to one configuration point, but models from different providers behave differently; you must re-evaluate outputs with tests and traces rather than assuming drop-in compatibility."
     }
   ]
 }

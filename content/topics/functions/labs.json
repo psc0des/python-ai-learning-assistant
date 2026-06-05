@@ -27,6 +27,11 @@
         "label": "empty string",
         "call": "is_basic_email('')",
         "expected": false
+      },
+      {
+        "label": "dot before at not after",
+        "call": "is_basic_email('dev.example@com')",
+        "expected": false
       }
     ],
     "hint": "Split once around `@`, then inspect the domain part.",

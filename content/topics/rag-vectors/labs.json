@@ -228,42 +228,42 @@
     "title": "Capstone: Mini RAG Pipeline",
     "difficulty": "Advanced",
     "difficulty_order": 6,
-    "prompt": "Build a five-function RAG pipeline in pure Python — no embeddings library needed. Use word overlap as a simple relevance score.\n\n- `chunk_text(text, max_words)` — split text into ordered chunks of at most `max_words` words each. Return [] for empty text or invalid max_words.\n- `score_relevance(chunk, query)` — return the count of words shared between chunk and query (case-insensitive, set intersection).\n- `retrieve_top_k(chunks, query, k)` — return the top-k chunks sorted by relevance score descending.\n- `build_prompt(question, chunks)` — return a string in the format `'Context:\\n- chunk1\\n- chunk2\\n\\nQuestion: question'`.\n- `format_citation(source, idx)` — return the string `'[idx] source'`.",
-    "starter": "def chunk_text(text, max_words):\n    pass\n\ndef score_relevance(chunk, query):\n    pass\n\ndef retrieve_top_k(chunks, query, k):\n    pass\n\ndef build_prompt(question, chunks):\n    pass\n\ndef format_citation(source, idx):\n    pass\n",
+    "prompt": "Build a `MiniRagPipeline` class that stores document chunks internally and exposes the full retrieve-and-prompt loop — no imports needed. Use word overlap as a relevance score.\n\nImplement:\n- `__init__(self)` — initialise an empty chunks list on the instance.\n- `add_document(self, text, max_words)` — split text into chunks of at most `max_words` words, extend self's chunk list, and return the new chunks added. Return [] for empty text or invalid max_words.\n- `score_relevance(self, chunk, query)` — return the count of words shared between chunk and query (case-insensitive set intersection).\n- `retrieve_top_k(self, query, k)` — search the stored chunks and return the top-k sorted by relevance score descending.\n- `build_prompt(self, question, chunks)` — return `'Context:\\n- chunk1\\n- chunk2\\n\\nQuestion: question'`.\n- `format_citation(self, source, idx)` — return `'[idx] source'`.",
+    "starter": "class MiniRagPipeline:\n    def __init__(self):\n        pass\n\n    def add_document(self, text, max_words):\n        pass\n\n    def score_relevance(self, chunk, query):\n        pass\n\n    def retrieve_top_k(self, query, k):\n        pass\n\n    def build_prompt(self, question, chunks):\n        pass\n\n    def format_citation(self, source, idx):\n        pass\n",
     "tests": [
       {
-        "label": "chunk_text splits correctly",
-        "call": "chunk_text('a b c d e', 2)",
+        "label": "add_document returns new chunks",
+        "call": "MiniRagPipeline().add_document('a b c d e', 2)",
         "expected": ["a b", "c d", "e"]
       },
       {
         "label": "score_relevance one shared word",
-        "call": "score_relevance('python is fast', 'python speed')",
+        "call": "MiniRagPipeline().score_relevance('python is fast', 'python speed')",
         "expected": 1
       },
       {
         "label": "score_relevance two shared words",
-        "call": "score_relevance('python speed test', 'python speed')",
+        "call": "MiniRagPipeline().score_relevance('python speed test', 'python speed')",
         "expected": 2
       },
       {
-        "label": "retrieve_top_k returns best matches",
-        "call": "retrieve_top_k(['python is fast', 'java is verbose', 'python speed test'], 'python speed', 2)",
-        "expected": ["python speed test", "python is fast"]
+        "label": "retrieve_top_k searches stored chunks",
+        "call": "(lambda p: (p.add_document('python is fast java verbose', 5), p.add_document('python speed test run', 5), p.retrieve_top_k('python speed', 2))[-1])(MiniRagPipeline())",
+        "expected": ["python speed test run", "python is fast java verbose"]
       },
       {
         "label": "build_prompt formats context and question",
-        "call": "build_prompt('What is Python?', ['Python is a language', 'It is interpreted'])",
+        "call": "MiniRagPipeline().build_prompt('What is Python?', ['Python is a language', 'It is interpreted'])",
         "expected": "Context:\n- Python is a language\n- It is interpreted\n\nQuestion: What is Python?"
       },
       {
         "label": "format_citation produces bracketed reference",
-        "call": "format_citation('Python docs', 1)",
+        "call": "MiniRagPipeline().format_citation('Python docs', 1)",
         "expected": "[1] Python docs"
       }
     ],
-    "hint": "Build chunk_text first (split + range loop). score_relevance is a one-liner using set intersection. retrieve_top_k sorts by score. build_prompt joins with newlines. format_citation is an f-string.",
-    "solution": "def chunk_text(text, max_words):\n    words = text.split()\n    if not words or max_words <= 0:\n        return []\n    chunks = []\n    for i in range(0, len(words), max_words):\n        chunks.append(' '.join(words[i:i + max_words]))\n    return chunks\n\ndef score_relevance(chunk, query):\n    chunk_words = set(chunk.lower().split())\n    query_words = set(query.lower().split())\n    return len(chunk_words & query_words)\n\ndef retrieve_top_k(chunks, query, k):\n    scored = [(chunk, score_relevance(chunk, query)) for chunk in chunks]\n    scored.sort(key=lambda x: x[1], reverse=True)\n    return [chunk for chunk, _ in scored[:k]]\n\ndef build_prompt(question, chunks):\n    context = '\\n'.join(f'- {chunk}' for chunk in chunks)\n    return f'Context:\\n{context}\\n\\nQuestion: {question}'\n\ndef format_citation(source, idx):\n    return f'[{idx}] {source}'\n",
-    "explanation": "This is the core loop inside every production RAG system: chunk documents, score candidate passages against the query, retrieve the top matches, assemble a grounded prompt, and surface citations. Real systems replace word-overlap scoring with vector cosine similarity, but the pipeline shape is identical."
+    "hint": "In __init__, set self._chunks = []. add_document splits text, builds chunk strings with a range loop, extends self._chunks, and returns the new chunks. score_relevance is a one-liner using set intersection on .lower().split(). retrieve_top_k scores self._chunks against the query, sorts descending, and slices [:k]. build_prompt joins with '\\n- ' prefix. format_citation is an f-string.",
+    "solution": "class MiniRagPipeline:\n    def __init__(self):\n        self._chunks = []\n\n    def add_document(self, text, max_words):\n        words = text.split()\n        if not words or max_words <= 0:\n            return []\n        new_chunks = []\n        for i in range(0, len(words), max_words):\n            new_chunks.append(' '.join(words[i:i + max_words]))\n        self._chunks.extend(new_chunks)\n        return new_chunks\n\n    def score_relevance(self, chunk, query):\n        return len(set(chunk.lower().split()) & set(query.lower().split()))\n\n    def retrieve_top_k(self, query, k):\n        scored = [(c, self.score_relevance(c, query)) for c in self._chunks]\n        scored.sort(key=lambda x: x[1], reverse=True)\n        return [c for c, _ in scored[:k]]\n\n    def build_prompt(self, question, chunks):\n        context = '\\n'.join(f'- {chunk}' for chunk in chunks)\n        return f'Context:\\n{context}\\n\\nQuestion: {question}'\n\n    def format_citation(self, source, idx):\n        return f'[{idx}] {source}'\n",
+    "explanation": "This is the core loop inside every production RAG system: a pipeline object accumulates document chunks, scores candidate passages against a query, retrieves the top matches, assembles a grounded prompt, and surfaces citations. The class boundary means the chunk store is consistent across all retrieve calls — real systems replace word-overlap scoring with vector cosine similarity but the pipeline shape is identical."
   }
 ]

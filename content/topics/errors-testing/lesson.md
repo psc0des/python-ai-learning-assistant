@@ -139,7 +139,7 @@ with open('data.txt') as f:
     data = f.read()   # if this fails, file still closes
 ```
 
-```python
+```python run
 
 class DatabaseConnection:
     def __enter__(self):
@@ -169,7 +169,7 @@ A test is a piece of code that checks whether your code does what you expect. Te
 
 The simplest tests use `assert` — if the condition is false, the test fails with an `AssertionError`.
 
-```python
+```python run
 
 def apply_discount(price, percent):
     return round(price * (1 - percent / 100), 2)
@@ -181,7 +181,7 @@ assert apply_discount(10.00, 100) == 0.0, '100% discount is free'
 print('All tests passed!')
 ```
 
-```python
+```python run
 
 def safe_divide(a, b):
     if b == 0:

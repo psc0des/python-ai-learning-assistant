@@ -4,90 +4,90 @@
     {
       "question": "Why should functions usually return values instead of only printing?",
       "options": [
-        "Returned values are easier to test and reuse.",
         "Printing is not allowed in Python.",
+        "Returned values are easier to test and reuse.",
         "Return statements make code run in parallel.",
         "Printing changes the type of the value."
       ],
-      "answer": 0,
-      "explanation": "A returned value can be asserted in tests and reused by other functions."
+      "answer": 1,
+      "explanation": "A returned value can be captured, passed to another function, or checked in a test; a printed string vanishes to the console and cannot be inspected or reused programmatically."
     },
     {
       "question": "What problem can `def add_item(item, items=[])` cause?",
       "options": [
-        "Python does not allow lists as defaults.",
         "The default list is shared across calls and can retain old values.",
+        "Python does not allow lists as defaults.",
         "The function will always return an empty list.",
         "The function cannot accept more than one argument."
       ],
-      "answer": 1,
-      "explanation": "Mutable defaults are evaluated once at definition time, not per call."
+      "answer": 0,
+      "explanation": "Mutable defaults like lists are created once when the function is defined, not fresh on each call; successive calls share the same list object, so previous appends accumulate unexpectedly."
     },
     {
       "question": "What is the difference between a parameter and an argument?",
       "options": [
         "Parameters are always strings.",
         "They are the same thing.",
-        "A parameter is in the function definition; an argument is the value passed at call time.",
-        "Arguments are only keyword values."
+        "Arguments are only keyword values.",
+        "A parameter is in the function definition; an argument is the value passed at call time."
       ],
-      "answer": 2,
-      "explanation": "Parameters describe inputs, arguments provide concrete values."
+      "answer": 3,
+      "explanation": "Parameters are placeholder names declared in the def statement; arguments are the actual values supplied when you call the function — the two terms describe the same slot from different perspectives."
     },
     {
       "question": "What does `*args` do in a function signature?",
       "options": [
         "Prevents default arguments.",
         "Collects keyword arguments into a dictionary.",
-        "Requires all arguments to be keyword-only.",
-        "Collects extra positional arguments into a tuple."
+        "Collects extra positional arguments into a tuple.",
+        "Requires all arguments to be keyword-only."
       ],
-      "answer": 3,
-      "explanation": "`*args` supports flexible positional inputs."
+      "answer": 2,
+      "explanation": "*args gathers any extra positional arguments beyond the named parameters into a tuple; **kwargs does the equivalent for keyword arguments into a dictionary — they are distinct."
     },
     {
       "question": "What does a function return if there is no return statement?",
       "options": [
-        "None",
         "0",
         "An empty string",
+        "None",
         "It raises NameError."
       ],
-      "answer": 0,
-      "explanation": "Python returns `None` when no explicit return value is provided."
+      "answer": 2,
+      "explanation": "Python implicitly returns None when execution falls off the end of a function without a return statement; beginners often mistake this for returning the last assigned variable, which it is not."
     },
     {
       "question": "Why can keyword arguments improve readability?",
       "options": [
         "They force Python to infer types.",
-        "They make argument intent explicit at call sites.",
         "They run faster than positional arguments.",
-        "They prevent defaults from being used."
+        "They prevent defaults from being used.",
+        "They make argument intent explicit at call sites."
       ],
-      "answer": 1,
-      "explanation": "Named arguments document intent, especially with many optional parameters."
+      "answer": 3,
+      "explanation": "Writing process(timeout=30, retry=True) is self-documenting; positional process(30, True) forces readers to look up the signature to understand what each value means."
     },
     {
       "question": "When should you split a function into smaller functions?",
       "options": [
         "When the function has exactly one parameter.",
-        "When the function uses return.",
         "When one function handles multiple unrelated responsibilities.",
+        "When the function uses return.",
         "Never; larger functions are always better."
       ],
-      "answer": 2,
-      "explanation": "Single-responsibility functions are easier to test and maintain."
+      "answer": 1,
+      "explanation": "A function that does multiple unrelated things is hard to name accurately, test in isolation, and reuse; extracting each responsibility into its own function makes each piece easier to reason about."
     },
     {
       "question": "What is the main value of a docstring?",
       "options": [
+        "It explains behavior and usage for humans and tools.",
         "It turns dynamic typing into static typing.",
         "It makes code execute faster.",
-        "It replaces tests.",
-        "It explains behavior and usage for humans and tools."
+        "It replaces tests."
       ],
-      "answer": 3,
-      "explanation": "Docstrings improve readability and can be surfaced by help/tooling."
+      "answer": 0,
+      "explanation": "A docstring is readable by help(), IDEs, and doc generators; it communicates what the function does, what arguments it expects, and what it returns — none of which speed up execution or replace tests."
     }
   ]
 }

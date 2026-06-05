@@ -4,24 +4,24 @@
     {
       "question": "What does `self` refer to inside an instance method?",
       "options": [
-        "The current instance.",
         "The parent class only.",
         "The Python interpreter.",
-        "A global variable."
+        "A global variable.",
+        "The current instance."
       ],
-      "answer": 0,
-      "explanation": "`self` is the object on which the method is called."
+      "answer": 3,
+      "explanation": "self is the specific object on which the method was called; it gives the method access to that object's attributes and other methods, not to the class definition or any global state."
     },
     {
       "question": "What does `__init__` typically do?",
       "options": [
-        "Destroy objects that are no longer used.",
         "Initialize instance attributes for a newly created object.",
+        "Destroy objects that are no longer used.",
         "Define all class methods automatically.",
         "Make methods static by default."
       ],
-      "answer": 1,
-      "explanation": "`__init__` sets initial object state."
+      "answer": 0,
+      "explanation": "__init__ runs immediately after an object is created and sets up its initial attribute values; it does not destroy objects (that is __del__), define methods, or make anything static."
     },
     {
       "question": "What is the difference between class variables and instance variables?",
@@ -32,18 +32,18 @@
         "Class variables only work in dataclasses."
       ],
       "answer": 2,
-      "explanation": "Shared versus per-instance state is a core OOP distinction."
+      "explanation": "A class variable lives on the class itself and is shared by every instance; an instance variable is stored per object and isolated — mixing them up causes one object's changes to silently affect others."
     },
     {
       "question": "When should you usually prefer composition?",
       "options": [
         "Only for global state containers.",
+        "When you can combine smaller objects instead of forcing inheritance hierarchy.",
         "Never; inheritance is always cleaner.",
-        "Only when classes have no methods.",
-        "When you can combine smaller objects instead of forcing inheritance hierarchy."
+        "Only when classes have no methods."
       ],
-      "answer": 3,
-      "explanation": "Composition is often simpler and more flexible than deep inheritance."
+      "answer": 1,
+      "explanation": "Composition builds a class by holding instances of other classes rather than inheriting from them; it is more flexible because you can swap components at runtime without changing the class hierarchy."
     },
     {
       "question": "What problem appears if you accidentally use a class variable for per-user state?",
@@ -54,29 +54,29 @@
         "The variable becomes immutable."
       ],
       "answer": 0,
-      "explanation": "Shared class state can leak across objects."
+      "explanation": "A class variable is shared across all instances; if one object mutates it, every other object sees the change immediately, which is almost never the intended behavior for per-user or per-request state."
     },
     {
       "question": "What is a good use case for a dataclass?",
       "options": [
         "Any class that must use inheritance.",
-        "A structured data model with many fields and simple behavior.",
         "Replacing every function with a class.",
+        "A structured data model with many fields and simple behavior.",
         "Code that never stores state."
       ],
-      "answer": 1,
-      "explanation": "Dataclasses reduce boilerplate for data-centric classes."
+      "answer": 2,
+      "explanation": "Dataclasses auto-generate __init__, __repr__, and __eq__ from field declarations, eliminating repetitive boilerplate; they are ideal for value-holder objects but not for complex behavior-heavy classes."
     },
     {
       "question": "What happens if you forget `self` in an instance method signature?",
       "options": [
         "The method becomes a class method.",
-        "Python adds it automatically in every case.",
         "Method calls usually fail with argument mismatch errors.",
+        "Python adds it automatically in every case.",
         "Nothing; it still works as intended."
       ],
-      "answer": 2,
-      "explanation": "Python passes the instance as first argument, so the signature must account for it."
+      "answer": 1,
+      "explanation": "Python silently passes the instance as the first argument when you call an instance method; if self is missing from the signature, Python maps it to the first declared parameter, causing a wrong-argument-count error."
     },
     {
       "question": "What is the strongest sign that a class is poorly designed?",
@@ -87,7 +87,7 @@
         "It handles many unrelated responsibilities."
       ],
       "answer": 3,
-      "explanation": "Single-responsibility design improves readability and maintainability."
+      "explanation": "A class that does too many unrelated things is hard to name accurately, hard to test in isolation, and hard to change without breaking unrelated behavior — the single-responsibility principle directly addresses this."
     }
   ]
 }

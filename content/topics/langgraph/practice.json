@@ -10,18 +10,18 @@
         "GPU memory optimization."
       ],
       "answer": 0,
-      "explanation": "LangGraph targets complex, stateful orchestration beyond simple prompt chains."
+      "explanation": "LangGraph models workflows as graphs with explicit nodes, edges, and shared state so you can build multi-step agents that branch, loop, pause for human input, and resume from checkpoints."
     },
     {
       "question": "In LangGraph, what is the role of state?",
       "options": [
         "A log file path only.",
-        "Shared workflow data passed and updated across nodes.",
         "A list of installed packages.",
-        "A runtime environment variable store."
+        "A runtime environment variable store.",
+        "Shared workflow data passed and updated across nodes."
       ],
-      "answer": 1,
-      "explanation": "State is the contract that carries evolving context through the graph."
+      "answer": 3,
+      "explanation": "State is the typed data contract that flows through every node; each node reads what it needs and writes back updates, so the entire graph communicates through a single evolving snapshot."
     },
     {
       "question": "When do conditional edges add value?",
@@ -32,51 +32,51 @@
         "Only for test environments."
       ],
       "answer": 2,
-      "explanation": "Conditional routing makes decision points explicit and testable."
+      "explanation": "Conditional edges encode branching logic that depends on runtime state — for example routing to a human-review node when confidence is low — making each decision point explicit and independently testable."
     },
     {
       "question": "Why are thread IDs important in LangGraph persistence?",
       "options": [
         "They disable state updates.",
+        "They identify checkpoint history used for resume and replay.",
         "They improve tokenizer speed.",
-        "They replace model names.",
-        "They identify checkpoint history used for resume and replay."
+        "They replace model names."
       ],
-      "answer": 3,
-      "explanation": "Thread ID is used to locate and continue checkpointed workflow state."
+      "answer": 1,
+      "explanation": "A thread ID labels a specific execution history in the checkpointer; passing the same ID on the next run loads the saved state so the workflow resumes exactly where it paused."
     },
     {
       "question": "What does an interrupt enable in a workflow?",
       "options": [
-        "Pause execution and wait for external/human input before continuing.",
         "Skip all remaining nodes immediately.",
         "Auto-approve every risky action.",
+        "Pause execution and wait for external/human input before continuing.",
         "Force model output to be deterministic."
       ],
-      "answer": 0,
-      "explanation": "Interrupts are key for safe human-in-the-loop workflows."
+      "answer": 2,
+      "explanation": "An interrupt halts the graph at a designated node and waits for an external signal or human approval before proceeding; without it, all automated decisions execute without any oversight."
     },
     {
       "question": "What is a common anti-pattern in LangGraph design?",
       "options": [
-        "Defining explicit node responsibilities.",
         "Putting all logic into one node and using unclear state.",
+        "Defining explicit node responsibilities.",
         "Using checkpointing for long workflows.",
         "Adding conditional routes for policy checks."
       ],
-      "answer": 1,
-      "explanation": "Overloaded nodes and unstructured state reduce maintainability and reliability."
+      "answer": 0,
+      "explanation": "Cramming all logic into one giant node defeats the purpose of a graph — you lose the ability to test nodes independently, trace failures to a specific step, or reuse parts of the workflow."
     },
     {
       "question": "Why is streaming useful in LangGraph systems?",
       "options": [
         "It guarantees zero latency.",
-        "It removes the need for checkpoints.",
         "It provides real-time progress visibility and debugging signals.",
+        "It removes the need for checkpoints.",
         "It replaces logging permanently."
       ],
-      "answer": 2,
-      "explanation": "Streaming improves UX and helps diagnose where execution is currently spending time."
+      "answer": 1,
+      "explanation": "Streaming emits state updates as each node completes, giving users visible progress on long-running workflows and giving developers a live trace to identify which node is slow or producing bad output."
     },
     {
       "question": "When should you choose LangGraph over a simple chain?",
@@ -87,7 +87,7 @@
         "When workflow needs branching, resume, approvals, or long-running state."
       ],
       "answer": 3,
-      "explanation": "LangGraph is most useful for complex orchestration and operational control."
+      "explanation": "A simple chain is sufficient for linear, stateless tasks; LangGraph is justified when you need conditional routing, checkpoint-based resume, human-in-the-loop gates, or state that persists across multiple turns."
     }
   ]
 }

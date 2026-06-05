@@ -4,46 +4,46 @@
     {
       "question": "Which container is usually best for checking whether an item was already seen?",
       "options": [
-        "set",
         "list",
+        "set",
         "tuple",
         "string"
       ],
-      "answer": 0,
-      "explanation": "A set is designed for uniqueness and fast membership checks."
+      "answer": 1,
+      "explanation": "A set stores only unique values and checks membership in O(1) average time; a list must scan every element, making repeated lookups much slower for large collections."
     },
     {
       "question": "What happens if you use a list as a dictionary key?",
       "options": [
         "The list is automatically converted to a tuple.",
-        "Python raises a TypeError because lists are not hashable.",
         "It works fine.",
-        "Python silently ignores the entry."
+        "Python silently ignores the entry.",
+        "Python raises a TypeError because lists are not hashable."
       ],
-      "answer": 1,
-      "explanation": "Dictionary keys must be hashable. Lists are mutable and therefore not hashable."
+      "answer": 3,
+      "explanation": "Dictionary keys must be hashable so Python can store them in a hash table. Lists are mutable and therefore not hashable — use a tuple instead when you need a sequence key."
     },
     {
       "question": "Which method safely gets a value from a dict without raising KeyError?",
       "options": [
+        "dict.get(key, default)",
         "dict.find(key)",
         "dict[key]",
-        "dict.get(key, default)",
         "dict.fetch(key)"
       ],
-      "answer": 2,
-      "explanation": "dict.get() returns a default when a key is missing."
+      "answer": 0,
+      "explanation": "dict.get(key, default) returns the default value when the key is absent instead of raising KeyError; dict[key] is the direct access form that will raise if the key is missing."
     },
     {
       "question": "What is the main advantage of a tuple over a list?",
       "options": [
         "Tuples support more mutating methods.",
         "Tuples can hold more elements than lists.",
-        "Tuples are always faster in every operation.",
-        "Tuples are immutable, making them safe for fixed records and as dictionary keys."
+        "Tuples are immutable, making them safe for fixed records and as dictionary keys.",
+        "Tuples are always faster in every operation."
       ],
-      "answer": 3,
-      "explanation": "Immutability makes tuples reliable for fixed structure data."
+      "answer": 2,
+      "explanation": "Immutability means a tuple's contents cannot change after creation, making it safe to use as a dictionary key and a reliable container for fixed data records."
     },
     {
       "question": "What does `{1, 2, 3} & {2, 3, 4}` return?",
@@ -54,18 +54,18 @@
         "An error because & does not work on sets."
       ],
       "answer": 0,
-      "explanation": "The `&` operator returns the intersection of both sets."
+      "explanation": "The `&` operator computes the intersection of two sets, returning only elements present in both. Use `|` for union and `-` for difference."
     },
     {
       "question": "Which expression builds a list of squares for numbers 0 to 4?",
       "options": [
         "{n * n for n in range(5)}",
-        "[n * n for n in range(5)]",
         "(n * n for n in range(5))",
-        "[n * n where n in range(5)]"
+        "[n * n where n in range(5)]",
+        "[n * n for n in range(5)]"
       ],
-      "answer": 1,
-      "explanation": "List comprehensions use `[expression for item in iterable]` syntax."
+      "answer": 3,
+      "explanation": "List comprehensions use square brackets `[expr for item in iterable]`. Curly braces produce a set; parentheses produce a generator; `where` is not valid Python syntax."
     },
     {
       "question": "Which loop style gives both index and value from a list?",
@@ -76,17 +76,17 @@
         "for value in index(items):"
       ],
       "answer": 2,
-      "explanation": "enumerate() yields `(index, value)` pairs for a sequence."
+      "explanation": "enumerate() wraps a sequence and yields (index, value) pairs on each iteration, avoiding the need for a manual counter variable."
     },
     {
       "question": "Why might you choose a dictionary over a list of tuples for service lookup by name?",
       "options": [
         "Dictionaries automatically validate types.",
+        "Dictionary lookup by key is direct and usually faster for repeated queries.",
         "Dictionaries preserve insertion order less reliably than tuples.",
-        "Lists of tuples cannot store strings as keys.",
-        "Dictionary lookup by key is direct and usually faster for repeated queries."
+        "Lists of tuples cannot store strings as keys."
       ],
-      "answer": 3,
+      "answer": 1,
       "explanation": "Dictionaries are optimized for keyed lookup and are the standard structure for repeated retrieval by key."
     }
   ]

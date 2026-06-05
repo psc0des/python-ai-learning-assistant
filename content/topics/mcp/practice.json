@@ -4,13 +4,13 @@
     {
       "question": "What is MCP primarily for?",
       "options": [
-        "Standardizing AI client-server access to tools and context.",
         "Training language models from scratch.",
         "Replacing HTTP with a new network protocol.",
+        "Standardizing AI client-server access to tools and context.",
         "Encrypting local files."
       ],
-      "answer": 0,
-      "explanation": "MCP standardizes how assistants connect to external capabilities and context."
+      "answer": 2,
+      "explanation": "MCP defines a standard protocol so any AI assistant can connect to any MCP server to access tools, resources, and prompt templates without custom integration code for each pairing."
     },
     {
       "question": "Which mapping is correct in MCP?",
@@ -21,51 +21,51 @@
         "All three mean the same thing."
       ],
       "answer": 1,
-      "explanation": "These three capability types serve different integration purposes."
+      "explanation": "MCP defines three distinct capability types: tools are callable actions, resources are readable data sources, and prompts are reusable templates — conflating them leads to poor server design."
     },
     {
       "question": "Why should clients perform capability discovery?",
       "options": [
         "To disable permission checks.",
         "To avoid logging requests.",
-        "Because available capabilities can vary by server/environment.",
-        "Because discovery is required only for frontend apps."
+        "Because discovery is required only for frontend apps.",
+        "Because available capabilities can vary by server/environment."
       ],
-      "answer": 2,
-      "explanation": "Discovery avoids assumptions and supports dynamic interoperability."
+      "answer": 3,
+      "explanation": "Different MCP servers expose different tools and resources; a client that hardcodes capability names instead of discovering them at runtime will break when the server configuration changes."
     },
     {
       "question": "What is least privilege in MCP server design?",
       "options": [
+        "Expose only the minimum capabilities required for the task.",
         "Disable all validation.",
         "Give admin access to every tool by default.",
-        "Use only read-only prompts and no tools.",
-        "Expose only the minimum capabilities required for the task."
+        "Use only read-only prompts and no tools."
       ],
-      "answer": 3,
-      "explanation": "Limiting scope reduces blast radius from mistakes or misuse."
+      "answer": 0,
+      "explanation": "Exposing only the capabilities a client actually needs limits the damage if a tool is called with bad arguments or if the model makes an incorrect decision about which action to take."
     },
     {
       "question": "What should happen before executing a tool call?",
       "options": [
-        "Validate call shape and required arguments.",
         "Execute first, validate after.",
+        "Validate call shape and required arguments.",
         "Skip validation for trusted users.",
         "Convert all arguments to strings."
       ],
-      "answer": 0,
-      "explanation": "Input validation is required to keep tool execution predictable and safe."
+      "answer": 1,
+      "explanation": "Validating the call shape and required argument types before execution catches model mistakes early; executing first and validating after means side effects have already occurred when you discover the problem."
     },
     {
       "question": "Why are audit logs important for MCP operations?",
       "options": [
         "They speed up embeddings.",
-        "They provide traceability for who called what and with what result.",
         "They replace permission policies.",
-        "They remove the need for tests."
+        "They remove the need for tests.",
+        "They provide traceability for who called what and with what result."
       ],
-      "answer": 1,
-      "explanation": "Auditability supports debugging, governance, and incident review."
+      "answer": 3,
+      "explanation": "Audit logs record every tool call, its arguments, and its result so you can reconstruct what the model did during an incident, verify compliance, and debug unexpected behavior."
     },
     {
       "question": "What is a safer rollout strategy for new MCP servers?",
@@ -76,18 +76,18 @@
         "Skip schema design and rely on model intuition."
       ],
       "answer": 2,
-      "explanation": "Progressive rollout with guardrails lowers operational risk."
+      "explanation": "Starting with read-only tools lets you verify discovery, authentication, and logging before you expose actions with side effects; approval gates on write actions add a human checkpoint for high-risk operations."
     },
     {
       "question": "What does a clean MCP separation improve the most?",
       "options": [
+        "Maintainability and interoperability across hosts and tools.",
         "Filesystem throughput.",
         "GPU memory usage.",
-        "SQL query planning.",
-        "Maintainability and interoperability across hosts and tools."
+        "SQL query planning."
       ],
-      "answer": 3,
-      "explanation": "Clear role boundaries help teams build reusable, portable integrations."
+      "answer": 0,
+      "explanation": "When tools, resources, and prompts have clear boundaries and well-defined schemas, any compliant host can connect to the server and teams can maintain or replace individual capabilities without touching the rest."
     }
   ]
 }

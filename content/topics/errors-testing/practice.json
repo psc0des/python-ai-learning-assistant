@@ -4,13 +4,13 @@
     {
       "question": "What is the safest first step when Python raises a traceback?",
       "options": [
-        "Read the exception type/message and the failing line in your code.",
         "Delete the function and start again.",
         "Catch all exceptions with bare `except`.",
-        "Ignore it if the code works sometimes."
+        "Ignore it if the code works sometimes.",
+        "Read the exception type/message and the failing line in your code."
       ],
-      "answer": 0,
-      "explanation": "Traceback type and location are the fastest route to diagnosis."
+      "answer": 3,
+      "explanation": "The exception type tells you what went wrong and the traceback pinpoints the line; reading both is always faster than guessing, deleting code, or silently swallowing the error."
     },
     {
       "question": "Why is bare `except:` considered risky?",
@@ -21,73 +21,73 @@
         "It makes code run slower than loops."
       ],
       "answer": 1,
-      "explanation": "Specific exceptions keep debugging signals visible."
+      "explanation": "A bare except catches every exception including KeyboardInterrupt and SystemExit, hiding bugs that should surface; catching only the specific exception you expect keeps diagnostic signals visible."
     },
     {
       "question": "Which inputs should tests include beyond happy-path values?",
       "options": [
+        "Empty, invalid, boundary, zero/negative, and duplicate cases.",
         "Only random large numbers.",
         "Only the exact example shown in docs.",
-        "Empty, invalid, boundary, zero/negative, and duplicate cases.",
         "No edge cases if code looks correct."
       ],
-      "answer": 2,
-      "explanation": "Edge cases expose assumptions that normal inputs hide."
+      "answer": 0,
+      "explanation": "Edge cases expose the hidden assumptions that pass silently on normal inputs; empty inputs, boundaries, and invalid values are where most real bugs live."
     },
     {
       "question": "What does `assert x > 0` do?",
       "options": [
         "Skips the check in all modes.",
         "Prints whether x is positive.",
-        "Converts x into a positive number.",
-        "Raises AssertionError if the condition is false."
+        "Raises AssertionError if the condition is false.",
+        "Converts x into a positive number."
       ],
-      "answer": 3,
-      "explanation": "Assertions encode expected conditions and fail loudly when violated."
+      "answer": 2,
+      "explanation": "assert evaluates the condition and raises AssertionError immediately if it is false; it does not print results or modify the value, making it useful for encoding expectations in tests."
     },
     {
       "question": "When should you raise a new exception?",
       "options": [
-        "When input/state violates a function contract and caller must know.",
         "Whenever you want to stop code quickly, regardless of context.",
+        "When input/state violates a function contract and caller must know.",
         "Never; always return None.",
         "Only inside class methods."
       ],
-      "answer": 0,
-      "explanation": "Raise with clear messages when contracts are violated and recovery is not local."
+      "answer": 1,
+      "explanation": "Raise an exception with a clear message when a function's contract is violated and the local code cannot recover; returning None silently hides the problem from the caller."
     },
     {
       "question": "Which tool ensures cleanup runs whether or not an exception occurs?",
       "options": [
-        "continue statement",
         "finally block (or equivalent context manager cleanup).",
+        "continue statement",
         "break statement",
         "assert statement"
       ],
-      "answer": 1,
-      "explanation": "finally guarantees cleanup execution on both success and failure paths."
+      "answer": 0,
+      "explanation": "A finally block always executes after try/except completes, regardless of whether an exception was raised or caught, making it the right place for resource cleanup like closing files."
     },
     {
       "question": "What is a reliable debugging workflow?",
       "options": [
         "Suppress the exception and continue.",
         "Change many lines quickly and rerun once.",
-        "Reproduce, inspect, hypothesize, change one thing, retest.",
-        "Ask the AI for a full rewrite immediately."
+        "Ask the AI for a full rewrite immediately.",
+        "Reproduce, inspect, hypothesize, change one thing, retest."
       ],
-      "answer": 2,
-      "explanation": "Controlled, iterative debugging reduces noise and isolates root causes."
+      "answer": 3,
+      "explanation": "Changing one thing at a time and retesting isolates the cause; changing many lines at once introduces new variables and makes it impossible to know what actually fixed the problem."
     },
     {
       "question": "What is the best reason to keep tests around after fixing a bug?",
       "options": [
         "They force every function to use classes.",
         "They eliminate all need for logging.",
-        "They make exceptions unnecessary.",
-        "They prevent the same bug from silently returning."
+        "They prevent the same bug from silently returning.",
+        "They make exceptions unnecessary."
       ],
-      "answer": 3,
-      "explanation": "Regression tests lock in corrected behavior."
+      "answer": 2,
+      "explanation": "A regression test encodes the exact scenario that broke before; if future changes re-introduce the bug, the test fails immediately instead of letting it slip back into production."
     }
   ]
 }

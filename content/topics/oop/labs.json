@@ -1,39 +1,5 @@
 [
   {
-    "id": "retry-policy",
-    "topic_id": "oop",
-    "title": "Retry Policy Class",
-    "difficulty": "Intermediate",
-    "difficulty_order": 3,
-    "prompt": "Create a `RetryPolicy` class. It should accept `max_attempts` and have `should_retry(attempt_number)` returning True if the attempt is below the limit.",
-    "starter": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        pass\n\n    def should_retry(self, attempt_number):\n        pass\n",
-    "tests": [
-      {
-        "label": "retry before limit",
-        "call": "RetryPolicy(3).should_retry(2)",
-        "expected": true
-      },
-      {
-        "label": "stop at limit",
-        "call": "RetryPolicy(3).should_retry(3)",
-        "expected": false
-      },
-      {
-        "label": "first attempt",
-        "call": "RetryPolicy(1).should_retry(0)",
-        "expected": true
-      },
-      {
-        "label": "single attempt exhausted",
-        "call": "RetryPolicy(1).should_retry(1)",
-        "expected": false
-      }
-    ],
-    "hint": "Store `max_attempts` on `self` and compare attempt to it.",
-    "solution": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        self.max_attempts = max_attempts\n\n    def should_retry(self, attempt_number):\n        return attempt_number < self.max_attempts\n",
-    "explanation": "The class encapsulates retry state (`max_attempts`) and behavior (`should_retry`)."
-  },
-  {
     "id": "counter-class",
     "topic_id": "oop",
     "title": "Simple Counter",
@@ -90,6 +56,40 @@
     "hint": "Store constructor args on `self` and multiply in the method.",
     "solution": "class InventoryItem:\n    def __init__(self, name, quantity, unit_price):\n        self.name = name\n        self.quantity = quantity\n        self.unit_price = unit_price\n\n    def total_value(self):\n        return self.quantity * self.unit_price\n",
     "explanation": "This models data plus behavior in one object and avoids loose dict manipulation."
+  },
+  {
+    "id": "retry-policy",
+    "topic_id": "oop",
+    "title": "Retry Policy Class",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Create a `RetryPolicy` class. It should accept `max_attempts` and have `should_retry(attempt_number)` returning True if the attempt is below the limit.",
+    "starter": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        pass\n\n    def should_retry(self, attempt_number):\n        pass\n",
+    "tests": [
+      {
+        "label": "retry before limit",
+        "call": "RetryPolicy(3).should_retry(2)",
+        "expected": true
+      },
+      {
+        "label": "stop at limit",
+        "call": "RetryPolicy(3).should_retry(3)",
+        "expected": false
+      },
+      {
+        "label": "first attempt",
+        "call": "RetryPolicy(1).should_retry(0)",
+        "expected": true
+      },
+      {
+        "label": "single attempt exhausted",
+        "call": "RetryPolicy(1).should_retry(1)",
+        "expected": false
+      }
+    ],
+    "hint": "Store `max_attempts` on `self` and compare attempt to it.",
+    "solution": "class RetryPolicy:\n    def __init__(self, max_attempts):\n        self.max_attempts = max_attempts\n\n    def should_retry(self, attempt_number):\n        return attempt_number < self.max_attempts\n",
+    "explanation": "The class encapsulates retry state (`max_attempts`) and behavior (`should_retry`)."
   },
   {
     "id": "service-health-class",

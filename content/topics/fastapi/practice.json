@@ -4,57 +4,57 @@
     {
       "question": "What is the most accurate role of FastAPI in a backend project?",
       "options": [
-        "Define typed API routes and validate request/response data.",
         "Replace your database engine.",
         "Compile Python into machine code.",
+        "Define typed API routes and validate request/response data.",
         "Automatically fix all business logic bugs."
       ],
-      "answer": 0,
-      "explanation": "FastAPI focuses on HTTP API contracts, routing, validation, and documentation."
+      "answer": 2,
+      "explanation": "FastAPI handles HTTP routing, input validation, and OpenAPI documentation through type hints; it does not replace your database, compile code, or fix business logic errors."
     },
     {
       "question": "Which parameter location is best for resource identity like user ID?",
       "options": [
         "Response header.",
-        "Path parameter (for example `/users/{user_id}`).",
         "Cookies only.",
-        "Randomly choose between body and query."
+        "Randomly choose between body and query.",
+        "Path parameter (for example `/users/{user_id}`)."
       ],
-      "answer": 1,
-      "explanation": "Path parameters represent the target resource identity."
+      "answer": 3,
+      "explanation": "Path parameters encode the identity of the resource being acted on; query parameters are for optional filters and response headers carry metadata, not request identifiers."
     },
     {
       "question": "What is a common purpose of query parameters?",
       "options": [
         "Persisting server-side sessions.",
-        "Replacing authentication.",
         "Filtering, sorting, pagination, and optional modifiers.",
+        "Replacing authentication.",
         "Declaring database schemas."
       ],
-      "answer": 2,
-      "explanation": "Query parameters are ideal for optional request controls."
+      "answer": 1,
+      "explanation": "Query parameters appear after `?` in a URL and are ideal for optional controls like filters and page numbers; they should not carry authentication tokens or session state."
     },
     {
       "question": "How does FastAPI typically validate JSON request bodies?",
       "options": [
+        "By parsing into Pydantic models declared in route signatures.",
         "By storing raw JSON first and validating later.",
         "By requiring manual string parsing in each route.",
-        "By ignoring body validation and trusting client input.",
-        "By parsing into Pydantic models declared in route signatures."
+        "By ignoring body validation and trusting client input."
       ],
-      "answer": 3,
-      "explanation": "Pydantic integration provides structured, typed validation at the boundary."
+      "answer": 0,
+      "explanation": "Declaring a Pydantic model as a route parameter causes FastAPI to parse and validate the incoming JSON automatically; manual parsing or deferred validation are error-prone alternatives."
     },
     {
       "question": "Why are response models useful?",
       "options": [
-        "They enforce consistent output shape and reduce accidental field leaks.",
         "They make status codes unnecessary.",
         "They disable OpenAPI generation.",
-        "They prevent writing unit tests."
+        "They prevent writing unit tests.",
+        "They enforce consistent output shape and reduce accidental field leaks."
       ],
-      "answer": 0,
-      "explanation": "Response models make API contracts explicit and predictable."
+      "answer": 3,
+      "explanation": "A response model filters the returned data to only the declared fields, preventing accidental exposure of internal fields like passwords while making the API contract explicit in OpenAPI docs."
     },
     {
       "question": "When should `HTTPException` be raised?",
@@ -65,29 +65,29 @@
         "Only inside startup events."
       ],
       "answer": 1,
-      "explanation": "HTTPException is the standard mechanism for explicit API error responses."
+      "explanation": "HTTPException is the standard mechanism for returning structured HTTP error responses with the correct status code; returning plain text bypasses FastAPI's error handling and confuses clients."
     },
     {
       "question": "What is the key advantage of dependencies (`Depends`) in FastAPI?",
       "options": [
+        "Reusable injection of shared concerns like auth or DB sessions.",
         "Removal of all route parameters.",
         "Automatic replacement for all service-layer code.",
-        "Reusable injection of shared concerns like auth or DB sessions.",
         "Guaranteed performance speedups in every endpoint."
       ],
-      "answer": 2,
-      "explanation": "Dependencies keep handlers clean and reduce duplication."
+      "answer": 0,
+      "explanation": "Depends lets you declare shared logic like authentication checks or database session management once and inject it into any route, keeping handler functions focused on business logic."
     },
     {
       "question": "How are OpenAPI docs produced in FastAPI?",
       "options": [
         "By reading comments from unrelated modules.",
         "By manually writing Swagger JSON for every endpoint.",
-        "Only when using async routes.",
-        "Automatically from route definitions, type hints, and models."
+        "Automatically from route definitions, type hints, and models.",
+        "Only when using async routes."
       ],
-      "answer": 3,
-      "explanation": "FastAPI generates OpenAPI schema from your declared API contract."
+      "answer": 2,
+      "explanation": "FastAPI introspects your route decorators, type annotations, and Pydantic models to generate the OpenAPI schema automatically; no manual Swagger JSON is required."
     }
   ]
 }

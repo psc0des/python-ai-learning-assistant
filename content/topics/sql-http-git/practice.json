@@ -4,12 +4,12 @@
     {
       "question": "What does HTTP 401 usually mean?",
       "options": [
-        "Authentication is missing or invalid.",
         "Server crashed unexpectedly.",
         "Resource was created.",
-        "SQL syntax error."
+        "SQL syntax error.",
+        "Authentication is missing or invalid."
       ],
-      "answer": 0,
+      "answer": 3,
       "explanation": "401 indicates unauthenticated access."
     },
     {
@@ -26,12 +26,12 @@
     {
       "question": "Why is `WHERE` critical in UPDATE/DELETE statements?",
       "options": [
+        "Without it, you may change or delete all rows unintentionally.",
         "It converts SQL into read-only mode.",
         "It makes SQL faster in all cases.",
-        "Without it, you may change or delete all rows unintentionally.",
         "It is required only in PostgreSQL."
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "Missing filters can cause broad destructive changes."
     },
     {
@@ -39,32 +39,32 @@
       "options": [
         "Create a pull request automatically.",
         "Push directly to remote repository.",
-        "Reset branch history.",
-        "Review exact line changes before recording history."
+        "Review exact line changes before recording history.",
+        "Reset branch history."
       ],
-      "answer": 3,
+      "answer": 2,
       "explanation": "Diff review catches mistakes early and improves commit quality."
     },
     {
       "question": "Why should secrets never be committed to Git?",
       "options": [
-        "They remain discoverable in history even if later removed.",
         "Git encrypts secrets badly.",
+        "They remain discoverable in history even if later removed.",
         "Secrets break merge operations.",
         "Secrets cannot be read from files."
       ],
-      "answer": 0,
+      "answer": 1,
       "explanation": "History persistence makes exposed secrets a long-term risk."
     },
     {
       "question": "Which Linux workflow is best for initial runtime investigation?",
       "options": [
         "Restart services immediately.",
-        "Check directory, inspect logs, inspect process state, then correlate timings.",
         "Delete log files to reduce noise.",
+        "Check directory, inspect logs, inspect process state, then correlate timings.",
         "Skip logs and query database first always."
       ],
-      "answer": 1,
+      "answer": 2,
       "explanation": "Evidence-first inspection avoids unnecessary disruption."
     },
     {
@@ -72,21 +72,21 @@
       "options": [
         "Only inspect database rows.",
         "Only inspect source code.",
-        "Correlate HTTP behavior, logs, SQL state, and recent code changes.",
-        "Only inspect network traces."
+        "Only inspect network traces.",
+        "Correlate HTTP behavior, logs, SQL state, and recent code changes."
       ],
-      "answer": 2,
+      "answer": 3,
       "explanation": "Cross-layer correlation reduces blind spots."
     },
     {
       "question": "What is the safest style for operational fixes?",
       "options": [
+        "Small scoped changes with clear verification steps.",
         "Force pushes directly to main.",
         "Large refactors during incidents.",
-        "Skipping tests to save time.",
-        "Small scoped changes with clear verification steps."
+        "Skipping tests to save time."
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Scoped, verifiable fixes lower incident risk."
     }
   ]

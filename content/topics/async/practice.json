@@ -4,90 +4,90 @@
     {
       "question": "When does async Python usually help most?",
       "options": [
-        "When code spends significant time waiting on I/O.",
         "When code is dominated by CPU-heavy loops.",
         "When you want to avoid writing tests.",
+        "When code spends significant time waiting on I/O.",
         "When all logic is synchronous file writes."
       ],
-      "answer": 0,
-      "explanation": "Async improves throughput by overlapping waiting time."
+      "answer": 2,
+      "explanation": "Async works by yielding control at I/O waits so other tasks can progress; CPU-bound loops never yield, so they see no benefit from async scheduling alone."
     },
     {
       "question": "What do you get when you call an async function without await?",
       "options": [
-        "The final return value immediately.",
         "A coroutine object.",
+        "The final return value immediately.",
         "A SyntaxError.",
         "A background thread automatically."
       ],
-      "answer": 1,
-      "explanation": "Coroutines must be awaited or scheduled to run."
+      "answer": 0,
+      "explanation": "Calling an async function without await returns a coroutine object — the body never executes until you await it or schedule it with asyncio.create_task or similar."
     },
     {
       "question": "Why is `time.sleep()` harmful inside async code?",
       "options": [
         "It converts async functions to sync permanently.",
         "It automatically cancels tasks.",
-        "It blocks the event loop and pauses all tasks.",
-        "It raises ImportError."
+        "It raises ImportError.",
+        "It blocks the event loop and pauses all tasks."
       ],
-      "answer": 2,
-      "explanation": "Blocking calls stall cooperative task scheduling."
+      "answer": 3,
+      "explanation": "time.sleep() is a blocking call that freezes the entire event loop, preventing every other coroutine from running; use asyncio.sleep() instead so control is yielded."
     },
     {
       "question": "What does `asyncio.gather()` primarily do?",
       "options": [
         "Retries failed tasks automatically.",
+        "Waits for multiple coroutines and collects their results.",
         "Creates OS processes for each coroutine.",
-        "Compiles coroutines to machine code.",
-        "Waits for multiple coroutines and collects their results."
+        "Compiles coroutines to machine code."
       ],
-      "answer": 3,
-      "explanation": "gather coordinates multiple awaitables in one await."
+      "answer": 1,
+      "explanation": "asyncio.gather() runs multiple awaitables concurrently and returns all results in order once they complete; it does not retry on failure or spawn OS processes."
     },
     {
       "question": "What does the event loop coordinate?",
       "options": [
-        "Scheduling and resuming asynchronous tasks at await points.",
         "Automatic database schema migration.",
         "Python package dependency resolution.",
-        "CPU vectorization."
+        "CPU vectorization.",
+        "Scheduling and resuming asynchronous tasks at await points."
       ],
-      "answer": 0,
-      "explanation": "The event loop is the scheduler for coroutine execution."
+      "answer": 3,
+      "explanation": "The event loop is the central scheduler that decides which coroutine to resume next whenever one yields at an await point; without it, async code cannot run."
     },
     {
       "question": "What is the best short definition of concurrency vs parallelism?",
       "options": [
         "They are identical terms.",
-        "Concurrency overlaps progress; parallelism runs work simultaneously on multiple compute resources.",
         "Parallelism only applies to async code.",
+        "Concurrency overlaps progress; parallelism runs work simultaneously on multiple compute resources.",
         "Concurrency requires multiple CPU cores."
       ],
-      "answer": 1,
-      "explanation": "Concurrency is about structure and interleaving; parallelism is about simultaneous execution."
+      "answer": 2,
+      "explanation": "Concurrency is about structuring tasks so waiting time overlaps; parallelism physically runs tasks at the same moment on multiple cores. Async gives concurrency but not true parallelism."
     },
     {
       "question": "Which scenario is a poor fit for async-only optimization?",
       "options": [
+        "A pure CPU-bound image processing loop.",
         "A workload with frequent database waits.",
         "Many HTTP calls to remote services.",
-        "A pure CPU-bound image processing loop.",
         "Concurrent I/O with timeouts."
       ],
-      "answer": 2,
-      "explanation": "CPU-bound work often needs multiprocessing/native optimization, not only async I/O scheduling."
+      "answer": 0,
+      "explanation": "CPU-bound work never yields at I/O waits, so async scheduling provides no speedup; use multiprocessing or native extensions for compute-heavy workloads instead."
     },
     {
       "question": "Why should cancellation behavior be designed explicitly?",
       "options": [
         "Because cancellation removes need for error handling.",
-        "Because cancellation makes code run faster by default.",
+        "To avoid partial updates and leaked resources when tasks stop early.",
         "Because cancelled tasks are always retried automatically.",
-        "To avoid partial updates and leaked resources when tasks stop early."
+        "Because cancellation makes code run faster by default."
       ],
-      "answer": 3,
-      "explanation": "Cancellation is part of correctness, not only performance."
+      "answer": 1,
+      "explanation": "A cancelled task stops mid-execution and will not clean up automatically; without explicit handling, you risk partial writes, open connections, or corrupted state."
     }
   ]
 }

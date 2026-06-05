@@ -92,6 +92,14 @@
           false,
           "invalid_shape"
         ]
+      },
+      {
+        "label": "None call returns invalid_shape",
+        "call": "validate_tool_call(None, ['query'])",
+        "expected": [
+          false,
+          "invalid_shape"
+        ]
       }
     ],
     "hint": "Validate structure first, required fields second.",

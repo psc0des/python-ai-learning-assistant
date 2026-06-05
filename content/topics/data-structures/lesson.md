@@ -10,7 +10,7 @@ A list is the most versatile Python container. Think of it as a numbered queue �
 
 Indexes start at **0**, not 1 — so the first item is at index `[0]`, the second at `[1]`, and so on. Negative indexes count from the end: `[-1]` is always the last item.
 
-```python
+```python run
 
 tasks = ['buy groceries', 'call dentist', 'pay bills']
 tasks.append('walk dog')       # add to end
@@ -43,7 +43,7 @@ A list comprehension is a shorthand way to create a new list by transforming or 
 
 The pattern is: `[expression for item in iterable if condition]`. The `if condition` part is optional.
 
-```python
+```python run
 
 names = ['alice', 'bob', 'carol']
 upper_names = [name.upper() for name in names]
@@ -54,7 +54,7 @@ long_names = [name for name in names if len(name) > 3]
 print(long_names)   # ['alice', 'carol']
 ```
 
-```python
+```python run
 
 scores = [72, 44, 91, 58, 88, 36]
 
@@ -75,7 +75,7 @@ A tuple is like a list, but **immutable** — once you create it, you cannot add
 
 Tuples are great for representing fixed-shape records: coordinates, RGB colours, database rows, function return values with multiple parts.
 
-```python
+```python run
 
 location = (51.5074, -0.1278)  # London, (latitude, longitude)
 print(location[0])    # 51.5074 — latitude
@@ -86,7 +86,7 @@ lat, lon = location
 print(f'Lat: {lat}, Lon: {lon}')
 ```
 
-```python
+```python run
 
 def get_name_parts(full_name):
     parts = full_name.strip().split()
@@ -106,7 +106,7 @@ A set is a collection with **no duplicates** and **no guaranteed order**. Think 
 
 Sets are optimised for two things: (1) checking whether an item exists (`in` operator is very fast), and (2) removing duplicates from a collection.
 
-```python
+```python run
 
 visited = {'London', 'Paris', 'Tokyo'}
 visited.add('New York')
@@ -116,7 +116,7 @@ print('Tokyo' in visited)   # True — instant check
 print('Berlin' in visited)  # False
 ```
 
-```python
+```python run
 
 service_a_users = {'alice', 'bob', 'carol', 'dave'}
 service_b_users = {'carol', 'dave', 'eve', 'frank'}
@@ -136,7 +136,7 @@ print('Total:', len(all_users))  # 6
 
 A dictionary maps **keys** to **values** — like a real dictionary where you look up a word (key) to find its definition (value). The key can be any immutable value (string, number, tuple), and the lookup is very fast regardless of how many entries there are.
 
-```python
+```python run
 
 grades = {
     'Alice': 88,
@@ -152,7 +152,7 @@ for name, score in grades.items():
     print(f'{name}: {score}')
 ```
 
-```python
+```python run
 
 log_levels = ['INFO', 'ERROR', 'INFO', 'WARNING', 'ERROR', 'ERROR']
 
@@ -173,7 +173,7 @@ Python has several built-in tools that make loops cleaner and more expressive th
 
 **`zip`** combines two or more lists element-by-element, stopping when the shortest runs out.
 
-```python
+```python run
 # enumerate: loop with position and value
 fruits = ['apple', 'banana', 'cherry']
 for i, fruit in enumerate(fruits, start=1):
@@ -187,7 +187,7 @@ for name, score in zip(names, scores):
     print(f'{name} scored {score}')
 ```
 
-```python
+```python run
 
 def build_report(employee_ids, salaries):
     return [

@@ -46,14 +46,14 @@ def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dic
             return json.loads(response.read().decode("utf-8"))
     except TimeoutError as exc:
         raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", "")
         if isinstance(reason, TimeoutError):
             raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
         raise
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
 
 
 def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
@@ -66,6 +66,9 @@ def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
         raise RuntimeError(
             f"timed out after {AI_MODEL_LIST_TIMEOUT_SECONDS}s"
         ) from exc
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", "")
         if isinstance(reason, TimeoutError):
@@ -73,9 +76,6 @@ def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
                 f"timed out after {AI_MODEL_LIST_TIMEOUT_SECONDS}s"
             ) from exc
         raise
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
 
 
 # ---------------------------------------------------------------------------

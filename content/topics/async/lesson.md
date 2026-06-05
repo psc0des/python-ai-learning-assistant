@@ -10,7 +10,7 @@ Async Python is cooperative concurrency. Your code runs until it hits an `await`
 
 `await` is where a coroutine pauses and says 'I am waiting for something — event loop, feel free to run other tasks while I wait.'
 
-```python
+```python run
 import asyncio
 
 # Regular function — runs immediately when called
@@ -38,7 +38,7 @@ asyncio.run(main())
 
 The event loop is the engine that runs async code. Think of it as an air traffic controller — it decides which plane (task) can use the runway (CPU) at each moment. When a task hits an `await`, it parks and waits. The event loop immediately picks up another task that is ready to run.
 
-```python
+```python run
 import asyncio
 
 async def task(name, delay):
@@ -118,7 +118,7 @@ In real applications, external services can hang — a slow database, an unrespo
 
 `asyncio.wait_for()` wraps a coroutine with a timeout. If the coroutine does not finish in time, it raises `asyncio.TimeoutError`.
 
-```python
+```python run
 import asyncio
 
 async def slow_api_call():

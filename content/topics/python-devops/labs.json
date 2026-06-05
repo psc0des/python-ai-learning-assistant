@@ -182,52 +182,52 @@
     "title": "Capstone: Deployment Checker",
     "difficulty": "Advanced",
     "difficulty_order": 6,
-    "prompt": "Build a four-function pre-deployment checker that validates environment configuration before a service starts.\n\n- `parse_env(env_string)` — parse a multi-line string of `KEY=VALUE` pairs into a dict. Skip blank lines and lines starting with `#`.\n- `check_required_vars(env, required)` — return a list of variable names from `required` that are missing from `env`.\n- `validate_port(port_str)` — return `[True, int(port)]` if port_str is a valid integer between 1 and 65535, else `[False, None]`.\n- `generate_report(service, env, required)` — return a dict with keys `service`, `missing` (list), `port_valid` (bool), `ok` (True only when missing is empty and port is valid). Read the port from `env.get('PORT', '')`.",
-    "starter": "def parse_env(env_string):\n    pass\n\ndef check_required_vars(env, required):\n    pass\n\ndef validate_port(port_str):\n    pass\n\ndef generate_report(service, env, required):\n    pass\n",
+    "prompt": "Build a `DeploymentChecker` class that holds parsed environment configuration and validates it before a service starts.\n\nImplement:\n- `__init__(self)` — initialise an empty env dict on the instance.\n- `load_env(self, env_string)` — parse a multi-line `KEY=VALUE` string into `self._env`. Skip blank lines and lines starting with `#`. Return the parsed dict.\n- `check_required_vars(self, required)` — return a list of variable names from `required` that are missing from `self._env`.\n- `validate_port(self, port_str)` — return `[True, int(port)]` if port_str is a valid integer between 1 and 65535, else `[False, None]`.\n- `generate_report(self, service, required)` — return a dict with keys `service`, `missing` (list), `port_valid` (bool), `ok` (True only when missing is empty and port is valid). Read the port from `self._env.get('PORT', '')`.",
+    "starter": "class DeploymentChecker:\n    def __init__(self):\n        pass\n\n    def load_env(self, env_string):\n        pass\n\n    def check_required_vars(self, required):\n        pass\n\n    def validate_port(self, port_str):\n        pass\n\n    def generate_report(self, service, required):\n        pass\n",
     "tests": [
       {
-        "label": "parse_env handles comments and blanks",
-        "call": "parse_env('HOST=localhost\\nPORT=8080\\n# comment\\n\\nDEBUG=true')",
+        "label": "load_env parses KEY=VALUE pairs",
+        "call": "DeploymentChecker().load_env('HOST=localhost\\nPORT=8080\\n# comment\\n\\nDEBUG=true')",
         "expected": {"HOST": "localhost", "PORT": "8080", "DEBUG": "true"}
       },
       {
-        "label": "check_required_vars finds missing",
-        "call": "check_required_vars({'HOST': 'localhost', 'PORT': '8080'}, ['HOST', 'PORT', 'SECRET'])",
+        "label": "check_required_vars finds missing after load",
+        "call": "(lambda d: (d.load_env('HOST=localhost\\nPORT=8080'), d.check_required_vars(['HOST', 'PORT', 'SECRET']))[-1])(DeploymentChecker())",
         "expected": ["SECRET"]
       },
       {
-        "label": "check_required_vars passes when all present",
-        "call": "check_required_vars({'HOST': 'localhost', 'PORT': '8080'}, ['HOST', 'PORT'])",
+        "label": "check_required_vars empty when all present",
+        "call": "(lambda d: (d.load_env('HOST=localhost\\nPORT=8080'), d.check_required_vars(['HOST', 'PORT']))[-1])(DeploymentChecker())",
         "expected": []
       },
       {
         "label": "validate_port accepts valid port",
-        "call": "validate_port('8080')",
+        "call": "DeploymentChecker().validate_port('8080')",
         "expected": [true, 8080]
       },
       {
         "label": "validate_port rejects out-of-range",
-        "call": "validate_port('99999')",
+        "call": "DeploymentChecker().validate_port('99999')",
         "expected": [false, null]
       },
       {
         "label": "validate_port rejects non-numeric",
-        "call": "validate_port('abc')",
+        "call": "DeploymentChecker().validate_port('abc')",
         "expected": [false, null]
       },
       {
         "label": "generate_report fails with missing var",
-        "call": "generate_report('api', {'PORT': '8080'}, ['PORT', 'SECRET'])",
+        "call": "(lambda d: (d.load_env('PORT=8080'), d.generate_report('api', ['PORT', 'SECRET']))[-1])(DeploymentChecker())",
         "expected": {"service": "api", "missing": ["SECRET"], "port_valid": true, "ok": false}
       },
       {
         "label": "generate_report passes when complete",
-        "call": "generate_report('api', {'PORT': '8080', 'SECRET': 'x'}, ['PORT', 'SECRET'])",
+        "call": "(lambda d: (d.load_env('PORT=8080\\nSECRET=x'), d.generate_report('api', ['PORT', 'SECRET']))[-1])(DeploymentChecker())",
         "expected": {"service": "api", "missing": [], "port_valid": true, "ok": true}
       }
     ],
-    "hint": "Build parse_env first (splitlines + partition on '='). check_required_vars is a list comprehension. validate_port wraps int() in try/except plus a range check. generate_report composes the other three.",
-    "solution": "def parse_env(env_string):\n    env = {}\n    for line in env_string.splitlines():\n        line = line.strip()\n        if not line or line.startswith('#'):\n            continue\n        if '=' in line:\n            key, _, value = line.partition('=')\n            env[key.strip()] = value.strip()\n    return env\n\ndef check_required_vars(env, required):\n    return [var for var in required if var not in env]\n\ndef validate_port(port_str):\n    try:\n        port = int(port_str)\n        if 1 <= port <= 65535:\n            return [True, port]\n        return [False, None]\n    except (TypeError, ValueError):\n        return [False, None]\n\ndef generate_report(service, env, required):\n    missing = check_required_vars(env, required)\n    port_ok, _ = validate_port(env.get('PORT', ''))\n    ok = len(missing) == 0 and port_ok\n    return {'service': service, 'missing': missing, 'port_valid': port_ok, 'ok': ok}\n",
-    "explanation": "Every real deployment pipeline runs a preflight check before touching production: are all required env vars present? Is the port valid? Only then does it proceed. This capstone puts together env parsing, config validation, and structured reporting — the same pattern used in Ansible, Terraform, and custom deploy scripts."
+    "hint": "In __init__, set self._env = {}. load_env iterates splitlines(), skips blanks and '#' lines, partitions on '=', and stores into self._env. check_required_vars list-comprehends over required using self._env. validate_port wraps int() in try/except plus a range check. generate_report calls self.check_required_vars() and self.validate_port(self._env.get('PORT', '')).",
+    "solution": "class DeploymentChecker:\n    def __init__(self):\n        self._env = {}\n\n    def load_env(self, env_string):\n        for line in env_string.splitlines():\n            line = line.strip()\n            if not line or line.startswith('#'):\n                continue\n            if '=' in line:\n                key, _, value = line.partition('=')\n                self._env[key.strip()] = value.strip()\n        return self._env\n\n    def check_required_vars(self, required):\n        return [var for var in required if var not in self._env]\n\n    def validate_port(self, port_str):\n        try:\n            port = int(port_str)\n            if 1 <= port <= 65535:\n                return [True, port]\n            return [False, None]\n        except (TypeError, ValueError):\n            return [False, None]\n\n    def generate_report(self, service, required):\n        missing = self.check_required_vars(required)\n        port_ok, _ = self.validate_port(self._env.get('PORT', ''))\n        ok = len(missing) == 0 and port_ok\n        return {'service': service, 'missing': missing, 'port_valid': port_ok, 'ok': ok}\n",
+    "explanation": "Every real deployment pipeline runs a preflight check before touching production: are all required env vars present? Is the port valid? The class owns the env state so every check operates on the same loaded configuration — the same pattern used in Ansible, Terraform, and custom deploy scripts where a context object is populated once and then queried by multiple validation steps."
   }
 ]

@@ -141,7 +141,7 @@ function isExercisePassed(exerciseId) {
 function getTopicLabStats(topicId) {
   const topicExercises = exercises.filter((ex) => ex.topic_id === topicId);
   const nonCapstone = topicExercises.filter((ex) => ex.difficulty !== 'Advanced');
-  const passed = topicExercises.filter((ex) => isExercisePassed(ex.id)).length;
+  const passed = topicExercises.filter((ex) => ex.difficulty !== 'Advanced' && isExercisePassed(ex.id)).length;
   return { passed, total: topicExercises.length, required: nonCapstone.length };
 }
 
@@ -694,6 +694,7 @@ function loadAiSettings() {
     if (settings.provider) els.provider.value = settings.provider;
     if (settings.model) preferredModel = settings.model;
     if (settings.endpoint) els.endpoint.value = settings.endpoint;
+    localStorage.removeItem("pyInterviewAiSettings");
   } catch {
     localStorage.removeItem("pySkillLabSettings");
     localStorage.removeItem("pyInterviewAiSettings");
@@ -771,7 +772,7 @@ async function loadModels(options = {}) {
     } else if (result.suggestions_only && notify) {
       appendCoachMessage("assistant", "No API key set — showing suggested model names only. Enter your key in AI Settings and click Save & Apply to verify.");
     }
-    return { ok: true };
+    return { ok: true, suggestionsOnly: !!result.suggestions_only };
   } catch (error) {
     setModelOptions(fallback, fallback[0]);
     _updateSettingsBtnLabel();
@@ -885,7 +886,9 @@ function escapeHtml(value) {
 }
 
 function isRunnableSnippet(code, lang) {
-  if (lang && lang !== 'python') return false;
+  if (!lang || !lang.includes('run')) return false;
+  const baseLang = lang.split(/\s+/)[0];
+  if (baseLang !== 'python') return false;
   const blocked = /\b(?:import|from)\s+(?:os|sys|subprocess|shutil|socket|pathlib|urllib|http|ctypes|signal|multiprocessing|threading|pickle|importlib|runpy)\b/;
   const thirdParty = /\b(?:import|from)\s+(?:fastapi|pydantic|langchain|langgraph|mcp|uvicorn|anthropic|openai|numpy|pandas|aiohttp|httpx|starlette|sqlalchemy)\b/;
   const banned = /\binput\s*\(|\bopen\s*\(/;
@@ -896,7 +899,7 @@ function isRunnableSnippet(code, lang) {
 function renderLessonMarkdown(text) {
   if (!text) return '';
   const segments = [];
-  const codeBlockRe = /```(\w+)?\n?([\s\S]*?)```/g;
+  const codeBlockRe = /```([\w]+(?:\s+[\w]+)*)?\n?([\s\S]*?)```/g;
   let lastIdx = 0;
   let m;
   while ((m = codeBlockRe.exec(text)) !== null) {
@@ -1654,6 +1657,13 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
     saveBtn.textContent = "Save failed";
     saveBtn.disabled = false;
     els.coachStatus.textContent = `Settings not saved — ${refresh.error || "model refresh failed"}`;
+    return;
+  }
+  if (refresh.suggestionsOnly) {
+    saveBtn.textContent = "API key required";
+    saveBtn.disabled = false;
+    els.coachStatus.textContent = "Enter an API key to save this provider.";
+    setTimeout(() => { saveBtn.textContent = "Save & Apply"; }, 2000);
     return;
   }
   saveAiSettings();

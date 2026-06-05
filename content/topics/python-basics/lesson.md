@@ -31,7 +31,7 @@ Arithmetic mostly works as you expect, but a few details trip up beginners:
 - `%` gives the remainder: `7 % 2` gives `1`
 - `**` is the power operator: `2 ** 8` gives `256`
 
-```python
+```python run
 
 guests = 4
 total_bill = 87.50
@@ -39,7 +39,7 @@ per_person = total_bill / guests
 print(per_person)   # 21.875
 ```
 
-```python
+```python run
 
 def calculate_order_total(unit_price, quantity, tax_rate=0.08):
     subtotal = unit_price * quantity
@@ -57,7 +57,7 @@ A string is just a sequence of characters — letters, spaces, punctuation, or a
 
 You can read individual characters with square brackets (`name[0]`), or grab a slice of characters (`name[0:3]`). One important rule: **strings are immutable**, meaning once you create a string you cannot change individual letters inside it — you have to build a new string.
 
-```python
+```python run
 
 full_name = 'Ada Lovelace'
 print(full_name[0])       # 'A' — first character
@@ -66,7 +66,7 @@ print(full_name.upper())  # 'ADA LOVELACE'
 print(len(full_name))     # 12 — number of characters
 ```
 
-```python
+```python run
 
 def normalize_email(raw_email):
     cleaned = raw_email.strip().lower()
@@ -86,7 +86,7 @@ A list is like a numbered shopping trolley. You can put things in, take things o
 
 Unlike strings, lists are **mutable** — you can modify them in place by adding items (`append`), removing items (`remove`), or replacing items by position.
 
-```python
+```python run
 
 shopping = ['apples', 'bread', 'milk']
 shopping.append('eggs')          # add to the end
@@ -97,7 +97,7 @@ print(len(shopping))             # 3 — how many items
 print(shopping[0])               # 'apples' — first item
 ```
 
-```python
+```python run
 
 def get_passing_scores(scores, cutoff=60):
     return [s for s in scores if s >= cutoff]
@@ -112,7 +112,7 @@ print(results)  # [72, 91, 88]
 
 Control flow is how your program decides what to do next. `if`, `elif`, and `else` give your Python code decision-making ability. `for` loops repeat a block of code for each item in a sequence. `range(n)` produces the numbers 0, 1, 2, ... n-1 (note: it stops **before** n).
 
-```python
+```python run
 
 score = 75
 
@@ -128,7 +128,7 @@ else:
 print(f'Grade: {grade}')  # Grade: B
 ```
 
-```python
+```python run
 
 temperatures = [21.3, 19.8, 23.1, 18.5, 22.0]
 high_count = 0
@@ -146,7 +146,7 @@ print(f'{high_count} readings above threshold')
 
 A function is like a kitchen appliance — plug it in once, use it as many times as you like. `def` creates a function. The names in the parentheses are parameters — placeholders for the values passed in when calling. `return` sends a result back to the caller.
 
-```python
+```python run
 
 def greet(name):
     return 'Hello, ' + name + '!'
@@ -155,7 +155,7 @@ print(greet('Alice'))   # Hello, Alice!
 print(greet('Bob'))     # Hello, Bob!
 ```
 
-```python
+```python run
 
 def validate_port(text):
     try:
@@ -177,7 +177,7 @@ print(validate_port('abc'))    # None
 
 The real power of Python basics is combining these pieces into small programs that solve real problems.
 
-```python
+```python run
 # A mini cart calculator — uses variables, lists, loops, conditions, and a function
 def summarise_cart(prices, tax_rate=0.08):
     subtotal = sum(prices)

@@ -10,7 +10,7 @@ The program that reads and runs your Python steps is called the **interpreter**.
 
 The simplest possible instruction is to show something on the screen. We use `print()` for that:
 
-```python
+```python run
 print('I just ran my first line of code!')
 ```
 
@@ -24,7 +24,7 @@ When you run that, the words inside the quotes appear as output. That is it — 
 
 You can print text (always wrapped in quotes), numbers (no quotes), or several things separated by commas:
 
-```python
+```python run
 print('Hello!')          # text in quotes
 print(42)                # a number, no quotes
 print('Score:', 95)      # two things — Python adds a space: Score: 95
@@ -32,7 +32,7 @@ print('Score:', 95)      # two things — Python adds a space: Score: 95
 
 Anything inside quotes is treated as plain text and printed exactly as written. Anything without quotes, Python tries to understand as a value or calculation:
 
-```python
+```python run
 print('2 + 2')   # shows: 2 + 2   (it is just text)
 print(2 + 2)     # shows: 4       (Python does the maths)
 ```
@@ -45,7 +45,7 @@ That difference — quotes mean 'literal text', no quotes mean 'work this out' �
 
 Imagine sticking a labelled note onto a box so you can find it again later. A **variable** is that label. You pick a name, attach it to a value with `=`, and from then on you can use the name instead of repeating the value.
 
-```python
+```python run
 name = 'Sam'
 age = 20
 
@@ -56,7 +56,7 @@ print(age + 1)     # 21
 
 Read `=` as 'gets' or 'is set to', not as the equals sign from maths. `age = 20` means 'the name age now points to the value 20'. You can change it later, and the newest value wins:
 
-```python
+```python run
 score = 10
 score = score + 5    # take the current score (10), add 5, store it back
 print(score)         # 15
@@ -74,7 +74,7 @@ Every value in Python has a **type** — a kind. As a beginner you meet three ki
 - **Numbers**: whole numbers like `7` (an *int*) and decimals like `3.5` (a *float*). No quotes.
 - **True/False** (called a *boolean*): the answer to a yes/no question — exactly `True` or `False`.
 
-```python
+```python run
 city = 'Tokyo'      # text
 temperature = 18.5  # number
 is_raining = False  # True/False
@@ -86,7 +86,7 @@ print(type(is_raining))   # <class 'bool'>
 
 The type matters because it decides what you can do. You can add two numbers to get a sum; you can 'add' two strings to join them together; but adding a number to text directly causes an error.
 
-```python
+```python run
 print('Sea' + 'shell')   # Seashell  (joining text)
 print(3 + 4)             # 7         (adding numbers)
 ```
@@ -101,7 +101,7 @@ Real programs need to choose what to do based on the situation — like a doorma
 
 You give `if` a yes/no question (something that is True or False). If it is True, Python runs the indented lines underneath. If it is False, it runs the `else` block instead.
 
-```python
+```python run
 age = 15
 
 if age >= 18:
@@ -118,7 +118,7 @@ Two details that catch every beginner:
 
 The comparison questions you will use most: `==` (equal), `!=` (not equal), `>` `<` `>=` `<=` (greater/less than).
 
-```python
+```python run
 score = 72
 if score >= 50:
     result = 'pass'
@@ -133,7 +133,7 @@ print(result)   # pass
 
 When you find yourself wanting to reuse the same steps, you wrap them in a **function** — a named instruction you can run again and again. You met `print()` already; that is a function someone else wrote. Now you write your own with `def`.
 
-```python
+```python run
 def greet(person):
     return 'Hello, ' + person + '!'
 
