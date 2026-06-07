@@ -1,0 +1,89 @@
+{
+  "id": "llm-api-basics",
+  "track": "AI Foundations",
+  "title": "LLM API Calls in Python",
+  "level": "Beginner",
+  "intro": "Every AI product you have used — ChatGPT, Claude, Copilot — runs on a simple loop: a Python program sends a structured request to a language model API and parses the structured response. This topic teaches you that plumbing. No AI framework required — just Python dictionaries, strings, and functions.",
+  "mental_model": "Think of an LLM API like a very smart mail-order service. You write a letter (your prompt), seal it in a structured envelope (a JSON payload), and send it to an address (the API endpoint). The service reads your letter, writes a reply, and sends it back in a structured format. Every AI application follows this same request-response cycle.",
+  "syntax": "# The request body — a plain Python dict\npayload = {\n    \"model\": \"gpt-4o-mini\",\n    \"messages\": [\n        {\"role\": \"system\", \"content\": \"You are a helpful assistant.\"},\n        {\"role\": \"user\", \"content\": \"What is Python?\"},\n    ],\n    \"temperature\": 0.7,\n}\n\n# Extract the reply from a response dict\nreply = response[\"choices\"][0][\"message\"][\"content\"]\ntokens = response[\"usage\"][\"total_tokens\"]\n",
+  "example": "def build_payload(messages, model=\"gpt-4o-mini\", temperature=0.7):\n    return {\n        \"model\": model,\n        \"messages\": messages,\n        \"temperature\": temperature,\n    }\n\ndef extract_reply(response):\n    return response[\"choices\"][0][\"message\"][\"content\"]\n\n# Single-turn request\nmsgs = [{\"role\": \"user\", \"content\": \"Explain list comprehensions.\"}]\npayload = build_payload(msgs)\nprint(payload[\"model\"])  # gpt-4o-mini\n",
+  "must_know": [
+    "Every LLM API call is a POST request with a JSON body and a JSON response — no magic, just structured data.",
+    "The messages array is a list of dicts with 'role' and 'content' keys; three roles exist: system, user, and assistant.",
+    "The generated text lives at response['choices'][0]['message']['content'] in the response dict.",
+    "Temperature controls randomness: 0.0 is deterministic, 0.7 is a good general default, 2.0 is highly random.",
+    "LLMs have no memory between API calls — you must send the full conversation history with every request."
+  ],
+  "common_traps": [
+    "Forgetting to include past assistant messages in the history, causing the model to lose context mid-conversation.",
+    "Reading response['message'] directly instead of response['choices'][0]['message']['content'].",
+    "Setting temperature to 0 and then wondering why every response is identical — that is expected at temperature 0.",
+    "Letting conversation history grow without limit until it exceeds the model's context window and the call fails.",
+    "Hardcoding prompt strings in application logic instead of wrapping them in testable template functions."
+  ],
+  "interview": [
+    "Describe the shape of an LLM API request and response using only Python dicts.",
+    "What are the three message roles and when do you use each one?",
+    "How do you manage multi-turn conversation state across separate API calls?",
+    "What does temperature control, and how would you choose a value for a customer-facing chatbot versus a code generator?"
+  ],
+  "docs": [
+    {
+      "label": "OpenAI Chat Completions API Reference",
+      "url": "https://platform.openai.com/docs/api-reference/chat"
+    },
+    {
+      "label": "OpenAI Text Generation Guide",
+      "url": "https://platform.openai.com/docs/guides/text-generation"
+    },
+    {
+      "label": "Python str.format() Syntax",
+      "url": "https://docs.python.org/3/library/string.html#format-string-syntax"
+    }
+  ],
+  "real_world": [
+    "Every chatbot, AI writing assistant, and code completion tool sends payloads in exactly this format — understanding the raw structure lets you debug provider errors, log requests, and swap providers without rewriting your application.",
+    "Prompt template functions are the simplest form of prompt engineering; production teams version-control them, A/B test them, and store them in databases — the function pattern makes all of that possible."
+  ],
+  "outcome": "By the end of this topic, you should be able to construct a valid LLM API request payload, extract the reply and token usage from a response, write reusable prompt template functions, and manage conversation history across multiple turns.",
+  "lesson_sections": [
+    {
+      "title": "1. What Is an LLM API?",
+      "body": "An API (Application Programming Interface) is how programs talk to each other. You send a request, the other service does work, and you get a response. An LLM API applies this to language models: your Python code sends a text-based request, a language model runs on the server, and you get a text-based response.\n\nEvery request is a POST to a URL, with a JSON body. Every response is a JSON object. You never need to understand how the model works internally — only the shape of the input and output.\n\n```python run\n# The request: a Python dict you serialize to JSON\npayload = {\n    \"model\": \"gpt-4o-mini\",\n    \"messages\": [{\"role\": \"user\", \"content\": \"What is Python?\"}],\n    \"temperature\": 0.7,\n}\n\n# The response: a Python dict you get back (shown as a mock)\nmock_response = {\n    \"choices\": [\n        {\"message\": {\"role\": \"assistant\", \"content\": \"Python is a programming language.\"}}\n    ],\n    \"usage\": {\"total_tokens\": 18}\n}\n\nprint(payload[\"model\"])                                   # gpt-4o-mini\nprint(mock_response[\"choices\"][0][\"message\"][\"content\"])  # Python is a programming language.\n```\n\nThe same message format works across providers — OpenAI, Anthropic (via compatibility layer), Groq, Ollama, and others all support the same messages array structure.",
+      "source_label": "OpenAI Chat Completions API Reference",
+      "source_url": "https://platform.openai.com/docs/api-reference/chat"
+    },
+    {
+      "title": "2. The Messages Array",
+      "body": "The `messages` field is the heart of every LLM API call. It is a list of dictionaries, each with two keys: `role` and `content`. The model reads every message in the list, in order, before generating a reply.\n\nThree roles exist:\n\n- `\"system\"` — instructions to the model: how it should behave, what constraints to follow. Usually the first message in the list.\n- `\"user\"` — what the human typed.\n- `\"assistant\"` — what the model said in a previous turn. You include past assistant messages so the model understands the conversation so far.\n\n```python run\nmessages = [\n    {\"role\": \"system\", \"content\": \"You are a concise Python tutor. Keep answers to two sentences.\"},\n    {\"role\": \"user\", \"content\": \"What is a list?\"},\n    {\"role\": \"assistant\", \"content\": \"A list is an ordered, mutable sequence. You create one with square brackets: [1, 2, 3].\"},\n    {\"role\": \"user\", \"content\": \"What about a tuple?\"},\n]\n\nfor msg in messages:\n    label = msg[\"role\"].upper()\n    print(f\"{label}: {msg['content'][:60]}\")\n```\n\nThe model sees the full conversation thread — both what you said and what it said before — which is how it maintains context across multiple turns.",
+      "source_label": "OpenAI Text Generation Guide",
+      "source_url": "https://platform.openai.com/docs/guides/text-generation"
+    },
+    {
+      "title": "3. Building a Request Payload",
+      "body": "The request body has three common fields: `model`, `messages`, and `temperature`. Build it as a Python dictionary — your HTTP library or SDK will serialize it to JSON.\n\n- `model` — which model to call. The exact string depends on your provider: `\"gpt-4o-mini\"`, `\"claude-3-haiku-20240307\"`, `\"llama3\"` for Ollama, etc.\n- `messages` — the conversation array from the previous section.\n- `temperature` — a float from `0.0` to `2.0`. Lower = more predictable output. Higher = more creative. `0.7` is a sensible default for most tasks.\n\n```python run\ndef build_payload(messages, model=\"gpt-4o-mini\", temperature=0.7):\n    return {\n        \"model\": model,\n        \"messages\": messages,\n        \"temperature\": temperature,\n    }\n\nmsgs = [{\"role\": \"user\", \"content\": \"Explain list comprehensions in one sentence.\"}]\npayload = build_payload(msgs, model=\"gpt-4o\")\n\nprint(payload[\"model\"])          # gpt-4o\nprint(payload[\"temperature\"])    # 0.7\nprint(len(payload[\"messages\"]))  # 1\n```\n\nWrapping this in a function immediately makes it testable and easy to update. If your provider changes the required fields, you update the function once.",
+      "source_label": "OpenAI Chat Completions API Reference",
+      "source_url": "https://platform.openai.com/docs/api-reference/chat"
+    },
+    {
+      "title": "4. Reading the Response",
+      "body": "The response is a nested dictionary. The generated text lives at `response[\"choices\"][0][\"message\"][\"content\"]`. The path looks long but follows a clear structure: `choices` is a list (usually with one item), each choice has a `message`, and the message has `content`.\n\nToken usage — how many tokens were consumed — is at `response[\"usage\"][\"total_tokens\"]`. Providers bill by token, so tracking this matters once you move beyond experimenting.\n\n```python run\nmock_response = {\n    \"id\": \"chatcmpl-abc123\",\n    \"choices\": [\n        {\n            \"message\": {\n                \"role\": \"assistant\",\n                \"content\": \"A list comprehension builds a list from another iterable in one compact line.\"\n            },\n            \"finish_reason\": \"stop\"\n        }\n    ],\n    \"usage\": {\n        \"prompt_tokens\": 14,\n        \"completion_tokens\": 17,\n        \"total_tokens\": 31\n    }\n}\n\nreply = mock_response[\"choices\"][0][\"message\"][\"content\"]\ntokens = mock_response[\"usage\"][\"total_tokens\"]\nfinish = mock_response[\"choices\"][0][\"finish_reason\"]\n\nprint(reply)\nprint(f\"Tokens used: {tokens}\")\nprint(f\"Stopped because: {finish}\")\n```\n\n`finish_reason` tells you why the model stopped. `\"stop\"` means it finished naturally. `\"length\"` means it hit the `max_tokens` limit and the response may be cut off.",
+      "source_label": "OpenAI Chat Completions Object Reference",
+      "source_url": "https://platform.openai.com/docs/api-reference/chat/object"
+    },
+    {
+      "title": "5. Prompt Templates as Functions",
+      "body": "A prompt template is a string with placeholders. Instead of writing slightly different versions of the same prompt each time, write a function that takes parameters and returns the fully assembled string. This makes prompts reusable, testable, and easy to improve independently of the rest of your code.\n\n```python run\ndef explain_prompt(concept, audience=\"a beginner\"):\n    return f\"Explain {concept} to {audience} in plain English. Keep it to two sentences.\"\n\ndef compare_prompt(thing_a, thing_b):\n    return f\"What is the difference between {thing_a} and {thing_b}? One sentence only.\"\n\nprint(explain_prompt(\"recursion\"))\nprint(explain_prompt(\"async/await\", audience=\"someone who knows JavaScript\"))\nprint(compare_prompt(\"list\", \"tuple\"))\n```\n\nFor templates where the structure itself comes from configuration or user input, use `str.format()` with keyword arguments:\n\n```python run\ndef make_prompt(template, **kwargs):\n    return template.format(**kwargs)\n\ntmpl = \"Summarize the following {doc_type} in {word_count} words:\\n\\n{text}\"\nresult = make_prompt(\n    tmpl,\n    doc_type=\"email\",\n    word_count=30,\n    text=\"Dear team, the meeting is moved to Thursday.\"\n)\nprint(result)\n```\n\nKeep each template function focused on one task. A function that assembles 10 different prompts based on flags is a signal those prompts should be separate functions.",
+      "source_label": "Python str.format() Syntax",
+      "source_url": "https://docs.python.org/3/library/string.html#format-string-syntax"
+    },
+    {
+      "title": "6. Conversation History",
+      "body": "LLMs have no memory between separate API calls. To simulate a multi-turn conversation, you maintain the full list of messages yourself and send it with every request.\n\nThe loop: append the user message → call the API → extract the reply → append it as an `\"assistant\"` message → repeat.\n\n```python run\nhistory = []\n\ndef add_message(role, content):\n    history.append({\"role\": role, \"content\": content})\n\ndef show_history():\n    for msg in history:\n        print(f'  {msg[\"role\"].upper()}: {msg[\"content\"]}')\n\n# Turn 1\nadd_message(\"system\", \"You are a Python tutor.\")\nadd_message(\"user\", \"What is a list?\")\nadd_message(\"assistant\", \"An ordered, mutable sequence. Example: [1, 2, 3].\")\n\n# Turn 2\nadd_message(\"user\", \"How do I add an item?\")\nadd_message(\"assistant\", \"Use list.append(item). Example: mylist.append(4).\")\n\nprint(f\"{len(history)} messages in history:\")\nshow_history()\n```\n\nOne important constraint: every model has a context window — the maximum number of tokens it can process in one request. A long conversation eventually fills this limit. In production, you truncate old messages, keep only the system message and the most recent turns, or summarize earlier history before it overflows.",
+      "source_label": "OpenAI Text Generation Guide",
+      "source_url": "https://platform.openai.com/docs/guides/text-generation"
+    }
+  ],
+  "lesson_path": "content/topics/llm-api-basics/lesson.md",
+  "quality_status": "reference"
+}

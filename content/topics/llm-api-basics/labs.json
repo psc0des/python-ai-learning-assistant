@@ -1,0 +1,211 @@
+[
+  {
+    "id": "make-user-message",
+    "topic_id": "llm-api-basics",
+    "title": "Build a User Message",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `make_user_message(text)` that returns a message dictionary with `role` set to `\"user\"` and `content` set to the provided text. The tests call your function with sample strings, so `text` already contains the message content to use.",
+    "starter": "def make_user_message(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "role is user",
+        "call": "make_user_message('Hello')['role']",
+        "expected": "user"
+      },
+      {
+        "label": "content matches text",
+        "call": "make_user_message('Hello')['content']",
+        "expected": "Hello"
+      },
+      {
+        "label": "full dict",
+        "call": "make_user_message('What is Python?')",
+        "expected": {"role": "user", "content": "What is Python?"}
+      },
+      {
+        "label": "empty string content",
+        "call": "make_user_message('')['content']",
+        "expected": ""
+      }
+    ],
+    "hint": "Return a dict with exactly two keys: 'role' and 'content'.",
+    "solution": "def make_user_message(text):\n    return {\"role\": \"user\", \"content\": text}\n",
+    "explanation": "Every message sent to an LLM API is a dict with a 'role' key and a 'content' key. Building a helper function like this makes the rest of your code easier to read."
+  },
+  {
+    "id": "build-request-payload",
+    "topic_id": "llm-api-basics",
+    "title": "Build a Request Payload",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `build_payload(messages, model='gpt-4o-mini', temperature=0.7)` that returns a dictionary with keys `model`, `messages`, and `temperature` set to the provided arguments. The tests pass a messages list and sometimes override the defaults.",
+    "starter": "def build_payload(messages, model='gpt-4o-mini', temperature=0.7):\n    pass\n",
+    "tests": [
+      {
+        "label": "default model",
+        "call": "build_payload([])['model']",
+        "expected": "gpt-4o-mini"
+      },
+      {
+        "label": "default temperature",
+        "call": "build_payload([])['temperature']",
+        "expected": 0.7
+      },
+      {
+        "label": "messages passed through",
+        "call": "build_payload([{'role': 'user', 'content': 'Hi'}])['messages']",
+        "expected": [{"role": "user", "content": "Hi"}]
+      },
+      {
+        "label": "custom model",
+        "call": "build_payload([], model='gpt-4o')['model']",
+        "expected": "gpt-4o"
+      },
+      {
+        "label": "custom temperature",
+        "call": "build_payload([], temperature=0.0)['temperature']",
+        "expected": 0.0
+      }
+    ],
+    "hint": "Return a dict with three keys using the parameter values directly.",
+    "solution": "def build_payload(messages, model='gpt-4o-mini', temperature=0.7):\n    return {\n        'model': model,\n        'messages': messages,\n        'temperature': temperature,\n    }\n",
+    "explanation": "The request payload is just a Python dict. Wrapping it in a function with sensible defaults means callers only need to provide messages — model and temperature fall back to good values automatically."
+  },
+  {
+    "id": "extract-reply",
+    "topic_id": "llm-api-basics",
+    "title": "Extract the Reply Text",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `extract_reply(response)` that returns the generated text from an LLM API response dictionary. The text is at `response['choices'][0]['message']['content']`. The tests pass mock response dicts, so `response` already contains the nested structure to navigate.",
+    "starter": "def extract_reply(response):\n    pass\n",
+    "tests": [
+      {
+        "label": "extracts content string",
+        "call": "extract_reply({'choices': [{'message': {'role': 'assistant', 'content': 'Hello!'}}]})",
+        "expected": "Hello!"
+      },
+      {
+        "label": "longer reply",
+        "call": "extract_reply({'choices': [{'message': {'role': 'assistant', 'content': 'Python is a programming language.'}}]})",
+        "expected": "Python is a programming language."
+      },
+      {
+        "label": "empty content",
+        "call": "extract_reply({'choices': [{'message': {'role': 'assistant', 'content': ''}}]})",
+        "expected": ""
+      }
+    ],
+    "hint": "Index into choices, then message, then content — three levels deep.",
+    "solution": "def extract_reply(response):\n    return response['choices'][0]['message']['content']\n",
+    "explanation": "This path — choices[0]['message']['content'] — is the same across all OpenAI-compatible providers. Writing a dedicated function means you only need to update one place if the structure ever changes."
+  },
+  {
+    "id": "count-total-tokens",
+    "topic_id": "llm-api-basics",
+    "title": "Count Total Tokens",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "Write `count_total_tokens(response)` that returns the integer at `response['usage']['total_tokens']`. The tests pass mock response dicts with a `usage` field.",
+    "starter": "def count_total_tokens(response):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic count",
+        "call": "count_total_tokens({'usage': {'prompt_tokens': 10, 'completion_tokens': 5, 'total_tokens': 15}})",
+        "expected": 15
+      },
+      {
+        "label": "higher count",
+        "call": "count_total_tokens({'usage': {'prompt_tokens': 100, 'completion_tokens': 200, 'total_tokens': 300}})",
+        "expected": 300
+      },
+      {
+        "label": "zero tokens",
+        "call": "count_total_tokens({'usage': {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0}})",
+        "expected": 0
+      }
+    ],
+    "hint": "Navigate to response['usage'] first, then access 'total_tokens'.",
+    "solution": "def count_total_tokens(response):\n    return response['usage']['total_tokens']\n",
+    "explanation": "Tracking token usage is how you estimate costs and detect runaway prompts. Wrapping the path in a function keeps the rest of your code readable and easy to adjust if a provider uses a different field name."
+  },
+  {
+    "id": "make-prompt-template",
+    "topic_id": "llm-api-basics",
+    "title": "Prompt Template Function",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `make_prompt(template, **kwargs)` that returns the template string with all `{placeholder}` values filled in using the provided keyword arguments. The tests call your function with a template string and keyword arguments, so those values are already available as parameters.",
+    "starter": "def make_prompt(template, **kwargs):\n    pass\n",
+    "tests": [
+      {
+        "label": "single placeholder",
+        "call": "make_prompt('Explain {topic} simply.', topic='recursion')",
+        "expected": "Explain recursion simply."
+      },
+      {
+        "label": "multiple placeholders",
+        "call": "make_prompt('Translate {text} to {language}.', text='Hello', language='Spanish')",
+        "expected": "Translate Hello to Spanish."
+      },
+      {
+        "label": "no placeholders",
+        "call": "make_prompt('What is an API?')",
+        "expected": "What is an API?"
+      },
+      {
+        "label": "numeric value",
+        "call": "make_prompt('Summarize in {n} words.', n=50)",
+        "expected": "Summarize in 50 words."
+      }
+    ],
+    "hint": "Pass **kwargs directly into template.format().",
+    "solution": "def make_prompt(template, **kwargs):\n    return template.format(**kwargs)\n",
+    "explanation": "str.format(**kwargs) fills named placeholders from a dictionary. Collecting kwargs in the function signature means callers can pass any number of named arguments without the function needing to list them all."
+  },
+  {
+    "id": "chat-session",
+    "topic_id": "llm-api-basics",
+    "title": "Chat Session Manager",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `ChatSession` class that manages a multi-turn conversation. It should:\n- `__init__(self, model='gpt-4o-mini', system_prompt=None)` — store the model name; if `system_prompt` is given, add it as the first message with role `'system'`\n- `add_user_message(self, text)` — append a user message to the history\n- `add_assistant_message(self, text)` — append an assistant message to the history\n- `build_payload(self)` — return a dict with `model`, `messages`, and `temperature` (use `0.7`)\n- `last_reply(self)` — return the `content` of the most recent assistant message, or `None` if there is none",
+    "starter": "class ChatSession:\n    def __init__(self, model='gpt-4o-mini', system_prompt=None):\n        pass\n\n    def add_user_message(self, text):\n        pass\n\n    def add_assistant_message(self, text):\n        pass\n\n    def build_payload(self):\n        pass\n\n    def last_reply(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "model in payload",
+        "call": "ChatSession('gpt-4o').build_payload()['model']",
+        "expected": "gpt-4o"
+      },
+      {
+        "label": "temperature in payload",
+        "call": "ChatSession().build_payload()['temperature']",
+        "expected": 0.7
+      },
+      {
+        "label": "system prompt as first message",
+        "call": "ChatSession('gpt-4o-mini', 'Be concise.').build_payload()['messages'][0]",
+        "expected": {"role": "system", "content": "Be concise."}
+      },
+      {
+        "label": "add user message",
+        "call": "(s := ChatSession(), s.add_user_message('Hello'), s.messages[-1])[2]",
+        "expected": {"role": "user", "content": "Hello"}
+      },
+      {
+        "label": "last reply",
+        "call": "(s := ChatSession(), s.add_assistant_message('Hi there!'), s.last_reply())[2]",
+        "expected": "Hi there!"
+      },
+      {
+        "label": "no reply yet returns None",
+        "call": "ChatSession().last_reply()",
+        "expected": null
+      }
+    ],
+    "hint": "Store messages in a list on self. For last_reply, iterate in reverse to find the first assistant message.",
+    "solution": "class ChatSession:\n    def __init__(self, model='gpt-4o-mini', system_prompt=None):\n        self.model = model\n        self.messages = []\n        if system_prompt is not None:\n            self.messages.append({'role': 'system', 'content': system_prompt})\n\n    def add_user_message(self, text):\n        self.messages.append({'role': 'user', 'content': text})\n\n    def add_assistant_message(self, text):\n        self.messages.append({'role': 'assistant', 'content': text})\n\n    def build_payload(self):\n        return {\n            'model': self.model,\n            'messages': self.messages,\n            'temperature': 0.7,\n        }\n\n    def last_reply(self):\n        for msg in reversed(self.messages):\n            if msg['role'] == 'assistant':\n                return msg['content']\n        return None\n",
+    "explanation": "This class encapsulates the full state needed for a multi-turn LLM conversation. build_payload() assembles the request dict at any point, and last_reply() extracts the most recent model turn — the two operations you need on every API call cycle."
+  }
+]

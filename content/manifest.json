@@ -11,6 +11,7 @@
     "fastapi",
     "pydantic",
     "async",
+    "llm-api-basics",
     "langchain",
     "langgraph",
     "mcp",

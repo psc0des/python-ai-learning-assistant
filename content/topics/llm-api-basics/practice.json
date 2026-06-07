@@ -1,0 +1,115 @@
+{
+  "topic_id": "llm-api-basics",
+  "questions": [
+    {
+      "question": "What Python data type represents an LLM API request body?",
+      "options": [
+        "A list of strings",
+        "A tuple of values",
+        "A dictionary",
+        "A class instance"
+      ],
+      "answer": 2,
+      "explanation": "The request body is a plain Python dictionary with keys like 'model', 'messages', and 'temperature'. Your HTTP library or SDK serializes it to JSON before sending."
+    },
+    {
+      "question": "What are the two required keys in every message object in the messages array?",
+      "options": [
+        "'type' and 'text'",
+        "'role' and 'content'",
+        "'from' and 'body'",
+        "'sender' and 'message'"
+      ],
+      "answer": 1,
+      "explanation": "Every message dict needs exactly two keys: 'role' (who sent it: system, user, or assistant) and 'content' (the text of that message). Any other structure will be rejected by the API."
+    },
+    {
+      "question": "Which message role is used to give the model behavioral instructions at the start of a conversation?",
+      "options": [
+        "user",
+        "human",
+        "system",
+        "instruction"
+      ],
+      "answer": 2,
+      "explanation": "The 'system' role sets instructions, persona, and constraints for the model. It is typically the first message in the list and is not shown to end users."
+    },
+    {
+      "question": "How do you access the generated text from an LLM API response?",
+      "options": [
+        "response['text']",
+        "response['output']['text']",
+        "response['choices'][0]['message']['content']",
+        "response['message']['content']"
+      ],
+      "answer": 2,
+      "explanation": "The generated text is nested inside choices (a list), then message, then content. The path choices[0]['message']['content'] is consistent across OpenAI-compatible providers."
+    },
+    {
+      "question": "What does setting temperature to 0.0 do?",
+      "options": [
+        "Disables the model entirely",
+        "Makes outputs more random and creative",
+        "Makes outputs more deterministic and predictable",
+        "Limits the response to zero tokens"
+      ],
+      "answer": 2,
+      "explanation": "Temperature 0.0 makes the model always pick the highest-probability next token, producing nearly identical outputs on repeated calls. It is useful when you need consistent, predictable results."
+    },
+    {
+      "question": "Why must you send the full message history with every LLM API request?",
+      "options": [
+        "LLMs require a minimum number of messages to function",
+        "The API rejects requests with fewer than two messages",
+        "LLMs have no memory between calls — history is the only way to maintain context",
+        "Sending history reduces token costs"
+      ],
+      "answer": 2,
+      "explanation": "Each API call is stateless. The model has no memory of previous calls, so the only way it can 'remember' earlier turns is if you include them in the messages list you send."
+    },
+    {
+      "question": "Where in the response dict is total token usage reported?",
+      "options": [
+        "response['tokens']",
+        "response['usage']['total_tokens']",
+        "response['choices'][0]['tokens']",
+        "response['metadata']['token_count']"
+      ],
+      "answer": 1,
+      "explanation": "Token usage is reported in the top-level 'usage' key, with sub-keys for prompt_tokens, completion_tokens, and total_tokens. Providers bill based on these counts."
+    },
+    {
+      "question": "What does a finish_reason of 'length' in the response indicate?",
+      "options": [
+        "The model chose to stop after one sentence",
+        "The response hit the max_tokens limit and may be incomplete",
+        "The input was too long to process",
+        "The model ran out of vocabulary"
+      ],
+      "answer": 1,
+      "explanation": "finish_reason 'length' means the model hit the max_tokens cap before finishing its thought. The response may be cut off. 'stop' means the model finished naturally."
+    },
+    {
+      "question": "What role should an AI-generated reply use when added back to the conversation history?",
+      "options": [
+        "model",
+        "bot",
+        "ai",
+        "assistant"
+      ],
+      "answer": 3,
+      "explanation": "Replies from the model must be added with role 'assistant'. Using any other role will either be rejected by the API or confuse the model about who said what in earlier turns."
+    },
+    {
+      "question": "Why should prompt strings be wrapped in template functions rather than hardcoded inline?",
+      "options": [
+        "Python requires prompt strings to be inside functions",
+        "Template functions run faster than inline strings",
+        "Functions make prompts reusable, testable, and easy to update in one place",
+        "Inline strings are not valid Python syntax"
+      ],
+      "answer": 2,
+      "explanation": "A template function with parameters can be called with different values, tested in isolation, and updated without searching the codebase for hardcoded strings. This is the simplest form of prompt engineering discipline."
+    }
+  ]
+}
