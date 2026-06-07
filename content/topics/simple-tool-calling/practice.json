@@ -1,0 +1,115 @@
+{
+  "topic_id": "simple-tool-calling",
+  "questions": [
+    {
+      "question": "What does the LLM return when it decides a tool should be called?",
+      "options": [
+        "An error code asking your code to retry",
+        "A plain text string with the function name",
+        "A response with a tool_calls list containing the function name and JSON arguments",
+        "A request for additional user input"
+      ],
+      "answer": 2,
+      "explanation": "When the model decides a tool is needed, the response message contains a tool_calls list instead of (or alongside) content. Each entry has the function name and a JSON string of arguments. finish_reason is set to 'tool_calls'."
+    },
+    {
+      "question": "What Python type is the `arguments` value inside a tool_calls entry?",
+      "options": [
+        "A dict ready to unpack with **",
+        "A JSON string that must be parsed with json.loads()",
+        "A list of positional argument values",
+        "An integer index into the tools list"
+      ],
+      "answer": 1,
+      "explanation": "The LLM generates text, not Python objects. Arguments come back as a JSON-encoded string like '{\"city\": \"London\"}'. You must call json.loads() on it before passing it to your Python function."
+    },
+    {
+      "question": "What role should a tool result message use?",
+      "options": [
+        "user",
+        "assistant",
+        "function",
+        "tool"
+      ],
+      "answer": 3,
+      "explanation": "Tool result messages use the 'tool' role, which is distinct from 'user' and 'assistant'. The API uses this role to identify tool results in the conversation history and route them correctly to the model."
+    },
+    {
+      "question": "Why must the function return value be converted to a string before putting it in the tool result message?",
+      "options": [
+        "Python functions cannot return integers",
+        "The LLM API requires all message content to be a string",
+        "json.loads() only handles string input",
+        "str() is needed to trigger the tool call response"
+      ],
+      "answer": 1,
+      "explanation": "The message content field must be a string regardless of what your Python function returns. If your function returns an integer like 42, you must convert it with str(42) to '42' before building the tool result message."
+    },
+    {
+      "question": "What is the purpose of `tool_call_id` in a tool result message?",
+      "options": [
+        "It authenticates the API request",
+        "It links the result back to the specific tool call that requested it",
+        "It sets a timeout for the tool execution",
+        "It specifies the Python version used to run the function"
+      ],
+      "answer": 1,
+      "explanation": "When the LLM makes a tool call, it assigns an ID to that call. Your result message must include the same ID so the LLM can match the result to its specific request — especially important when multiple tools are called in one turn."
+    },
+    {
+      "question": "After you send the tool result back to the LLM, what happens next?",
+      "options": [
+        "The session ends and history is cleared",
+        "The LLM generates a final natural language answer using the tool result as context",
+        "The same tool is automatically called again",
+        "The LLM requests another tool call before answering"
+      ],
+      "answer": 1,
+      "explanation": "The full loop is: user message → LLM calls tool → your code runs function → result sent back → LLM reads updated history and generates the final answer. The tool result is context, not a trigger for more tool calls (unless the model decides it needs another one)."
+    },
+    {
+      "question": "Why does the quality of a tool's description matter?",
+      "options": [
+        "The description is shown to the user as a help tooltip",
+        "The LLM reads the description to decide when to call the tool",
+        "The API validates the description against a dictionary",
+        "Descriptions longer than 100 characters are rejected"
+      ],
+      "answer": 1,
+      "explanation": "The model reads tool descriptions to decide which tool to call and when. A vague description like 'weather tool' gives the model little to work with; 'Get the current temperature and conditions for a specific city' tells the model exactly when it applies."
+    },
+    {
+      "question": "What is `finish_reason: \"tool_calls\"` in an LLM response?",
+      "options": [
+        "A parse error in the tool definition",
+        "The model ran out of max_tokens during generation",
+        "The model chose to call a tool rather than generate a text answer",
+        "The previous tool call returned a successful result"
+      ],
+      "answer": 2,
+      "explanation": "finish_reason tells you why the model stopped generating. 'tool_calls' means it stopped because it wants your code to run a function and return the result before it continues. 'stop' means it finished naturally with a text answer."
+    },
+    {
+      "question": "What happens in a dispatcher if the function name from the LLM does not exist in the registry?",
+      "options": [
+        "The dispatcher returns an empty string",
+        "It raises a KeyError — the registry lookup fails",
+        "The closest matching tool name is used instead",
+        "The LLM is automatically asked to pick a different tool"
+      ],
+      "answer": 1,
+      "explanation": "registry[name] raises KeyError if name is not in the dict. Production dispatchers wrap this in try/except and return an error message to the LLM ('Unknown tool: ...') so the model can recover rather than the whole pipeline crashing."
+    },
+    {
+      "question": "What is the key advantage of a ToolRegistry class over a plain {name: func} dict?",
+      "options": [
+        "Classes are always faster than dicts for lookups",
+        "A registry bundles registration, dispatch logic, and tool listing into one testable unit that can also store schemas",
+        "Dicts cannot store callable objects as values",
+        "Classes automatically convert return values to strings"
+      ],
+      "answer": 1,
+      "explanation": "A plain dict maps names to functions but cannot store schemas, validate calls, or expose the tools list. A registry class bundles all of that together — you register once and the registry handles both the API tools field and incoming dispatch."
+    }
+  ]
+}

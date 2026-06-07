@@ -18,6 +18,7 @@
     "mcp",
     "rag-vectors",
     "simple-rag-project",
+    "simple-tool-calling",
     "python-devops",
     "sql-http-git"
   ]

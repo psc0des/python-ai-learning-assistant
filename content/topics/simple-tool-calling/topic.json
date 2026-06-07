@@ -1,0 +1,89 @@
+{
+  "id": "simple-tool-calling",
+  "track": "AI Projects",
+  "title": "Tool Calling and Function Use",
+  "level": "Intermediate",
+  "intro": "LLMs are good at reasoning and generating text, but they cannot run code, check a database, or fetch live data on their own. Tool calling solves this: you give the LLM a list of functions it is allowed to call, and when the LLM decides one is needed, it returns a structured signal instead of a text answer. Your Python code reads that signal, runs the function, sends the result back, and the LLM produces a final answer that uses real data.",
+  "mental_model": "Think of tool calling like a manager delegating to specialists. The manager (LLM) understands the problem and knows which specialist to call — but the specialist (your Python function) does the actual work. The manager cannot fetch a weather report themselves; they ask the weather specialist, get the answer, and incorporate it into their response. Your code coordinates that handoff in both directions.",
+  "syntax": "# 1. Define a tool schema\ntool = {\"type\": \"function\", \"function\": {\"name\": \"add\", \"description\": \"Add two numbers\", \"parameters\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"]}}}\n\n# 2. Dispatch a tool call\nimport json\ndef dispatch(tool_call, registry):\n    name = tool_call[\"function\"][\"name\"]\n    args = json.loads(tool_call[\"function\"][\"arguments\"])\n    return str(registry[name](**args))\n\n# 3. Return the result\ndef make_tool_result_message(tool_call_id, result):\n    return {\"role\": \"tool\", \"tool_call_id\": tool_call_id, \"content\": str(result)}\n",
+  "example": "import json\n\n# Full tool calling cycle\ndef dispatch(tool_call, registry):\n    name = tool_call[\"function\"][\"name\"]\n    args = json.loads(tool_call[\"function\"][\"arguments\"])\n    return str(registry[name](**args))\n\ndef make_tool_result_message(tool_call_id, result):\n    return {\"role\": \"tool\", \"tool_call_id\": tool_call_id, \"content\": str(result)}\n\nregistry = {\"add\": lambda a, b: a + b}\ntc = {\"id\": \"call_1\", \"function\": {\"name\": \"add\", \"arguments\": '{\"a\": 3, \"b\": 4}'}}\n\nresult = dispatch(tc, registry)          # '7'\nmsg = make_tool_result_message(tc[\"id\"], result)\nprint(msg)  # {'role': 'tool', 'tool_call_id': 'call_1', 'content': '7'}\n",
+  "must_know": [
+    "Tool calling lets the LLM signal which Python function to run and with what arguments — your code does the actual execution.",
+    "The arguments field in a tool call is a JSON string, not a dict — always json.loads() it before calling your function.",
+    "Tool result messages use role 'tool' and must include the tool_call_id to match the result to the original call.",
+    "Tool result content must be a string — convert with str() before building the message.",
+    "After sending the tool result, the LLM reads the full updated history and generates a final natural language answer."
+  ],
+  "common_traps": [
+    "Treating tool_call['function']['arguments'] as a dict directly — it is a JSON string and must be parsed with json.loads().",
+    "Forgetting to include the tool_call_id in the result message — the LLM cannot match the result to its call without it.",
+    "Not converting the function return value to a string — the API rejects non-string tool result content.",
+    "Sending the tool result as a 'user' message instead of a 'tool' message — the API distinguishes these roles.",
+    "Writing vague tool descriptions — the LLM uses the description to decide when to call the tool, so clarity matters."
+  ],
+  "interview": [
+    "Describe the full tool calling loop from user message to final LLM answer.",
+    "Why are tool arguments a JSON string rather than a Python dict in the API response?",
+    "What information does a tool result message need, and why?",
+    "How would you design a tool registry that also exposes tool schemas for the API request?"
+  ],
+  "docs": [
+    {
+      "label": "OpenAI Function Calling Guide",
+      "url": "https://platform.openai.com/docs/guides/function-calling"
+    },
+    {
+      "label": "Python json Module",
+      "url": "https://docs.python.org/3/library/json.html"
+    },
+    {
+      "label": "Python Classes",
+      "url": "https://docs.python.org/3/tutorial/classes.html"
+    }
+  ],
+  "real_world": [
+    "Every AI agent framework — LangChain, LlamaIndex, AutoGen — builds on the same tool calling protocol: define schemas, detect tool calls, dispatch, return results. Building it from scratch teaches you what each framework method is doing underneath.",
+    "Production tool registries store schemas alongside functions so the same registry can build the tools list for the API request and dispatch incoming calls — the capstone lab implements this exact pattern."
+  ],
+  "outcome": "By the end of this topic, you should be able to write tool schemas, detect and parse tool call responses, dispatch calls to Python functions, return results correctly, and build a multi-tool registry class.",
+  "lesson_sections": [
+    {
+      "title": "1. What Tool Calling Is",
+      "body": "The LLM API supports an optional `tools` field in the request payload. Each tool is a dict describing a Python function — its name, what it does, and what parameters it expects. If the LLM decides a tool should be called, it returns a response with `tool_calls` instead of (or alongside) `content`. Your code then runs the function and sends the result back.\n\n```python run\n# A mock tool call response — what the LLM sends when it wants to call a function\nresponse = {\n    \"choices\": [{\n        \"message\": {\n            \"role\": \"assistant\",\n            \"content\": None,\n            \"tool_calls\": [{\n                \"id\": \"call_abc123\",\n                \"type\": \"function\",\n                \"function\": {\n                    \"name\": \"get_weather\",\n                    \"arguments\": '{\"city\": \"London\"}'\n                }\n            }]\n        },\n        \"finish_reason\": \"tool_calls\"\n    }]\n}\n\nmessage = response[\"choices\"][0][\"message\"]\nif message.get(\"tool_calls\"):\n    call = message[\"tool_calls\"][0]\n    print(\"Tool requested:\", call[\"function\"][\"name\"])\n    print(\"Arguments string:\", call[\"function\"][\"arguments\"])\n    print(\"Finish reason:\", response[\"choices\"][0][\"finish_reason\"])\n```\n\n`finish_reason: \"tool_calls\"` signals that the model stopped because it wants to invoke a tool, not because it finished answering. Your code must check for this and run the dispatch step before asking the model to continue.",
+      "source_label": "OpenAI Function Calling Guide",
+      "source_url": "https://platform.openai.com/docs/guides/function-calling"
+    },
+    {
+      "title": "2. Writing a Tool Schema",
+      "body": "A tool schema is a dict that describes one function to the LLM. It has three parts: the function name (used to dispatch the call), a plain-English description (how the model decides when to use it), and a parameters object in JSON Schema format.\n\n```python run\ndef make_tool_schema(name, description, properties, required=None):\n    return {\n        \"type\": \"function\",\n        \"function\": {\n            \"name\": name,\n            \"description\": description,\n            \"parameters\": {\n                \"type\": \"object\",\n                \"properties\": properties,\n                \"required\": required or [],\n            }\n        }\n    }\n\nweather_tool = make_tool_schema(\n    name=\"get_weather\",\n    description=\"Get the current weather for a city\",\n    properties={\"city\": {\"type\": \"string\", \"description\": \"The city name\"}},\n    required=[\"city\"],\n)\n\nprint(weather_tool[\"function\"][\"name\"])\nprint(weather_tool[\"function\"][\"description\"])\nprint(weather_tool[\"function\"][\"parameters\"][\"required\"])\n```\n\nThe description is read by the LLM — write it for the model, not for other developers. Be specific: `\"Get the current temperature and conditions for a city\"` is better than `\"weather tool\"` because the model uses it to decide when to call the function.",
+      "source_label": "OpenAI Function Calling Guide",
+      "source_url": "https://platform.openai.com/docs/guides/function-calling"
+    },
+    {
+      "title": "3. Parsing a Tool Call Response",
+      "body": "When the LLM decides to call a tool, `tool_calls` in the response message contains a list of call objects. Each call has a function name and an `arguments` string. The arguments are a JSON-encoded string — not a dict — so you must parse them with `json.loads` before passing them to your function.\n\n```python run\nimport json\n\ndef parse_tool_call(tool_call):\n    name = tool_call[\"function\"][\"name\"]\n    args = json.loads(tool_call[\"function\"][\"arguments\"])\n    return {\"name\": name, \"args\": args}\n\ntc = {\n    \"id\": \"call_abc\",\n    \"function\": {\n        \"name\": \"get_weather\",\n        \"arguments\": '{\"city\": \"London\", \"units\": \"metric\"}'\n    }\n}\n\nparsed = parse_tool_call(tc)\nprint(parsed[\"name\"])          # get_weather\nprint(parsed[\"args\"][\"city\"])  # London\nprint(type(parsed[\"args\"]))    # <class 'dict'>\n```\n\n```python run\nimport json\n\ndef is_tool_call(response_message):\n    return bool(response_message.get(\"tool_calls\"))\n\nmsg_with_tool = {\"role\": \"assistant\", \"content\": None, \"tool_calls\": [{\"id\": \"x\"}]}\nmsg_with_text = {\"role\": \"assistant\", \"content\": \"Hello there!\"}\n\nprint(is_tool_call(msg_with_tool))  # True\nprint(is_tool_call(msg_with_text))  # False\n```",
+      "source_label": "Python json Module",
+      "source_url": "https://docs.python.org/3/library/json.html"
+    },
+    {
+      "title": "4. Dispatching to Python Functions",
+      "body": "A dispatcher maps tool names to actual Python functions and calls the right one with the extracted arguments. The result must be converted to a string — the LLM API requires all message content to be strings.\n\n```python run\nimport json\n\ndef dispatch(tool_call, registry):\n    name = tool_call[\"function\"][\"name\"]\n    args = json.loads(tool_call[\"function\"][\"arguments\"])\n    func = registry[name]\n    return str(func(**args))\n\ndef add(a, b):\n    return a + b\n\ndef greet(name):\n    return f\"Hello, {name}!\"\n\nregistry = {\"add\": add, \"greet\": greet}\n\ntc_add = {\"function\": {\"name\": \"add\", \"arguments\": '{\"a\": 3, \"b\": 4}'}}\ntc_greet = {\"function\": {\"name\": \"greet\", \"arguments\": '{\"name\": \"Alice\"}'}}\n\nprint(dispatch(tc_add, registry))    # 7\nprint(dispatch(tc_greet, registry))  # Hello, Alice!\n```\n\nThe dispatcher uses `**args` to unpack the parsed dict as keyword arguments. This means the LLM's argument names must exactly match your function's parameter names — another reason the schema description matters.",
+      "source_label": "Python json Module",
+      "source_url": "https://docs.python.org/3/library/json.html"
+    },
+    {
+      "title": "5. Returning Tool Results to the LLM",
+      "body": "After running the function, you send the result back as a `\"tool\"` role message. This message must include the `tool_call_id` from the original request so the LLM can match it to the tool call it made.\n\n```python run\ndef make_tool_result_message(tool_call_id, result):\n    return {\n        \"role\": \"tool\",\n        \"tool_call_id\": tool_call_id,\n        \"content\": str(result),\n    }\n\ntool_call_id = \"call_abc123\"\nresult_message = make_tool_result_message(tool_call_id, \"72F, partly cloudy\")\nprint(result_message)\n\n# The full history you send back to the LLM\nhistory = [\n    {\"role\": \"user\", \"content\": \"What is the weather in London?\"},\n    {\"role\": \"assistant\", \"content\": None, \"tool_calls\": [{\"id\": tool_call_id, \"function\": {\"name\": \"get_weather\", \"arguments\": '{\"city\": \"London\"}'}}]},\n    result_message,\n]\n\nprint(f\"\\nHistory length: {len(history)}\")\nprint(f\"Last role: {history[-1]['role']}\")\n```\n\nThe LLM then reads the conversation history — including the tool result — and generates a final natural language answer. The full loop is: user message → LLM decides to call tool → your code runs tool → tool result sent back → LLM generates final answer.",
+      "source_label": "OpenAI Function Calling Guide",
+      "source_url": "https://platform.openai.com/docs/guides/function-calling"
+    },
+    {
+      "title": "6. Multi-Tool Registries",
+      "body": "Most real applications expose several tools. A registry object lets you register tools by name, dispatch any call, and list what is available — all in one place.\n\n```python run\nimport json\n\nclass SimpleRegistry:\n    def __init__(self):\n        self._tools = {}\n\n    def register(self, name, func):\n        self._tools[name] = func\n\n    def dispatch(self, tool_call):\n        name = tool_call[\"function\"][\"name\"]\n        args = json.loads(tool_call[\"function\"][\"arguments\"])\n        return str(self._tools[name](**args))\n\n    def list_tools(self):\n        return list(self._tools.keys())\n\nreg = SimpleRegistry()\nreg.register(\"add\", lambda a, b: a + b)\nreg.register(\"upper\", lambda text: text.upper())\n\nprint(reg.list_tools())\n\ntc1 = {\"function\": {\"name\": \"add\", \"arguments\": '{\"a\": 10, \"b\": 5}'}}\ntc2 = {\"function\": {\"name\": \"upper\", \"arguments\": '{\"text\": \"hello\"}'}}\n\nprint(reg.dispatch(tc1))   # 15\nprint(reg.dispatch(tc2))   # HELLO\n```\n\nIn production, registries also store tool schemas so they can be passed directly into the `tools` field of every API request. The capstone lab extends this pattern with schema storage alongside the function.",
+      "source_label": "Python Classes",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html"
+    }
+  ],
+  "lesson_path": "content/topics/simple-tool-calling/lesson.md",
+  "quality_status": "reference"
+}

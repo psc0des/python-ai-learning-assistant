@@ -1,0 +1,226 @@
+[
+  {
+    "id": "make-tool-schema",
+    "topic_id": "simple-tool-calling",
+    "title": "Build a Tool Schema",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `make_tool_schema(name, description, params)` that returns a tool definition dictionary. The dict must have a `\"type\"` key set to `\"function\"` and a `\"function\"` key containing `\"name\"`, `\"description\"`, and `\"parameters\"` from the arguments. The tests pass strings for `name` and `description`, and a dict for `params`.",
+    "starter": "def make_tool_schema(name, description, params):\n    pass\n",
+    "tests": [
+      {
+        "label": "top-level type",
+        "call": "make_tool_schema('add', 'Add numbers', {})['type']",
+        "expected": "function"
+      },
+      {
+        "label": "function name",
+        "call": "make_tool_schema('add', 'Add numbers', {})['function']['name']",
+        "expected": "add"
+      },
+      {
+        "label": "function description",
+        "call": "make_tool_schema('add', 'Add numbers', {})['function']['description']",
+        "expected": "Add numbers"
+      },
+      {
+        "label": "parameters passed through",
+        "call": "make_tool_schema('add', 'Add', {'a': 'int'})['function']['parameters']",
+        "expected": {"a": "int"}
+      },
+      {
+        "label": "empty params",
+        "call": "make_tool_schema('noop', 'Does nothing', {})['function']['parameters']",
+        "expected": {}
+      }
+    ],
+    "hint": "Return a dict with 'type' and 'function' keys. The 'function' value is itself a dict.",
+    "solution": "def make_tool_schema(name, description, params):\n    return {\n        'type': 'function',\n        'function': {\n            'name': name,\n            'description': description,\n            'parameters': params,\n        }\n    }\n",
+    "explanation": "Tool schemas tell the LLM what functions exist and what arguments they need. The 'type': 'function' wrapper is required by the API. The description is what the model reads to decide when to call the tool."
+  },
+  {
+    "id": "is-tool-call",
+    "topic_id": "simple-tool-calling",
+    "title": "Detect a Tool Call Response",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `is_tool_call(message)` that returns `True` when the message dict contains a non-empty `\"tool_calls\"` list, and `False` otherwise. The tests pass message dicts as `message`.",
+    "starter": "def is_tool_call(message):\n    pass\n",
+    "tests": [
+      {
+        "label": "has tool calls",
+        "call": "is_tool_call({'role': 'assistant', 'tool_calls': [{'id': 'x', 'function': {'name': 'f'}}]})",
+        "expected": true
+      },
+      {
+        "label": "text response",
+        "call": "is_tool_call({'role': 'assistant', 'content': 'Hello!'})",
+        "expected": false
+      },
+      {
+        "label": "empty tool_calls list",
+        "call": "is_tool_call({'role': 'assistant', 'tool_calls': []})",
+        "expected": false
+      },
+      {
+        "label": "missing key",
+        "call": "is_tool_call({})",
+        "expected": false
+      }
+    ],
+    "hint": "Use dict.get() with a default and bool() to handle both missing keys and empty lists.",
+    "solution": "def is_tool_call(message):\n    return bool(message.get('tool_calls'))\n",
+    "explanation": "bool([]) is False and bool(None) is False, so get('tool_calls') with no default handles both missing keys and empty lists in one expression. This function is the branch condition at the top of every tool calling loop."
+  },
+  {
+    "id": "parse-tool-call",
+    "topic_id": "simple-tool-calling",
+    "title": "Parse a Tool Call",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `parse_tool_call(tool_call)` that extracts the function name and parsed arguments from a tool call dict. The `arguments` field is a JSON string — parse it with `json.loads`. Return a dict with keys `\"name\"` (string) and `\"args\"` (dict). The tests pass tool call dicts as `tool_call`.",
+    "starter": "import json\n\ndef parse_tool_call(tool_call):\n    pass\n",
+    "tests": [
+      {
+        "label": "extracts name",
+        "call": "parse_tool_call({'function': {'name': 'get_weather', 'arguments': '{\"city\": \"London\"}'}})['name']",
+        "expected": "get_weather"
+      },
+      {
+        "label": "parses args to dict",
+        "call": "parse_tool_call({'function': {'name': 'add', 'arguments': '{\"a\": 1, \"b\": 2}'}})['args']",
+        "expected": {"a": 1, "b": 2}
+      },
+      {
+        "label": "args is a dict not string",
+        "call": "isinstance(parse_tool_call({'function': {'name': 'f', 'arguments': '{\"x\": 1}'}})['args'], dict)",
+        "expected": true
+      },
+      {
+        "label": "empty args",
+        "call": "parse_tool_call({'function': {'name': 'ping', 'arguments': '{}'}})['args']",
+        "expected": {}
+      }
+    ],
+    "hint": "Use json.loads() on tool_call['function']['arguments'], then build and return a dict.",
+    "solution": "import json\n\ndef parse_tool_call(tool_call):\n    name = tool_call['function']['name']\n    args = json.loads(tool_call['function']['arguments'])\n    return {'name': name, 'args': args}\n",
+    "explanation": "The LLM sends arguments as a JSON string (not a dict) because it generates text, not Python objects. json.loads() converts it to a dict you can unpack with **args when calling the function."
+  },
+  {
+    "id": "make-tool-result-message",
+    "topic_id": "simple-tool-calling",
+    "title": "Build a Tool Result Message",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "Write `make_tool_result_message(tool_call_id, result)` that returns a message dict with `\"role\"` set to `\"tool\"`, `\"tool_call_id\"` set to the provided ID, and `\"content\"` set to `str(result)`. The tests pass a string ID and various result types.",
+    "starter": "def make_tool_result_message(tool_call_id, result):\n    pass\n",
+    "tests": [
+      {
+        "label": "role is tool",
+        "call": "make_tool_result_message('call_1', 'sunny')['role']",
+        "expected": "tool"
+      },
+      {
+        "label": "tool_call_id set",
+        "call": "make_tool_result_message('call_abc', '72F')['tool_call_id']",
+        "expected": "call_abc"
+      },
+      {
+        "label": "content is string",
+        "call": "make_tool_result_message('call_1', 'windy')['content']",
+        "expected": "windy"
+      },
+      {
+        "label": "numeric result converted to string",
+        "call": "make_tool_result_message('call_2', 42)['content']",
+        "expected": "42"
+      },
+      {
+        "label": "full dict shape",
+        "call": "make_tool_result_message('call_x', 'ok')",
+        "expected": {"role": "tool", "tool_call_id": "call_x", "content": "ok"}
+      }
+    ],
+    "hint": "Return a dict with three keys. Wrap result in str() for the content value.",
+    "solution": "def make_tool_result_message(tool_call_id, result):\n    return {\n        'role': 'tool',\n        'tool_call_id': tool_call_id,\n        'content': str(result),\n    }\n",
+    "explanation": "The 'tool' role is distinct from 'user' and 'assistant' — the API uses it to identify tool results in the conversation history. The tool_call_id links this result to the specific call the model made, which matters when multiple tools are called in one turn."
+  },
+  {
+    "id": "dispatch-tool-call",
+    "topic_id": "simple-tool-calling",
+    "title": "Dispatch a Tool Call",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `dispatch(tool_call, registry)` where `registry` is a `{name: callable}` dict. Extract the function name and arguments from the tool call (arguments is a JSON string), call `registry[name](**args)`, and return the result as a string. The tests pass tool call dicts and registry dicts.",
+    "starter": "import json\n\ndef dispatch(tool_call, registry):\n    pass\n",
+    "tests": [
+      {
+        "label": "dispatches and returns string",
+        "call": "dispatch({'function': {'name': 'double', 'arguments': '{\"x\": 5}'}}, {'double': lambda x: x * 2})",
+        "expected": "10"
+      },
+      {
+        "label": "keyword args unpacked",
+        "call": "dispatch({'function': {'name': 'add', 'arguments': '{\"a\": 3, \"b\": 4}'}}, {'add': lambda a, b: a + b})",
+        "expected": "7"
+      },
+      {
+        "label": "string result unchanged",
+        "call": "dispatch({'function': {'name': 'greet', 'arguments': '{\"name\": \"Alice\"}'}}, {'greet': lambda name: f'Hi {name}'})",
+        "expected": "Hi Alice"
+      },
+      {
+        "label": "result type is str",
+        "call": "isinstance(dispatch({'function': {'name': 'f', 'arguments': '{}'}}, {'f': lambda: 99}), str)",
+        "expected": true
+      }
+    ],
+    "hint": "json.loads the arguments string, then call registry[name](**args) and wrap in str().",
+    "solution": "import json\n\ndef dispatch(tool_call, registry):\n    name = tool_call['function']['name']\n    args = json.loads(tool_call['function']['arguments'])\n    return str(registry[name](**args))\n",
+    "explanation": "**args unpacks the argument dict as keyword arguments, matching each key to a function parameter. str() ensures the result is always a string regardless of what the function returns — required by the API."
+  },
+  {
+    "id": "tool-registry",
+    "topic_id": "simple-tool-calling",
+    "title": "Tool Registry",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `ToolRegistry` class that manages a collection of callable tools. It should:\n- `__init__(self)` — initialize an empty internal store\n- `register(self, name, func, description='')` — store the function and description under `name`\n- `dispatch(self, tool_call_dict)` — extract the function name and JSON arguments from the tool call, call the registered function with those arguments, and return the result as a string\n- `list_tools(self)` — return a list of all registered tool names",
+    "starter": "import json\n\nclass ToolRegistry:\n    def __init__(self):\n        pass\n\n    def register(self, name, func, description=''):\n        pass\n\n    def dispatch(self, tool_call_dict):\n        pass\n\n    def list_tools(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "starts empty",
+        "call": "ToolRegistry().list_tools()",
+        "expected": []
+      },
+      {
+        "label": "register adds to list",
+        "call": "(r := ToolRegistry(), r.register('add', lambda a, b: a + b), r.list_tools())[2]",
+        "expected": ["add"]
+      },
+      {
+        "label": "dispatch returns string",
+        "call": "(r := ToolRegistry(), r.register('double', lambda x: x * 2), r.dispatch({'function': {'name': 'double', 'arguments': '{\"x\": 6}'}}))[2]",
+        "expected": "12"
+      },
+      {
+        "label": "dispatch with multi-arg function",
+        "call": "(r := ToolRegistry(), r.register('add', lambda a, b: a + b), r.dispatch({'function': {'name': 'add', 'arguments': '{\"a\": 10, \"b\": 5}'}}))[2]",
+        "expected": "15"
+      },
+      {
+        "label": "multiple tools listed",
+        "call": "(r := ToolRegistry(), r.register('a', lambda: 1), r.register('b', lambda: 2), len(r.list_tools()))[3]",
+        "expected": 2
+      },
+      {
+        "label": "dispatch result is str type",
+        "call": "(r := ToolRegistry(), r.register('num', lambda: 99), isinstance(r.dispatch({'function': {'name': 'num', 'arguments': '{}'}}), str))[2]",
+        "expected": true
+      }
+    ],
+    "hint": "Store tools in a dict keyed by name. dispatch() calls json.loads on arguments, then calls self._tools[name]['func'](**args).",
+    "solution": "import json\n\nclass ToolRegistry:\n    def __init__(self):\n        self._tools = {}\n\n    def register(self, name, func, description=''):\n        self._tools[name] = {'func': func, 'description': description}\n\n    def dispatch(self, tool_call_dict):\n        name = tool_call_dict['function']['name']\n        args = json.loads(tool_call_dict['function']['arguments'])\n        result = self._tools[name]['func'](**args)\n        return str(result)\n\n    def list_tools(self):\n        return list(self._tools.keys())\n",
+    "explanation": "ToolRegistry bundles registration, dispatch, and introspection into one object. Storing both the function and description per tool means the same registry can later expose schemas for the API tools field and handle incoming calls — the two operations you need on every tool calling cycle."
+  }
+]
