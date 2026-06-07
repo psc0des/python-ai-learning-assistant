@@ -1,0 +1,115 @@
+{
+  "topic_id": "simple-rag-project",
+  "questions": [
+    {
+      "question": "What is the primary purpose of retrieval in a RAG pipeline?",
+      "options": [
+        "To compress documents before sending them to the model",
+        "To find the most relevant document chunks to include as context in the prompt",
+        "To train the LLM on your documents",
+        "To validate that LLM output matches your documents"
+      ],
+      "answer": 1,
+      "explanation": "Retrieval finds the chunks most relevant to the query so they can be included in the prompt. The LLM then answers based on that context rather than its training memory alone."
+    },
+    {
+      "question": "Why is splitting on '. ' (period-space) safer than splitting on '.' alone?",
+      "options": [
+        "Python cannot split strings on single characters",
+        "Period alone incorrectly splits decimal numbers like 3.14",
+        "Period-space produces longer chunks",
+        "Period alone requires importing the re module"
+      ],
+      "answer": 1,
+      "explanation": "A bare '.' splits '3.14' into ['3', '14'], breaking numbers. It also splits abbreviations like 'Dr.' incorrectly. Period followed by a space is a much more reliable sentence boundary in English text."
+    },
+    {
+      "question": "What does a bag-of-words vector represent?",
+      "options": [
+        "The semantic meaning of a sentence as a dense float array",
+        "The order of words in a sentence",
+        "A dictionary mapping each word to the number of times it appears",
+        "The emotional tone of a piece of text"
+      ],
+      "answer": 2,
+      "explanation": "A bag-of-words vector is a word-count dictionary. It captures which words appear and how often, but ignores word order and semantic relationships. It is the simplest numerical text representation."
+    },
+    {
+      "question": "What does the dot product of two word vectors measure?",
+      "options": [
+        "The total number of words in both texts combined",
+        "The sum of shared-word frequency products — a measure of vocabulary overlap",
+        "The cosine angle between two sentences",
+        "The length difference between two chunks"
+      ],
+      "answer": 1,
+      "explanation": "The dot product sums (count_in_a × count_in_b) for every shared word. A high dot product means many high-frequency words in common, indicating the texts are likely about the same topic."
+    },
+    {
+      "question": "In a RAG pipeline, which step converts raw document text into something you can compare numerically?",
+      "options": [
+        "Chunking",
+        "Prompting",
+        "Vectorization (embedding or bag-of-words)",
+        "Retrieval"
+      ],
+      "answer": 2,
+      "explanation": "Vectorization turns text into numbers — either a bag-of-words frequency dict or a dense embedding vector. Without this step you cannot compute similarity scores between the query and chunks."
+    },
+    {
+      "question": "What does setting k=2 in a retrieve() call mean?",
+      "options": [
+        "Only 2 documents can be stored in the index",
+        "The model must answer in exactly 2 sentences",
+        "The 2 highest-scoring chunks are returned as context",
+        "The query is repeated 2 times"
+      ],
+      "answer": 2,
+      "explanation": "k controls how many chunks are returned. retrieve() scores all chunks, sorts descending, and returns the first k. A larger k gives more context but can also include less-relevant chunks that confuse the model."
+    },
+    {
+      "question": "What is the structural difference between a bag-of-words vector and a real embedding?",
+      "options": [
+        "Bag-of-words uses lists; embeddings use tuples",
+        "Bag-of-words counts exact word matches; embeddings capture semantic meaning in dense float vectors",
+        "Embeddings are always smaller than bag-of-words vectors",
+        "There is no difference — they are the same thing"
+      ],
+      "answer": 1,
+      "explanation": "A bag-of-words vector has one key per unique word and zero overlap for synonyms. A real embedding maps any text to a fixed-length float array where semantically similar texts are close together — 'python' and 'programming' would be near each other in embedding space."
+    },
+    {
+      "question": "Why should you lowercase both the query and chunk text before computing word overlap?",
+      "options": [
+        "Lowercase text is required by the json module",
+        "'Python' and 'python' count as different words without lowercasing, causing missed matches",
+        "Lowercase reduces the number of tokens in the prompt",
+        "The LLM cannot read uppercase letters"
+      ],
+      "answer": 1,
+      "explanation": "String comparison in Python is case-sensitive. Without lowercasing, 'Python' and 'python' produce zero overlap even though they are the same word. Lowercasing both sides ensures consistent matching."
+    },
+    {
+      "question": "Where in the RAG prompt does the retrieved context appear relative to the question?",
+      "options": [
+        "After the question",
+        "Before the question, so the model reads it first",
+        "In a separate API request",
+        "As a system message, not in the user message"
+      ],
+      "answer": 1,
+      "explanation": "Context appears before the question so the model processes the retrieved information before generating an answer. The standard format is: context block → blank line → question. Placing context after the question reduces how much the model uses it."
+    },
+    {
+      "question": "What is the key architectural advantage of building RAG as a series of pure functions?",
+      "options": [
+        "Pure functions are faster than methods",
+        "Each step can be tested and swapped independently without changing the others",
+        "Pure functions use less memory",
+        "Python requires pure functions for all AI pipelines"
+      ],
+      "answer": 1,
+      "explanation": "When chunking, scoring, and prompting are separate pure functions, you can test each in isolation, replace word-overlap scoring with real embeddings, or swap the chunker for an overlap-aware version — all without touching the other steps."
+    }
+  ]
+}

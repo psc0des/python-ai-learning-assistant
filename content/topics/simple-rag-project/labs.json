@@ -1,0 +1,241 @@
+[
+  {
+    "id": "chunk-by-sentences",
+    "topic_id": "simple-rag-project",
+    "title": "Chunk Text by Sentences",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `chunk_by_sentences(text)` that splits a document into a list of sentence strings by splitting on `\". \"` (period followed by a space). Strip whitespace from each part and exclude any empty strings. The tests pass a string as `text`.",
+    "starter": "def chunk_by_sentences(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "two sentences",
+        "call": "chunk_by_sentences('Python is great. Functions are reusable.')",
+        "expected": ["Python is great", "Functions are reusable."]
+      },
+      {
+        "label": "single sentence",
+        "call": "chunk_by_sentences('Only one sentence here.')",
+        "expected": ["Only one sentence here."]
+      },
+      {
+        "label": "four sentences",
+        "call": "len(chunk_by_sentences('A. B. C. D.'))",
+        "expected": 4
+      },
+      {
+        "label": "empty string",
+        "call": "chunk_by_sentences('')",
+        "expected": []
+      },
+      {
+        "label": "strips whitespace",
+        "call": "chunk_by_sentences('  Hello world.  No trailing spaces.  ')",
+        "expected": ["Hello world", "No trailing spaces"]
+      }
+    ],
+    "hint": "Use text.split('. ') then strip each part and filter out empty strings with a list comprehension.",
+    "solution": "def chunk_by_sentences(text):\n    parts = text.split('. ')\n    return [p.strip() for p in parts if p.strip()]\n",
+    "explanation": "Splitting on '. ' (period-space) avoids breaking decimal numbers like 3.14. The strip-and-filter comprehension handles leading/trailing whitespace and empty parts that appear when the text ends with a period."
+  },
+  {
+    "id": "make-word-vector",
+    "topic_id": "simple-rag-project",
+    "title": "Make a Word Vector",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `make_word_vector(text)` that returns a dictionary mapping each unique lowercase word in `text` to the number of times it appears. Split on whitespace only — do not strip punctuation. The tests pass strings as `text`.",
+    "starter": "def make_word_vector(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic counts",
+        "call": "make_word_vector('python is great')",
+        "expected": {"python": 1, "is": 1, "great": 1}
+      },
+      {
+        "label": "repeated word",
+        "call": "make_word_vector('python python python')",
+        "expected": {"python": 3}
+      },
+      {
+        "label": "lowercase applied",
+        "call": "make_word_vector('Python PYTHON python')['python']",
+        "expected": 3
+      },
+      {
+        "label": "empty string",
+        "call": "make_word_vector('')",
+        "expected": {}
+      },
+      {
+        "label": "two distinct words",
+        "call": "len(make_word_vector('cats dogs'))",
+        "expected": 2
+      }
+    ],
+    "hint": "Lowercase text.lower().split() gives you a list of words. Iterate and count with a dict.",
+    "solution": "def make_word_vector(text):\n    words = text.lower().split()\n    vector = {}\n    for word in words:\n        vector[word] = vector.get(word, 0) + 1\n    return vector\n",
+    "explanation": "dict.get(word, 0) + 1 is the standard one-liner for counting: if the key exists return its count, otherwise start from zero. This produces a bag-of-words vector — the simplest numerical representation of text."
+  },
+  {
+    "id": "dot-product",
+    "topic_id": "simple-rag-project",
+    "title": "Dot Product of Word Vectors",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `dot_product(vec_a, vec_b)` that computes the dot product of two word-frequency dictionaries. For each word that appears in `vec_b`, multiply its count in `vec_a` (defaulting to 0 if absent) by its count in `vec_b`, then sum all those products. The tests pass two dicts as `vec_a` and `vec_b`.",
+    "starter": "def dot_product(vec_a, vec_b):\n    pass\n",
+    "tests": [
+      {
+        "label": "one shared word",
+        "call": "dot_product({'python': 2, 'fun': 1}, {'python': 3, 'java': 1})",
+        "expected": 6
+      },
+      {
+        "label": "no shared words",
+        "call": "dot_product({'cats': 1}, {'dogs': 1})",
+        "expected": 0
+      },
+      {
+        "label": "empty vec_b",
+        "call": "dot_product({'python': 1}, {})",
+        "expected": 0
+      },
+      {
+        "label": "both same",
+        "call": "dot_product({'a': 2, 'b': 3}, {'a': 2, 'b': 3})",
+        "expected": 13
+      },
+      {
+        "label": "word in b missing from a",
+        "call": "dot_product({}, {'python': 5})",
+        "expected": 0
+      }
+    ],
+    "hint": "Iterate over vec_b's keys. For each, multiply vec_a.get(word, 0) by vec_b[word] and accumulate.",
+    "solution": "def dot_product(vec_a, vec_b):\n    return sum(vec_a.get(w, 0) * vec_b.get(w, 0) for w in vec_b)\n",
+    "explanation": "The dot product sums the products of matching word counts. Words present in vec_b but absent in vec_a contribute zero (via the default). This is how similarity search works at its core — more shared words means higher score."
+  },
+  {
+    "id": "score-chunks",
+    "topic_id": "simple-rag-project",
+    "title": "Score Chunks Against a Query",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "Write `score_chunks(query, chunks)` that returns a list of `(score, chunk)` tuples sorted by score descending. Score each chunk by the number of words from the lowercased query that also appear in the lowercased chunk (word set intersection size). The tests pass a query string and a list of chunk strings.",
+    "starter": "def score_chunks(query, chunks):\n    pass\n",
+    "tests": [
+      {
+        "label": "best match first",
+        "call": "score_chunks('python functions', ['about python functions', 'cats are nice'])[0][1]",
+        "expected": "about python functions"
+      },
+      {
+        "label": "score of best match",
+        "call": "score_chunks('python functions', ['about python functions', 'cats are nice'])[0][0]",
+        "expected": 2
+      },
+      {
+        "label": "no match gives zero",
+        "call": "score_chunks('xyz', ['cats', 'dogs'])[0][0]",
+        "expected": 0
+      },
+      {
+        "label": "returns all chunks",
+        "call": "len(score_chunks('query', ['a', 'b', 'c']))",
+        "expected": 3
+      },
+      {
+        "label": "single chunk",
+        "call": "score_chunks('python', ['python is cool'])[0][0]",
+        "expected": 1
+      }
+    ],
+    "hint": "Use set intersection (&) of query words and chunk words. Sort the results list with reverse=True.",
+    "solution": "def score_chunks(query, chunks):\n    query_words = set(query.lower().split())\n    results = []\n    for chunk in chunks:\n        chunk_words = set(chunk.lower().split())\n        score = len(query_words & chunk_words)\n        results.append((score, chunk))\n    results.sort(reverse=True)\n    return results\n",
+    "explanation": "Set intersection gives unique shared words regardless of frequency — simpler than dot product and fast enough for small document stores. Sorting by score descending puts the best match first so callers can slice [:k] to get the top results."
+  },
+  {
+    "id": "build-rag-prompt",
+    "topic_id": "simple-rag-project",
+    "title": "Build a RAG Prompt",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `build_rag_prompt(query, chunks)` that assembles a RAG prompt string. The prompt should start with `\"Context:\"`, list each chunk on its own line prefixed with `\"- \"`, then include a blank line followed by `\"Question: {query}\"`. The tests pass a query string and a list of chunk strings.",
+    "starter": "def build_rag_prompt(query, chunks):\n    pass\n",
+    "tests": [
+      {
+        "label": "contains query",
+        "call": "'What is Python?' in build_rag_prompt('What is Python?', ['Python is a language.'])",
+        "expected": true
+      },
+      {
+        "label": "contains Context header",
+        "call": "build_rag_prompt('Q', ['chunk1']).startswith('Context:')",
+        "expected": true
+      },
+      {
+        "label": "chunk prefixed with dash",
+        "call": "'- chunk1' in build_rag_prompt('Q', ['chunk1'])",
+        "expected": true
+      },
+      {
+        "label": "Question label present",
+        "call": "'Question:' in build_rag_prompt('anything', ['c1', 'c2'])",
+        "expected": true
+      },
+      {
+        "label": "both chunks included",
+        "call": "'- alpha' in build_rag_prompt('q', ['alpha', 'beta']) and '- beta' in build_rag_prompt('q', ['alpha', 'beta'])",
+        "expected": true
+      }
+    ],
+    "hint": "Join chunks with newlines and a '- ' prefix. Use an f-string to combine context and question.",
+    "solution": "def build_rag_prompt(query, chunks):\n    context = '\\n'.join(f'- {chunk}' for chunk in chunks)\n    return f'Context:\\n{context}\\n\\nQuestion: {query}'\n",
+    "explanation": "The structure — context block, blank line, question — is the standard RAG prompt format. The blank line separates context from question and helps the model understand where to look for the answer."
+  },
+  {
+    "id": "mini-rag",
+    "topic_id": "simple-rag-project",
+    "title": "MiniRAG Pipeline",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `MiniRAG` class that wraps the full retrieval pipeline. It should:\n- `__init__(self)` — initialize an empty document list and empty chunk list\n- `add_doc(self, text)` — append a document string to the internal document list\n- `index(self)` — chunk all stored documents by sentence (split on `'. '`) and store the chunks\n- `retrieve(self, query, k=2)` — return the top-k chunk strings scored by word-set overlap with the query\n- `prompt(self, query)` — retrieve top-2 chunks and return a prompt string that starts with `'Context:'` and ends with the query after `'Question: '`",
+    "starter": "class MiniRAG:\n    def __init__(self):\n        pass\n\n    def add_doc(self, text):\n        pass\n\n    def index(self):\n        pass\n\n    def retrieve(self, query, k=2):\n        pass\n\n    def prompt(self, query):\n        pass\n",
+    "tests": [
+      {
+        "label": "starts empty",
+        "call": "MiniRAG().docs",
+        "expected": []
+      },
+      {
+        "label": "add_doc stores document",
+        "call": "(r := MiniRAG(), r.add_doc('Python is fun.'), len(r.docs))[2]",
+        "expected": 1
+      },
+      {
+        "label": "index creates chunks",
+        "call": "(r := MiniRAG(), r.add_doc('Python is fun. Functions rock.'), r.index(), len(r.chunks))[3]",
+        "expected": 2
+      },
+      {
+        "label": "retrieve returns best chunk",
+        "call": "(r := MiniRAG(), r.add_doc('Python is a language. Cats are animals.'), r.index(), r.retrieve('python language', k=1))[3]",
+        "expected": ["Python is a language"]
+      },
+      {
+        "label": "prompt contains Context header",
+        "call": "(r := MiniRAG(), r.add_doc('Python rocks.'), r.index(), 'Context:' in r.prompt('Python'))[3]",
+        "expected": true
+      },
+      {
+        "label": "prompt contains Question label",
+        "call": "(r := MiniRAG(), r.add_doc('Python rocks.'), r.index(), 'Question:' in r.prompt('What is Python'))[3]",
+        "expected": true
+      }
+    ],
+    "hint": "index() should loop over self.docs, split each on '. ', and extend self.chunks. retrieve() uses set intersection to score then slices [:k].",
+    "solution": "class MiniRAG:\n    def __init__(self):\n        self.docs = []\n        self.chunks = []\n\n    def add_doc(self, text):\n        self.docs.append(text)\n\n    def index(self):\n        self.chunks = []\n        for doc in self.docs:\n            parts = [p.strip() for p in doc.split('. ') if p.strip()]\n            self.chunks.extend(parts)\n\n    def retrieve(self, query, k=2):\n        query_words = set(query.lower().split())\n        scored = []\n        for chunk in self.chunks:\n            chunk_words = set(chunk.lower().split())\n            score = len(query_words & chunk_words)\n            scored.append((score, chunk))\n        scored.sort(reverse=True)\n        return [chunk for _, chunk in scored[:k]]\n\n    def prompt(self, query):\n        top = self.retrieve(query, k=2)\n        context = '\\n'.join(f'- {c}' for c in top)\n        return f'Context:\\n{context}\\n\\nQuestion: {query}'\n",
+    "explanation": "MiniRAG encapsulates the full four-step pipeline: add_doc stores raw text, index chunks and caches them, retrieve scores and ranks, and prompt assembles the final LLM input. Caching chunks in index() avoids re-splitting on every retrieve call."
+  }
+]

@@ -1,0 +1,89 @@
+{
+  "id": "simple-rag-project",
+  "track": "AI Projects",
+  "title": "Build a Simple RAG Pipeline",
+  "level": "Intermediate",
+  "intro": "RAG stands for Retrieval-Augmented Generation. Instead of asking an LLM to answer from training memory alone, you first find the most relevant pieces of your own documents and include them in the prompt. The model reads your documents to answer the question. This topic builds every piece of that pipeline from scratch using plain Python — no framework, no embeddings library, no vector database.",
+  "mental_model": "Think of a RAG pipeline like a research assistant with a filing cabinet full of notes. When you ask a question, they do not guess from memory — they flip through the files, pull out the two or three most relevant pages, and answer based on what they found. Your code plays the role of the filing-cabinet search; the LLM plays the role of the reader.",
+  "syntax": "# Step 1: chunk\nchunks = [s.strip() for s in doc.split('. ') if s.strip()]\n\n# Step 2: word vector\ndef make_vec(text):\n    words = text.lower().split()\n    return {w: words.count(w) for w in set(words)}\n\n# Step 3: score\nquery_words = set(query.lower().split())\nscores = [(len(query_words & set(c.lower().split())), c) for c in chunks]\n\n# Step 4: retrieve and prompt\nscores.sort(reverse=True)\ntop = [c for _, c in scores[:k]]\n",
+  "example": "def rag(query, documents, k=2):\n    chunks = []\n    for doc in documents:\n        chunks.extend(s.strip() for s in doc.split('. ') if s.strip())\n    query_words = set(query.lower().split())\n    scored = sorted(\n        [(len(query_words & set(c.lower().split())), c) for c in chunks],\n        reverse=True\n    )\n    top = [c for _, c in scored[:k]]\n    context = '\\n'.join(f'- {c}' for c in top)\n    return f'Context:\\n{context}\\n\\nQuestion: {query}'\n\nprint(rag('what are lists', ['Lists store items. Dicts map keys to values.']))\n",
+  "must_know": [
+    "RAG retrieves relevant document chunks to include in the prompt so the LLM answers from your data, not its training memory.",
+    "Chunking splits documents into sentence- or paragraph-sized pieces — the atomic unit of retrieval.",
+    "A bag-of-words vector is a word-count dictionary; dot product or word-overlap scores measure how much two texts share.",
+    "Retrieval is just sorting chunks by score and taking the top-k — the same pattern regardless of whether you use word overlap or real embeddings.",
+    "The final prompt wraps top chunks as context followed by the user's question; temperature 0.0 keeps factual answers deterministic."
+  ],
+  "common_traps": [
+    "Splitting on '.' instead of '. ' (period-space) which incorrectly splits decimal numbers like 3.14 and abbreviations.",
+    "Sending raw top-k chunk text to the LLM without formatting — the model needs a clear separator between context and question.",
+    "Using word overlap without lowercasing both sides — 'Python' and 'python' count as different words and miss matches.",
+    "Setting k too large and flooding the prompt with irrelevant chunks, which confuses the model.",
+    "Forgetting that word-overlap retrieval fails on synonyms — 'reuse' and 'recycle' have zero overlap even though they are related."
+  ],
+  "interview": [
+    "Walk through the four steps of a RAG pipeline and explain what each step does.",
+    "Why is splitting on '. ' safer than splitting on '.' for English text?",
+    "What is the difference between a bag-of-words vector and a real embedding, and when does it matter?",
+    "How would you upgrade this word-overlap retrieval to use cosine similarity with real embeddings?"
+  ],
+  "docs": [
+    {
+      "label": "Python str.split()",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.split"
+    },
+    {
+      "label": "Python Built-in Functions",
+      "url": "https://docs.python.org/3/library/functions.html"
+    },
+    {
+      "label": "Python list.sort()",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.sort"
+    }
+  ],
+  "real_world": [
+    "Every production RAG system follows the same four steps — chunk, embed, retrieve, prompt — even when using LangChain, LlamaIndex, or a custom pipeline. Building it from scratch teaches you what each framework call is actually doing.",
+    "Word-overlap retrieval (BM25) is still competitive with embedding-based retrieval for keyword-heavy domains like code search and legal documents, making it a valid production choice, not just a teaching simplification."
+  ],
+  "outcome": "By the end of this topic, you should be able to chunk documents into sentences, score chunks against a query using word overlap, retrieve the top-k most relevant chunks, and assemble a complete RAG prompt — all in plain Python.",
+  "lesson_sections": [
+    {
+      "title": "1. What a RAG Pipeline Actually Does",
+      "body": "A RAG pipeline has four steps that always run in the same order: split documents into chunks, represent each chunk numerically, score chunks against the query, and build a prompt from the best matches.\n\n```python run\n# The 4-step RAG pipeline in miniature\ndocs = [\n    \"Python functions let you reuse code. Define them with the def keyword.\",\n    \"Lists store items in order. Access items by index.\",\n    \"Dicts map keys to values. Use curly braces to create them.\",\n]\n\n# Step 1: chunk (already one sentence each here)\nchunks = docs\n\n# Step 2: represent as word-frequency vectors\ndef make_vec(text):\n    words = text.lower().split()\n    return {w: words.count(w) for w in set(words)}\n\n# Step 3: score each chunk against the query\nquery = \"how do I reuse code with functions\"\nq_vec = make_vec(query)\nscores = []\nfor chunk in chunks:\n    c_vec = make_vec(chunk)\n    score = sum(q_vec.get(w, 0) * c_vec.get(w, 0) for w in c_vec)\n    scores.append((score, chunk))\n\n# Step 4: retrieve top match and build a prompt\nscores.sort(reverse=True)\ntop = scores[0][1]\nprint(\"Best match:\", top)\nprint(\"Prompt context:\", top[:50] + \"...\")\n```\n\nStep 2 uses bag-of-words vectors instead of real embeddings — the structure is identical, just less powerful. You replace this step with a real embedding model when you move to production.",
+      "source_label": "Python Built-in Functions",
+      "source_url": "https://docs.python.org/3/library/functions.html"
+    },
+    {
+      "title": "2. Chunking Text",
+      "body": "A chunk is the atomic unit of your document store — the smallest piece of text you retrieve as a unit. Chunking too coarsely means retrieved context is noisy; chunking too finely means it loses meaning.\n\nThe simplest strategy is splitting on sentence boundaries. In English text, a period followed by a space reliably separates sentences without splitting decimal numbers like `3.14`.\n\n```python run\ndef chunk_by_sentences(text):\n    parts = text.split(\". \")\n    return [p.strip() for p in parts if p.strip()]\n\ndoc = \"Python is a language. Functions are reusable. Lists store sequences. Dicts map keys to values.\"\nchunks = chunk_by_sentences(doc)\n\nfor i, chunk in enumerate(chunks):\n    print(f\"[{i}] {chunk}\")\n```\n\n```python run\ndef chunk_by_size(text, max_chars=100):\n    words = text.split()\n    chunks = []\n    current = []\n    for word in words:\n        current.append(word)\n        if len(\" \".join(current)) >= max_chars:\n            chunks.append(\" \".join(current))\n            current = []\n    if current:\n        chunks.append(\" \".join(current))\n    return chunks\n\nlong_text = \"This is a longer document that needs to be split into smaller pieces for retrieval. Each piece should be short enough to fit comfortably in a context window.\"\nfor chunk in chunk_by_size(long_text, max_chars=60):\n    print(repr(chunk))\n```\n\nIn production, overlapping chunks — where each chunk shares a few words with the next — reduce the chance of splitting a relevant sentence across chunk boundaries.",
+      "source_label": "Python str.split()",
+      "source_url": "https://docs.python.org/3/library/stdtypes.html#str.split"
+    },
+    {
+      "title": "3. Representing Text as Vectors",
+      "body": "To compare chunks against a query mathematically, you need to represent text as numbers. The simplest representation is a bag-of-words vector: a dictionary where each key is a word and each value is how many times that word appears.\n\n```python run\ndef make_word_vector(text):\n    words = text.lower().split()\n    vector = {}\n    for word in words:\n        vector[word] = vector.get(word, 0) + 1\n    return vector\n\nv1 = make_word_vector(\"python is great and python is fast\")\nv2 = make_word_vector(\"python and java are languages\")\n\nprint(\"v1:\", v1)\nprint(\"v2:\", v2)\nprint(\"shared words:\", set(v1) & set(v2))\n```\n\nA bag-of-words vector treats every word as an independent dimension. `\"python\"` and `\"programming\"` have zero overlap even though they are semantically related. Real embedding models — which you use with the `rag-vectors` topic — fix this by mapping words to dense float vectors where semantic neighbours are close together. The retrieval math is the same either way.",
+      "source_label": "Python Built-in Functions",
+      "source_url": "https://docs.python.org/3/library/functions.html"
+    },
+    {
+      "title": "4. Finding Similar Chunks",
+      "body": "The dot product of two word vectors measures how much vocabulary they share, weighted by frequency. Two vectors with many shared high-frequency words produce a high score; two vectors with nothing in common produce zero.\n\n```python run\ndef make_word_vector(text):\n    words = text.lower().split()\n    return {w: words.count(w) for w in set(words)}\n\ndef dot_product(vec_a, vec_b):\n    return sum(vec_a.get(w, 0) * vec_b.get(w, 0) for w in vec_b)\n\nquery = \"how do python functions work\"\nchunk_a = \"python functions let you reuse code and call them anywhere\"\nchunk_b = \"cats and dogs are the most common household pets\"\n\nq_vec = make_word_vector(query)\nscore_a = dot_product(q_vec, make_word_vector(chunk_a))\nscore_b = dot_product(q_vec, make_word_vector(chunk_b))\n\nprint(f\"chunk_a score: {score_a}\")  # higher — shares python, functions\nprint(f\"chunk_b score: {score_b}\")  # zero — no shared words\n```\n\nFor a more rigorous comparison that accounts for document length, divide the dot product by the product of the two vector magnitudes — that is cosine similarity. Word-overlap dot product is good enough for a small document store where chunk lengths are similar.",
+      "source_label": "Python Built-in Functions",
+      "source_url": "https://docs.python.org/3/library/functions.html"
+    },
+    {
+      "title": "5. Retrieval and Context Building",
+      "body": "Retrieval is sorting all chunks by their score against the query and taking the top-k. Context building is assembling those chunks into a formatted string you include in an LLM prompt.\n\n```python run\ndef score_chunks(query, chunks):\n    query_words = set(query.lower().split())\n    results = []\n    for chunk in chunks:\n        chunk_words = set(chunk.lower().split())\n        score = len(query_words & chunk_words)\n        results.append((score, chunk))\n    results.sort(reverse=True)\n    return results\n\nchunks = [\n    \"Python lists store ordered sequences of items.\",\n    \"Dictionaries map string keys to any value.\",\n    \"Functions take arguments and return results.\",\n    \"Python is widely used for data and AI work.\",\n]\n\nquery = \"how do python functions take arguments\"\nranked = score_chunks(query, chunks)\n\nprint(\"Top 2 results:\")\nfor score, chunk in ranked[:2]:\n    print(f\"  [{score}] {chunk}\")\n```\n\n```python run\ndef build_prompt(query, top_chunks):\n    context = \"\\n\".join(f\"- {chunk}\" for chunk in top_chunks)\n    return (\n        f\"Answer the question using only the context below.\\n\\n\"\n        f\"Context:\\n{context}\\n\\n\"\n        f\"Question: {query}\"\n    )\n\ntop = [\"Functions take arguments and return results.\", \"Python is widely used for data and AI work.\"]\nprint(build_prompt(\"what do functions do\", top))\n```",
+      "source_label": "Python list.sort()",
+      "source_url": "https://docs.python.org/3/library/stdtypes.html#list.sort"
+    },
+    {
+      "title": "6. The Full Pipeline",
+      "body": "All five pieces — chunk, vectorize, score, retrieve, prompt — compose into a single pipeline function. Each step is a pure function, making the whole pipeline easy to test and easy to swap components in later.\n\n```python run\ndef chunk_by_sentences(text):\n    return [p.strip() for p in text.split(\". \") if p.strip()]\n\ndef score_chunks(query, chunks):\n    query_words = set(query.lower().split())\n    results = [(len(query_words & set(c.lower().split())), c) for c in chunks]\n    results.sort(reverse=True)\n    return results\n\ndef build_prompt(query, top_chunks):\n    context = \"\\n\".join(f\"- {c}\" for c in top_chunks)\n    return f\"Context:\\n{context}\\n\\nQuestion: {query}\"\n\ndef rag(query, documents, k=2):\n    chunks = []\n    for doc in documents:\n        chunks.extend(chunk_by_sentences(doc))\n    ranked = score_chunks(query, chunks)\n    top = [chunk for _, chunk in ranked[:k]]\n    return build_prompt(query, top)\n\ndocuments = [\n    \"Python functions let you reuse code. Define with def and a name.\",\n    \"Lists store items in order. Access elements by index starting at zero.\",\n    \"Dictionaries map keys to values. Create with curly braces.\",\n]\n\nresult = rag(\"how do I define a reusable block of code\", documents)\nprint(result)\n```\n\nTo move this pipeline to production: replace `chunk_by_sentences` with an overlap-aware chunker, replace word-overlap scoring with real embedding vectors and cosine similarity, and add a vector store for fast nearest-neighbour search. The structure stays identical — only the implementations of each step change.",
+      "source_label": "Python str.split()",
+      "source_url": "https://docs.python.org/3/library/stdtypes.html#str.split"
+    }
+  ],
+  "lesson_path": "content/topics/simple-rag-project/lesson.md",
+  "quality_status": "reference"
+}
