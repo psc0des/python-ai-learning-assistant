@@ -12,6 +12,7 @@
     "pydantic",
     "async",
     "llm-api-basics",
+    "structured-llm-outputs",
     "langchain",
     "langgraph",
     "mcp",

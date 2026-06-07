@@ -1,0 +1,89 @@
+{
+  "id": "structured-llm-outputs",
+  "track": "AI Foundations",
+  "title": "Structured Outputs From LLMs",
+  "level": "Intermediate",
+  "intro": "A language model that returns plain text is like a colleague who answers every question with a paragraph. Useful in conversation — a nightmare in code. When your application needs to extract a name, a status, or a number from a model response, free-form text forces you to write fragile parsing logic that breaks the moment the model changes its phrasing. Structured output solves this by making the model return data in a predictable shape your code can read directly.",
+  "mental_model": "Think of a structured output schema like a form instead of a blank page. When you hand someone a blank page, they might write an essay, a list, or a doodle. When you hand them a form with labelled fields, you get exactly the data you asked for in exactly the shape you expected. LLMs respond to structured prompting the same way — the right instructions produce JSON you can parse without guesswork.",
+  "syntax": "import json\n\n# Safe parse — returns None instead of crashing\ndef safe_parse(text):\n    try:\n        return json.loads(text)\n    except json.JSONDecodeError:\n        return None\n\n# Validate required fields — returns list of error strings\ndef check_required(data, required):\n    return [f\"missing: {f}\" for f in required if f not in data]\n",
+  "example": "import json\n\ndef extract_and_validate(llm_content, required):\n    try:\n        data = json.loads(llm_content)\n    except json.JSONDecodeError:\n        return None, [\"invalid JSON\"]\n    errors = [f\"missing: {f}\" for f in required if f not in data]\n    return data, errors\n\ncontent = '{\"name\": \"Alice\", \"role\": \"engineer\"}'\ndata, errors = extract_and_validate(content, [\"name\", \"role\", \"team\"])\nprint(data)    # {'name': 'Alice', 'role': 'engineer'}\nprint(errors)  # ['missing: team']\n",
+  "must_know": [
+    "Free-text LLM output is unreliable to parse — use system prompts to request JSON and parse with json.loads().",
+    "Always wrap json.loads() in try/except — LLMs can return text that is not valid JSON even with clear instructions.",
+    "In production, validate parsed JSON against a schema using Pydantic or explicit field checks before using the data.",
+    "Use temperature=0.0 for extraction tasks — you want predictable output, not creative variation.",
+    "Flat schemas with fewer than 10 fields and string enum constraints produce the most consistent LLM output."
+  ],
+  "common_traps": [
+    "Calling json.loads() without try/except and letting a JSONDecodeError crash the application on an unexpected model reply.",
+    "Trusting that a required field exists in the parsed dict without checking — LLMs occasionally omit fields.",
+    "Using a high temperature for structured extraction tasks — randomness produces inconsistent field names and types.",
+    "Designing deeply nested schemas — the deeper the nesting, the more likely the model is to mis-structure it.",
+    "Patching string-parsing code when output is inconsistent instead of simplifying the schema or clarifying the prompt."
+  ],
+  "interview": [
+    "Why is json.loads() not enough on its own when parsing LLM output?",
+    "What system prompt pattern reliably asks an LLM to return JSON?",
+    "How does Pydantic model_validate() differ from a manual required-field check?",
+    "What makes a schema 'LLM-friendly' and what makes it unreliable?"
+  ],
+  "docs": [
+    {
+      "label": "OpenAI Structured Outputs Guide",
+      "url": "https://platform.openai.com/docs/guides/structured-outputs"
+    },
+    {
+      "label": "Pydantic Model Validation",
+      "url": "https://docs.pydantic.dev/latest/concepts/models/"
+    },
+    {
+      "label": "Python json Module",
+      "url": "https://docs.python.org/3/library/json.html"
+    }
+  ],
+  "real_world": [
+    "Every AI-powered form filler, data extractor, and classification pipeline wraps LLM calls in exactly this pattern: prompt for JSON, safe_parse, validate fields, handle errors — the application never trusts raw model text directly.",
+    "Pydantic is the standard validation library for this in Python AI projects — FastAPI uses it for request validation, and LangChain uses it internally for structured output chains."
+  ],
+  "outcome": "By the end of this topic, you should be able to write system prompts that reliably produce JSON, safely parse and validate LLM output, handle parse failures gracefully, and design schemas that LLMs can follow consistently.",
+  "lesson_sections": [
+    {
+      "title": "1. The Problem With Free-Text Output",
+      "body": "When an LLM replies in natural language, extracting specific values becomes fragile. The model might say \"Alice is 30\" one time and \"The user's name is Alice, age 30\" the next. Any code that splits on commas or searches for patterns will break as soon as the phrasing changes.\n\nStructured data is different. A dictionary is a dictionary — you access `data[\"name\"]` and it is always there, always a string, in a predictable position.\n\n```python run\n# Accessing structured data is reliable and readable\nstructured = {\"name\": \"Alice\", \"age\": 30, \"role\": \"engineer\", \"active\": True}\n\nname = structured[\"name\"]\nnext_birthday = structured[\"age\"] + 1\nstatus = \"active\" if structured[\"active\"] else \"inactive\"\n\nprint(f\"{name} turns {next_birthday} next year — {status}\")\n```\n\n```python\n# Without structure, you write fragile string parsing\nunstructured_responses = [\n    \"Alice is 30 years old and currently active.\",\n    \"The user named Alice (age: 30) is active.\",\n    \"Name: Alice, Age 30. Status: active user.\",\n]\n\nfor text in unstructured_responses:\n    # Every variation breaks a different assumption\n    print(repr(text.split(\"is\")[1].split(\"years\")[0].strip()))\n```\n\nThe solution is not smarter parsing — it is asking the model to return structured data in the first place.",
+      "source_label": "Python json Module",
+      "source_url": "https://docs.python.org/3/library/json.html"
+    },
+    {
+      "title": "2. Asking for JSON in Your Prompt",
+      "body": "The simplest way to get structured output is to instruct the model in the system prompt. Tell it to reply only with valid JSON, describe the fields you expect, and give an example of the shape.\n\n```python run\ndef json_system_prompt(fields_description):\n    return (\n        \"You are a data extraction assistant. \"\n        \"Reply only with a valid JSON object — no explanation, no markdown, no code fences. \"\n        f\"The JSON must contain these fields: {fields_description}\"\n    )\n\nprompt = json_system_prompt(\n    '\"name\" (string), \"age\" (integer), \"active\" (boolean)'\n)\nprint(prompt)\n```\n\n```python run\ndef structured_payload(user_text, required_fields):\n    system = (\n        \"Extract the requested information and return only a JSON object. \"\n        \"Do not include any text outside the JSON. \"\n        f\"Required fields: {', '.join(required_fields)}\"\n    )\n    return {\n        \"model\": \"gpt-4o-mini\",\n        \"messages\": [\n            {\"role\": \"system\", \"content\": system},\n            {\"role\": \"user\", \"content\": user_text},\n        ],\n        \"temperature\": 0.0,\n    }\n\npayload = structured_payload(\"Alice is 30 and works as an engineer.\", [\"name\", \"age\", \"role\"])\nprint(payload[\"messages\"][0][\"content\"])\nprint(payload[\"temperature\"])  # 0.0 — deterministic for extraction tasks\n```\n\nUse `temperature=0.0` for extraction tasks. You want the most predictable output, not creativity.",
+      "source_label": "OpenAI Structured Outputs Guide",
+      "source_url": "https://platform.openai.com/docs/guides/structured-outputs"
+    },
+    {
+      "title": "3. Validating With Pydantic",
+      "body": "Pydantic lets you define the exact shape you expect from LLM output as a Python class. When you call `model_validate()`, it parses the dict and raises a `ValidationError` if any field is missing, the wrong type, or fails a constraint. This turns vague failures into specific, readable errors.\n\n```python\n# Production pattern — Pydantic validation (requires: pip install pydantic)\nfrom pydantic import BaseModel\n\nclass PersonRecord(BaseModel):\n    name: str\n    age: int\n    active: bool\n\n# Valid input — works\nrecord = PersonRecord.model_validate({\"name\": \"Alice\", \"age\": 30, \"active\": True})\nprint(record.name)   # Alice\n\n# Invalid input — raises ValidationError with clear message\ntry:\n    PersonRecord.model_validate({\"name\": \"Alice\", \"age\": \"thirty\"})\nexcept Exception as e:\n    print(e)   # age: Input should be a valid integer...\n```\n\nThe same validation logic — check required fields, check types, report errors clearly — can be written in pure Python. The labs in this topic practice that pattern so you understand what Pydantic is doing under the hood:\n\n```python run\ndef validate_person(data):\n    errors = []\n    if \"name\" not in data:\n        errors.append(\"missing required field: name\")\n    elif not isinstance(data[\"name\"], str):\n        errors.append(\"name must be a string\")\n    if \"age\" not in data:\n        errors.append(\"missing required field: age\")\n    elif not isinstance(data[\"age\"], int):\n        errors.append(\"age must be an integer\")\n    return errors\n\nprint(validate_person({\"name\": \"Alice\", \"age\": 30}))        # []\nprint(validate_person({\"name\": \"Alice\", \"age\": \"thirty\"}))  # ['age must be an integer']\nprint(validate_person({\"name\": \"Alice\"}))                    # ['missing required field: age']\n```",
+      "source_label": "Pydantic Model Validation",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/models/"
+    },
+    {
+      "title": "4. Handling Parse Failures",
+      "body": "Even with the best system prompt, an LLM can return text that is not valid JSON. A model might add an explanation before the JSON, wrap it in markdown code fences, or return a refusal. Your code must handle this gracefully.\n\nThe pattern is always the same: wrap `json.loads()` in a try/except and return a sentinel value (`None`, an empty dict, or a typed error) on failure.\n\n```python run\nimport json\n\ndef safe_parse(text):\n    try:\n        return json.loads(text)\n    except json.JSONDecodeError:\n        return None\n\n# Valid JSON\nprint(safe_parse('{\"name\": \"Alice\", \"age\": 30}'))\n\n# Invalid — LLM added explanation text\nprint(safe_parse('Here is the data: {\"name\": \"Alice\"}'))\n\n# Empty or completely wrong\nprint(safe_parse(\"I cannot extract that information.\"))\n```\n\n```python run\nimport json\n\ndef parse_with_fallback(text, default=None):\n    try:\n        data = json.loads(text)\n        return data, []\n    except json.JSONDecodeError as e:\n        return default, [f\"JSON parse error: {e.msg}\"]\n\ndata, errors = parse_with_fallback('{\"name\": \"Alice\"}')\nprint(data, errors)   # {'name': 'Alice'} []\n\ndata, errors = parse_with_fallback(\"Sorry, no data.\", default={})\nprint(data, errors)   # {} ['JSON parse error: Expecting value']\n```\n\nIn production, a parse failure usually triggers a retry: send the same request again, or send a follow-up message asking the model to fix its output.",
+      "source_label": "Python json Module",
+      "source_url": "https://docs.python.org/3/library/json.html"
+    },
+    {
+      "title": "5. Nested Schemas and Lists",
+      "body": "LLM output is often more complex than a flat key-value object. You might ask for a list of items, or an object with nested sub-objects. Validation needs to handle each layer.\n\n```python run\nimport json\n\n# Nested object with a list field\nraw = '{\"title\": \"Deploy v2\", \"tags\": [\"backend\", \"infra\"], \"assignee\": {\"name\": \"Sam\", \"team\": \"ops\"}}'\ndata = json.loads(raw)\n\nprint(data[\"title\"])\nprint(data[\"tags\"][1])           # infra\nprint(data[\"assignee\"][\"team\"]) # ops\n```\n\n```python run\nimport json\n\ndef validate_items_list(data, item_required_fields):\n    errors = []\n    items = data.get(\"items\", [])\n    if not isinstance(items, list):\n        return [\"'items' must be a list\"]\n    for i, item in enumerate(items):\n        for field in item_required_fields:\n            if field not in item:\n                errors.append(f\"item[{i}] missing field: {field}\")\n    return errors\n\npayload = json.loads('{\"items\": [{\"id\": 1, \"label\": \"A\"}, {\"id\": 2}]}')\nprint(validate_items_list(payload, [\"id\", \"label\"]))\n# ['item[1] missing field: label']\n```\n\nValidate lists by iterating and applying the same field-check logic to each element. Report the index with each error so you know which item failed.",
+      "source_label": "OpenAI Structured Outputs Guide",
+      "source_url": "https://platform.openai.com/docs/guides/structured-outputs"
+    },
+    {
+      "title": "6. Schema Design Tips",
+      "body": "Not all schemas are equally reliable. LLMs handle simple, flat schemas well. They struggle with deeply nested structures, ambiguous types, and large numbers of required fields. A schema that looks reasonable to a developer can produce inconsistent output from a model.\n\n```python run\n# Simple schema — reliable, easy for the model to follow\nsimple = {\n    \"name\": \"string\",\n    \"priority\": \"integer between 1 and 5\",\n    \"status\": \"one of: open, in_progress, closed\",\n}\n\nfor field, hint in simple.items():\n    print(f\"  {field}: {hint}\")\n```\n\n```python run\n# Rules that improve reliability\ntips = [\n    \"Use flat structures — avoid nesting beyond two levels.\",\n    \"Use string enums ('one of: A, B, C') instead of open strings when possible.\",\n    \"Avoid nullable fields — prefer a sentinel value like empty string or -1.\",\n    \"Name fields unambiguously — 'start_date' not 'date'.\",\n    \"Keep the total field count under 10 per object.\",\n]\n\nfor i, tip in enumerate(tips, 1):\n    print(f\"{i}. {tip}\")\n```\n\nWhen a model consistently returns an unexpected shape, the first fix is usually simplifying or clarifying the schema description in the system prompt — not patching the parsing code.",
+      "source_label": "Pydantic Model Validation",
+      "source_url": "https://docs.pydantic.dev/latest/concepts/models/"
+    }
+  ],
+  "lesson_path": "content/topics/structured-llm-outputs/lesson.md",
+  "quality_status": "reference"
+}

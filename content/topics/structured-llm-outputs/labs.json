@@ -1,0 +1,246 @@
+[
+  {
+    "id": "safe-parse-json",
+    "topic_id": "structured-llm-outputs",
+    "title": "Safe JSON Parser",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `safe_parse(text)` that returns the parsed Python object when `text` is valid JSON, or `None` when it is not. Do not let a bad JSON string crash your function. The tests pass both valid and invalid strings as `text`.",
+    "starter": "import json\n\ndef safe_parse(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid object",
+        "call": "safe_parse('{\"name\": \"Alice\", \"age\": 30}')",
+        "expected": {"name": "Alice", "age": 30}
+      },
+      {
+        "label": "valid list",
+        "call": "safe_parse('[1, 2, 3]')",
+        "expected": [1, 2, 3]
+      },
+      {
+        "label": "invalid returns None",
+        "call": "safe_parse('not json at all')",
+        "expected": null
+      },
+      {
+        "label": "partial json returns None",
+        "call": "safe_parse('{\"name\": \"Alice\"')",
+        "expected": null
+      },
+      {
+        "label": "empty string returns None",
+        "call": "safe_parse('')",
+        "expected": null
+      }
+    ],
+    "hint": "Use try/except around json.loads() and return None in the except block.",
+    "solution": "import json\n\ndef safe_parse(text):\n    try:\n        return json.loads(text)\n    except json.JSONDecodeError:\n        return None\n",
+    "explanation": "json.loads() raises JSONDecodeError on invalid input. Wrapping it in try/except lets callers receive None instead of a crash — a clean contract for any code that processes LLM output."
+  },
+  {
+    "id": "check-required-fields",
+    "topic_id": "structured-llm-outputs",
+    "title": "Check Required Fields",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `check_required(data, required)` that returns a list of field names that are present in `required` but missing from the `data` dictionary. Return an empty list when all required fields are present. The tests pass a dict as `data` and a list of strings as `required`.",
+    "starter": "def check_required(data, required):\n    pass\n",
+    "tests": [
+      {
+        "label": "all present",
+        "call": "check_required({'name': 'Alice', 'age': 30}, ['name', 'age'])",
+        "expected": []
+      },
+      {
+        "label": "one missing",
+        "call": "check_required({'name': 'Alice'}, ['name', 'age'])",
+        "expected": ["age"]
+      },
+      {
+        "label": "all missing",
+        "call": "check_required({}, ['name', 'age', 'role'])",
+        "expected": ["name", "age", "role"]
+      },
+      {
+        "label": "empty required list",
+        "call": "check_required({'name': 'Alice'}, [])",
+        "expected": []
+      },
+      {
+        "label": "extra fields in data are ignored",
+        "call": "check_required({'name': 'Alice', 'extra': 'ignored'}, ['name'])",
+        "expected": []
+      }
+    ],
+    "hint": "Use a list comprehension: return fields from required that are not in data.",
+    "solution": "def check_required(data, required):\n    return [f for f in required if f not in data]\n",
+    "explanation": "A list comprehension over required filtered by 'not in data' gives you exactly the missing fields. This is the inner loop of any schema validation function."
+  },
+  {
+    "id": "extract-reply-json",
+    "topic_id": "structured-llm-outputs",
+    "title": "Extract JSON From LLM Response",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write `extract_reply_json(response)` that extracts the content string from an LLM API response dict (at `response['choices'][0]['message']['content']`) and then parses it as JSON. Return the parsed dict on success, or `None` if the content is not valid JSON. The tests pass mock response dicts as `response`.",
+    "starter": "import json\n\ndef extract_reply_json(response):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid json content",
+        "call": "extract_reply_json({'choices': [{'message': {'role': 'assistant', 'content': '{\"name\": \"Alice\", \"age\": 30}'}}]})",
+        "expected": {"name": "Alice", "age": 30}
+      },
+      {
+        "label": "invalid json content returns None",
+        "call": "extract_reply_json({'choices': [{'message': {'role': 'assistant', 'content': 'Here is the answer: sorry!'}}]})",
+        "expected": null
+      },
+      {
+        "label": "empty content returns None",
+        "call": "extract_reply_json({'choices': [{'message': {'role': 'assistant', 'content': ''}}]})",
+        "expected": null
+      },
+      {
+        "label": "list json content",
+        "call": "extract_reply_json({'choices': [{'message': {'role': 'assistant', 'content': '[\"a\", \"b\"]'}}]})",
+        "expected": ["a", "b"]
+      }
+    ],
+    "hint": "First extract the content string (choices[0]['message']['content']), then try json.loads() in a try/except.",
+    "solution": "import json\n\ndef extract_reply_json(response):\n    content = response['choices'][0]['message']['content']\n    try:\n        return json.loads(content)\n    except json.JSONDecodeError:\n        return None\n",
+    "explanation": "This combines the two patterns from llm-api-basics (extracting reply content) and this topic (safe JSON parsing) into the single function you call after every structured LLM request."
+  },
+  {
+    "id": "repair-booleans",
+    "topic_id": "structured-llm-outputs",
+    "title": "Repair Boolean Strings",
+    "difficulty": "Beginner",
+    "difficulty_order": 4,
+    "prompt": "LLMs sometimes return boolean values as the strings `\"true\"` or `\"false\"` instead of actual Python booleans. Write `repair_booleans(data)` that returns a new dictionary where any value that is the string `\"true\"` is replaced with `True` and any value that is the string `\"false\"` is replaced with `False`. Leave all other values unchanged. The tests pass a flat dict as `data`.",
+    "starter": "def repair_booleans(data):\n    pass\n",
+    "tests": [
+      {
+        "label": "true string becomes True",
+        "call": "repair_booleans({'active': 'true'})['active']",
+        "expected": true
+      },
+      {
+        "label": "false string becomes False",
+        "call": "repair_booleans({'active': 'false'})['active']",
+        "expected": false
+      },
+      {
+        "label": "already bool unchanged",
+        "call": "repair_booleans({'active': True})['active']",
+        "expected": true
+      },
+      {
+        "label": "string values unchanged",
+        "call": "repair_booleans({'name': 'Alice'})['name']",
+        "expected": "Alice"
+      },
+      {
+        "label": "mixed dict",
+        "call": "repair_booleans({'name': 'Alice', 'active': 'true', 'verified': 'false'})",
+        "expected": {"name": "Alice", "active": true, "verified": false}
+      }
+    ],
+    "hint": "Build a new dict with a comprehension. For each value, check if it equals 'true' or 'false' and replace accordingly.",
+    "solution": "def repair_booleans(data):\n    result = {}\n    for key, value in data.items():\n        if value == 'true':\n            result[key] = True\n        elif value == 'false':\n            result[key] = False\n        else:\n            result[key] = value\n    return result\n",
+    "explanation": "This is a real coercion problem in LLM output pipelines. JSON booleans (true/false) parse correctly, but when a model generates a string like \"true\" inside quotes, json.loads treats it as a string. A repair step fixes this before validation."
+  },
+  {
+    "id": "pick-fields",
+    "topic_id": "structured-llm-outputs",
+    "title": "Pick Fields From Output",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `pick_fields(data, fields)` that returns a new dictionary containing only the keys listed in `fields`. If a key in `fields` is missing from `data`, set its value to `None` in the result. The tests pass a dict as `data` and a list of strings as `fields`.",
+    "starter": "def pick_fields(data, fields):\n    pass\n",
+    "tests": [
+      {
+        "label": "present fields extracted",
+        "call": "pick_fields({'name': 'Alice', 'age': 30, 'role': 'eng'}, ['name', 'age'])",
+        "expected": {"name": "Alice", "age": 30}
+      },
+      {
+        "label": "missing field becomes None",
+        "call": "pick_fields({'name': 'Alice'}, ['name', 'age'])",
+        "expected": {"name": "Alice", "age": null}
+      },
+      {
+        "label": "extra fields excluded",
+        "call": "pick_fields({'name': 'Alice', 'age': 30, 'secret': 'hidden'}, ['name'])",
+        "expected": {"name": "Alice"}
+      },
+      {
+        "label": "empty fields list",
+        "call": "pick_fields({'name': 'Alice'}, [])",
+        "expected": {}
+      },
+      {
+        "label": "all missing",
+        "call": "pick_fields({}, ['name', 'age'])",
+        "expected": {"name": null, "age": null}
+      }
+    ],
+    "hint": "Use a dict comprehension over fields, getting each key from data with a default of None.",
+    "solution": "def pick_fields(data, fields):\n    return {f: data.get(f, None) for f in fields}\n",
+    "explanation": "dict.get(key, default) returns default when the key is absent. This function is how you safely project an LLM output dict to only the fields your application cares about, filling gaps with None rather than raising KeyError."
+  },
+  {
+    "id": "output-validator",
+    "topic_id": "structured-llm-outputs",
+    "title": "Output Validator",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build an `OutputValidator` class that handles the full parse-and-validate cycle for LLM JSON output. It should:\n- `__init__(self, required_fields)` — store the list of required field names\n- `parse(self, text)` — return the parsed dict from a JSON string, or `None` if parsing fails\n- `validate(self, data)` — return a list of error strings for any required fields missing from `data`\n- `clean(self, text)` — parse the text, validate the result, and return a tuple `(data, errors)`. If parsing fails, return `(None, ['invalid JSON'])`.",
+    "starter": "import json\n\nclass OutputValidator:\n    def __init__(self, required_fields):\n        pass\n\n    def parse(self, text):\n        pass\n\n    def validate(self, data):\n        pass\n\n    def clean(self, text):\n        pass\n",
+    "tests": [
+      {
+        "label": "parse valid json",
+        "call": "OutputValidator(['name']).parse('{\"name\": \"Alice\"}')",
+        "expected": {"name": "Alice"}
+      },
+      {
+        "label": "parse invalid returns None",
+        "call": "OutputValidator(['name']).parse('not json')",
+        "expected": null
+      },
+      {
+        "label": "validate all present",
+        "call": "OutputValidator(['name', 'age']).validate({'name': 'Alice', 'age': 30})",
+        "expected": []
+      },
+      {
+        "label": "validate missing field",
+        "call": "OutputValidator(['name', 'age']).validate({'name': 'Alice'})",
+        "expected": ["missing required field: age"]
+      },
+      {
+        "label": "clean success — data part",
+        "call": "OutputValidator(['name']).clean('{\"name\": \"Alice\"}')[0]",
+        "expected": {"name": "Alice"}
+      },
+      {
+        "label": "clean success — no errors",
+        "call": "OutputValidator(['name']).clean('{\"name\": \"Alice\"}')[1]",
+        "expected": []
+      },
+      {
+        "label": "clean invalid json — errors",
+        "call": "OutputValidator(['name']).clean('bad text')[1]",
+        "expected": ["invalid JSON"]
+      },
+      {
+        "label": "clean invalid json — data is None",
+        "call": "OutputValidator(['name']).clean('bad text')[0]",
+        "expected": null
+      }
+    ],
+    "hint": "clean() calls parse() then validate(). If parse() returns None, return (None, ['invalid JSON']) immediately.",
+    "solution": "import json\n\nclass OutputValidator:\n    def __init__(self, required_fields):\n        self.required_fields = required_fields\n\n    def parse(self, text):\n        try:\n            return json.loads(text)\n        except json.JSONDecodeError:\n            return None\n\n    def validate(self, data):\n        return [\n            f'missing required field: {f}'\n            for f in self.required_fields\n            if f not in data\n        ]\n\n    def clean(self, text):\n        data = self.parse(text)\n        if data is None:\n            return None, ['invalid JSON']\n        return data, self.validate(data)\n",
+    "explanation": "OutputValidator separates three responsibilities: parsing JSON text, validating field presence, and combining both into a single clean() call that always returns a usable (data, errors) pair. This pattern — parse, validate, surface errors — is the foundation of every structured LLM output pipeline."
+  }
+]

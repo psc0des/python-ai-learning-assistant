@@ -1,0 +1,115 @@
+{
+  "topic_id": "structured-llm-outputs",
+  "questions": [
+    {
+      "question": "Why is parsing free-text LLM output with string splitting unreliable?",
+      "options": [
+        "Python string methods are too slow for LLM responses.",
+        "LLMs always return binary data, not strings.",
+        "The model's phrasing can change between calls, breaking any fixed pattern.",
+        "String splitting requires a license for commercial use."
+      ],
+      "answer": 2,
+      "explanation": "LLMs are non-deterministic — the same prompt can produce 'Alice is 30' one time and 'The user is Alice, aged 30' the next. Any parsing pattern tied to specific phrasing is fragile. Structured JSON output sidesteps this entirely."
+    },
+    {
+      "question": "Which temperature value is best for structured extraction tasks?",
+      "options": [
+        "2.0 — maximum creativity",
+        "1.0 — balanced output",
+        "0.7 — general default",
+        "0.0 — most deterministic"
+      ],
+      "answer": 3,
+      "explanation": "Temperature 0.0 makes the model choose the highest-probability token at each step, producing the most predictable and consistent output. For extraction, you want the data — not creative variation."
+    },
+    {
+      "question": "What does json.loads() raise when given invalid JSON?",
+      "options": [
+        "ValueError",
+        "json.JSONDecodeError",
+        "SyntaxError",
+        "TypeError"
+      ],
+      "answer": 1,
+      "explanation": "json.loads() raises json.JSONDecodeError (a subclass of ValueError) when the input string is not valid JSON. Always catch this specific exception when parsing LLM output."
+    },
+    {
+      "question": "What should safe_parse() return when given a string that is not valid JSON?",
+      "options": [
+        "An empty string",
+        "The original text unchanged",
+        "None or a fallback value",
+        "It should raise an exception"
+      ],
+      "answer": 2,
+      "explanation": "Returning None (or a typed fallback) on parse failure gives callers a clear signal to handle the error without crashing. Raising an exception is valid too, but then every caller must wrap the call in try/except — a sentinel return keeps error handling in one place."
+    },
+    {
+      "question": "What does Pydantic's model_validate() do when a required field is missing?",
+      "options": [
+        "It fills in a default value automatically.",
+        "It returns None for that field.",
+        "It raises a ValidationError with a message describing the missing field.",
+        "It silently ignores the missing field."
+      ],
+      "answer": 2,
+      "explanation": "model_validate() raises a ValidationError that lists every field that failed validation — missing fields, wrong types, constraint violations. This makes debugging LLM output problems fast and specific."
+    },
+    {
+      "question": "A model returns the string '\"true\"' (with quotes) instead of the JSON boolean true. What type will json.loads produce for this value?",
+      "options": [
+        "bool True",
+        "str 'true'",
+        "int 1",
+        "NoneType"
+      ],
+      "answer": 1,
+      "explanation": "JSON booleans are true and false without quotes. When a model writes \"true\" (with quotes), it is a JSON string — json.loads returns the Python string 'true', not the boolean True. A repair step is needed to coerce it."
+    },
+    {
+      "question": "What is the correct system prompt strategy to request JSON output from an LLM?",
+      "options": [
+        "Add 'json=True' to the request payload.",
+        "Set the temperature to 2.0.",
+        "Instruct the model in the system message to return only a JSON object with named fields.",
+        "Send the request to the /json endpoint instead of /chat."
+      ],
+      "answer": 2,
+      "explanation": "The most portable approach is a system message that explicitly instructs the model to return only a JSON object, lists the required fields, and forbids adding any text outside the JSON. Some providers also support a 'response_format' field for enforced JSON mode."
+    },
+    {
+      "question": "You receive a nested LLM response: {'result': {'items': [{'id': 1}, {'id': 2}]}}. How do you access the id of the second item?",
+      "options": [
+        "data['result.items[1].id']",
+        "data['result']['items'][1]['id']",
+        "data.result.items[1].id",
+        "data['items'][1]['id']"
+      ],
+      "answer": 1,
+      "explanation": "Python dict and list access is done with bracket notation at each level: data['result'] gives the inner dict, ['items'] gives the list, [1] gives the second element, and ['id'] gives the value."
+    },
+    {
+      "question": "Which schema design practice makes LLM structured output most reliable?",
+      "options": [
+        "Use deeply nested objects to mirror the complexity of the domain.",
+        "Use as many optional fields as possible to allow flexibility.",
+        "Use flat structures with enum-style string constraints and fewer than 10 fields.",
+        "Use numeric keys instead of string keys to reduce token count."
+      ],
+      "answer": 2,
+      "explanation": "LLMs follow flat schemas with clear constraints — like 'status: one of open, closed, pending' — much more reliably than deeply nested schemas with open-ended string fields. Fewer fields also help; every additional field is a chance for the model to omit or mistype something."
+    },
+    {
+      "question": "When validating a list of items in LLM output, what should you include in each error message?",
+      "options": [
+        "The full JSON of the failing item.",
+        "The index of the failing item so you know which one to investigate.",
+        "The model name that produced the output.",
+        "A timestamp of when the error occurred."
+      ],
+      "answer": 1,
+      "explanation": "Including the item index — 'item[2] missing field: label' — tells you exactly which entry in the list failed. Without it, you have to scan the entire list to find the problem."
+    }
+  ]
+}
