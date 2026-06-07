@@ -1,0 +1,115 @@
+{
+  "topic_id": "ai-evaluation",
+  "questions": [
+    {
+      "question": "What is the smallest possible evaluator in a basic AI eval pipeline?",
+      "options": [
+        "A database that stores all previous model outputs",
+        "A function that takes a predicted value and an expected value and returns True or False",
+        "A test set of at least 100 (input, expected) pairs",
+        "An LLM that scores another LLM's outputs"
+      ],
+      "answer": 1,
+      "explanation": "The atomic unit of evaluation is a function: compare one predicted value to one expected value and return a boolean. Everything else — test sets, harnesses, pass rates — is built on top of this single comparison function."
+    },
+    {
+      "question": "When should you use exact match rather than a contains check?",
+      "options": [
+        "For long prose answers that may be paraphrased in several correct ways",
+        "For open-ended generation tasks where wording varies",
+        "For structured outputs with a fixed set of valid values, such as labels or IDs",
+        "When you expect the model to always use the same phrasing"
+      ],
+      "answer": 2,
+      "explanation": "Exact match is too strict for prose — the model might say 'France's capital' instead of 'Paris' and be correct. It is the right choice when the output must be one of a fixed set of values, such as sentiment labels (positive/negative) or category IDs."
+    },
+    {
+      "question": "What does `all(kw.lower() in predicted.lower() for kw in keywords)` verify?",
+      "options": [
+        "That predicted is identical to the expected string",
+        "That all keywords appear somewhere in the output (case-insensitive)",
+        "That predicted is shorter than expected",
+        "That at least one keyword appears in the output"
+      ],
+      "answer": 1,
+      "explanation": "`all()` returns True only when every element of the iterable is truthy. The generator expression checks each keyword (lowercased) against the predicted text (lowercased), so the whole call returns True only if every keyword appears, regardless of case."
+    },
+    {
+      "question": "Why should you normalize (strip and lowercase) before comparing predicted to expected?",
+      "options": [
+        "LLM APIs require lowercase inputs before sending a request",
+        "To avoid false negatives caused by trailing whitespace or case differences that have nothing to do with quality",
+        "To make comparisons faster on large test sets",
+        "To remove punctuation from both strings before checking"
+      ],
+      "answer": 1,
+      "explanation": "A model returning 'Paris\\n' and an expected value of 'Paris' are meaningfully identical, but string equality fails. Normalizing strips these trivial differences so a test failure means something real, not a formatting accident."
+    },
+    {
+      "question": "Your eval score drops from 0.9 to 0.7 after a prompt change. What does this tell you?",
+      "options": [
+        "The model's weights changed during inference",
+        "The API is running slower than before and responses are timing out",
+        "The prompt change made outputs worse — 20% more cases now fail the evaluator",
+        "You need to add more test cases to make the harness reliable"
+      ],
+      "answer": 2,
+      "explanation": "Pass rate directly reflects how many cases pass the evaluator. A drop from 0.9 to 0.7 means 20% more test cases are now failing. The test set did not change — your prompt did. Roll back the change or investigate which cases newly fail."
+    },
+    {
+      "question": "What is the purpose of `zip(predictions, labels)` in `score_batch`?",
+      "options": [
+        "To remove duplicate entries from both lists",
+        "To compress the lists into a smaller binary format",
+        "To sort both lists alphabetically before comparing",
+        "To pair each prediction with its corresponding expected label for comparison"
+      ],
+      "answer": 3,
+      "explanation": "`zip()` creates an iterator of tuples where each tuple contains one element from each input list at the same index. This ensures prediction[0] is compared to labels[0], prediction[1] to labels[1], and so on — pairing each output with the ground truth it should match."
+    },
+    {
+      "question": "In multi-metric evaluation, which metric would catch a model that gives a correct but 500-word answer to a simple question?",
+      "options": [
+        "exact match",
+        "contains check",
+        "length_ok",
+        "normalized compare"
+      ],
+      "answer": 2,
+      "explanation": "A 500-word answer may still contain all the right keywords and even match the expected value after normalization, but `length_ok` — which checks that word count is within a sensible range — would flag it as too verbose."
+    },
+    {
+      "question": "What does `aggregate_metrics(results_list)` compute when given a list of metric dicts?",
+      "options": [
+        "Returns the first dict in the list unchanged",
+        "Counts how many dicts have exact=True across the whole list",
+        "Computes the average of each metric across all cases, returning one summary dict",
+        "Removes dicts where any metric is False"
+      ],
+      "answer": 2,
+      "explanation": "Aggregating converts a list of per-case metric dicts into a single summary dict where each value is the fraction of cases that passed that metric. This gives you a combined view: 90% exact, 100% contains, 70% length_ok tells you the model is verbose but accurate."
+    },
+    {
+      "question": "Why is `EvalHarness` implemented as a class instead of three standalone functions?",
+      "options": [
+        "Classes run faster than functions in Python for list operations",
+        "To bundle case storage, evaluation logic, and score reporting into one reusable object that keeps its state between calls",
+        "Python functions cannot return float values from boolean lists",
+        "Standalone functions cannot accept lambda expressions as arguments"
+      ],
+      "answer": 1,
+      "explanation": "The harness needs to remember its cases and results between method calls — that shared state is what a class provides. Without it, you would have to pass `cases` and `results` as arguments to every function, and the calling code would have to manage that state instead."
+    },
+    {
+      "question": "After calling `harness.run(evaluator_fn)`, what does `harness.score()` return?",
+      "options": [
+        "The number of cases stored in the harness",
+        "A list of True and False values from the evaluator",
+        "The proportion of cases that passed the evaluator, as a float from 0.0 to 1.0",
+        "The evaluator function that was passed to run()"
+      ],
+      "answer": 2,
+      "explanation": "`score()` returns `sum(self.results) / len(self.results)`. Python treats True as 1 and False as 0 in `sum()`, so this computes the fraction of passing cases. A score of 1.0 means every case passed; 0.0 means none did."
+    }
+  ]
+}

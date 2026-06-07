@@ -1,0 +1,115 @@
+{
+  "topic_id": "ai-app-architecture",
+  "questions": [
+    {
+      "question": "In the three-layer architecture, what is the single responsibility of the LLM client layer?",
+      "options": [
+        "To store and retrieve conversation history from a database",
+        "To validate user inputs and filter harmful content",
+        "To take a formatted payload and return the raw model response",
+        "To render the final reply as HTML or plain text for the user"
+      ],
+      "answer": 2,
+      "explanation": "The LLM client layer has one job: send the payload to the API and return the response. It knows nothing about history management or output formatting. Keeping it focused means you can swap the provider (OpenAI → Ollama) by changing only this layer."
+    },
+    {
+      "question": "What belongs in a config dict for an LLM API call?",
+      "options": [
+        "The user's full conversation transcript as a list of messages",
+        "Model name, temperature, and max_tokens — values that control model behaviour",
+        "The API endpoint URL and authentication token",
+        "A list of tool schemas the model is allowed to call"
+      ],
+      "answer": 1,
+      "explanation": "Config holds values that control how the model generates: which model to use, how creative or deterministic it should be, and how long responses can be. These change rarely and are separate from the conversation content, which changes every turn."
+    },
+    {
+      "question": "Why should model name and temperature live in a config dict rather than hardcoded in the request builder?",
+      "options": [
+        "The LLM API rejects requests where model name appears more than once",
+        "Config values rarely change while messages change every turn — separating them makes each independently editable",
+        "Hardcoded strings cannot be serialized to JSON",
+        "Temperature values conflict with message content if placed in the same function"
+      ],
+      "answer": 1,
+      "explanation": "If model and temperature are hardcoded inside the request builder, changing the model means editing request-building logic. A config dict means you change one value in one place. It also makes testing easier — you can pass different configs without touching the builder."
+    },
+    {
+      "question": "What does it mean for an AI conversation app to be stateful?",
+      "options": [
+        "The app stores model weights locally to avoid API calls",
+        "The app keeps the full message history and sends the entire thread with each new request",
+        "The app uses a relational database for all persistent data",
+        "The app caches responses to serve the same answer without calling the API again"
+      ],
+      "answer": 1,
+      "explanation": "Stateful means the app remembers what was said. Without history, the model treats every new message as the start of a fresh conversation and has no memory of previous turns. The history list IS the state — it grows with each exchange."
+    },
+    {
+      "question": "Where does RAG context fit in the three-layer architecture?",
+      "options": [
+        "After the output handler, to rewrite the final response before showing it to the user",
+        "Before user input is collected, to pre-filter what the user can ask",
+        "Between the input layer and the LLM client — retrieved chunks are injected into the system prompt before the request is sent",
+        "Inside the model weights, added during fine-tuning on your documents"
+      ],
+      "answer": 2,
+      "explanation": "RAG enriches the payload before it reaches the LLM. Retrieved chunks are formatted as a system message (or added to the prompt) so the model has relevant context when generating its reply. The LLM client and output handler are unchanged — only the request building step is extended."
+    },
+    {
+      "question": "Why must a tool function's return value be converted to a string before sending it as a tool result message?",
+      "options": [
+        "Python integers cannot be stored as dict values",
+        "The LLM API requires all message content to be a string regardless of what the function returned",
+        "str() speeds up JSON serialization of nested dicts",
+        "The model reads only the first 10 characters of any tool result"
+      ],
+      "answer": 1,
+      "explanation": "The message content field is always a string in the OpenAI messages spec. If your function returns 42 (an int) or True (a bool), wrapping it with str() converts it to '42' or 'True' — a valid content string. Skipping this causes a type error or a malformed request."
+    },
+    {
+      "question": "What does `with_fallback(fn, default)` return when `fn()` raises an exception?",
+      "options": [
+        "It re-raises the exception with an added error message",
+        "It retries `fn()` up to three times before giving up",
+        "It returns `default` so the calling code always receives a usable value",
+        "It logs the exception to stderr and returns None"
+      ],
+      "answer": 2,
+      "explanation": "The purpose of a fallback is to ensure the calling code always receives something it can display. The try/except catches the exception silently, and `default` — which you choose when writing the call — is returned instead. Your app keeps running; the user sees a graceful message."
+    },
+    {
+      "question": "In a well-structured AI app, where should model settings like temperature live?",
+      "options": [
+        "Hardcoded as a constant inside the function that builds the API request",
+        "In a config object or dict that is passed into the request builder as a parameter",
+        "Embedded directly in the system prompt message as a JSON fragment",
+        "Always in an environment variable named TEMPERATURE"
+      ],
+      "answer": 1,
+      "explanation": "A config dict passed as a parameter makes settings explicit, testable, and swappable. Hardcoding inside the builder hides settings and requires editing core logic to change them. Environment variables work for secrets, but model parameters are not secrets — they belong in code as named config values."
+    },
+    {
+      "question": "What is the key advantage of a `SimpleAIApp` class over a collection of standalone functions?",
+      "options": [
+        "Classes can make HTTP requests but standalone functions cannot",
+        "Classes are always faster than functions for dictionary operations",
+        "The class holds shared state (model name and history) so each method does not need it passed as an argument every call",
+        "Python functions cannot accept lambda expressions or dicts as arguments"
+      ],
+      "answer": 2,
+      "explanation": "Both `self.model` and `self.history` are needed by multiple methods. Storing them on the instance means `build_request()` and `message_count()` can access them without any arguments — the caller only supplies what changes (role, content, temperature). This is exactly what instance state is for."
+    },
+    {
+      "question": "After calling `app.parse_response(response)` to get the reply text, what should you do next to keep the conversation going?",
+      "options": [
+        "Clear the history list and start a new conversation object",
+        "Send the same payload again to get a second opinion from the model",
+        "Let the output handler convert the reply to HTML before storing it",
+        "Call `app.add_message('assistant', reply)` so the exchange is in history for the next turn"
+      ],
+      "answer": 3,
+      "explanation": "The model generates its reply but your code must explicitly append it to history. Without this step, the next request omits the assistant's previous answer — the model loses its own memory of what it just said. The full loop is: user input → build request → call API → parse response → append assistant reply → repeat."
+    }
+  ]
+}

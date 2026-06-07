@@ -1,0 +1,109 @@
+[
+  {
+    "id": "ai-app-architecture-lab1",
+    "topic_id": "ai-app-architecture",
+    "title": "Build a Config Dict",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write a function `build_config(model, temperature, max_tokens)` that returns a dict with those three keys. Config holds the values that control LLM behaviour — keeping them in a dict makes them easy to pass around and swap.",
+    "starter": "def build_config(model, temperature, max_tokens):\n    # return a dict with model, temperature, and max_tokens\n    pass",
+    "tests": [
+      {"label": "returns correct dict", "call": "build_config('gpt-4o-mini', 0.7, 256)", "expected": {"model": "gpt-4o-mini", "temperature": 0.7, "max_tokens": 256}},
+      {"label": "model key correct", "call": "build_config('claude-3-haiku', 0.0, 100)['model']", "expected": "claude-3-haiku"},
+      {"label": "temperature key correct", "call": "build_config('m', 0.5, 50)['temperature']", "expected": 0.5},
+      {"label": "max_tokens key correct", "call": "build_config('m', 0.7, 512)['max_tokens']", "expected": 512}
+    ],
+    "hint": "Return a dictionary literal with three keys matching the parameter names.",
+    "solution": "def build_config(model, temperature, max_tokens):\n    return {'model': model, 'temperature': temperature, 'max_tokens': max_tokens}",
+    "explanation": "Returning a plain dict makes config easy to inspect, copy, and merge. Because it is just a dict, you can update one field without rebuilding everything: `cfg['temperature'] = 0.0`. Keeping config separate from the messages list means you never confuse model settings with conversation content."
+  },
+  {
+    "id": "ai-app-architecture-lab2",
+    "topic_id": "ai-app-architecture",
+    "title": "Build a Request Payload",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write a function `build_request(config, messages)` that merges a config dict and a messages list into one payload dict. The result should contain all keys from `config` plus a `'messages'` key holding the list.",
+    "starter": "def build_request(config, messages):\n    # merge config and messages into one payload dict\n    pass",
+    "tests": [
+      {"label": "messages key present", "call": "build_request({'model': 'gpt-4o-mini'}, [])['messages']", "expected": []},
+      {"label": "config keys preserved", "call": "build_request({'model': 'm', 'temperature': 0.5}, [])['temperature']", "expected": 0.5},
+      {"label": "messages list included", "call": "len(build_request({'model': 'm'}, [{'role': 'user', 'content': 'hi'}])['messages'])", "expected": 1},
+      {"label": "model key preserved", "call": "build_request({'model': 'gpt-4o-mini', 'temperature': 0.7}, [])['model']", "expected": "gpt-4o-mini"}
+    ],
+    "hint": "Use `{**config, 'messages': messages}` to spread config keys into a new dict and add the messages key.",
+    "solution": "def build_request(config, messages):\n    return {**config, 'messages': messages}",
+    "explanation": "The `**config` unpacking copies all config keys into the new dict. Adding `'messages': messages` appends the conversation list. If config already had a 'messages' key it would be overwritten — which is the desired behaviour here since messages is always passed explicitly."
+  },
+  {
+    "id": "ai-app-architecture-lab3",
+    "topic_id": "ai-app-architecture",
+    "title": "Parse a Response",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write a function `parse_response(response)` that extracts and returns the assistant's reply text from a response dict. The path to the text is `response['choices'][0]['message']['content']`.",
+    "starter": "def parse_response(response):\n    # extract the content string from the response dict\n    pass",
+    "tests": [
+      {"label": "extracts content", "call": "parse_response({'choices': [{'message': {'content': 'Hello!'}}]})", "expected": "Hello!"},
+      {"label": "empty content", "call": "parse_response({'choices': [{'message': {'content': ''}}]})", "expected": ""},
+      {"label": "multi-word reply", "call": "parse_response({'choices': [{'message': {'content': 'The answer is 42.'}}]})", "expected": "The answer is 42."}
+    ],
+    "hint": "Access nested dict keys step by step: `response['choices'][0]['message']['content']`.",
+    "solution": "def parse_response(response):\n    return response['choices'][0]['message']['content']",
+    "explanation": "OpenAI-compatible APIs always wrap the reply in `choices[0].message.content`. Extracting it in one place means the rest of your app works with plain strings, not nested dicts. If the structure ever changes you only update this one function."
+  },
+  {
+    "id": "ai-app-architecture-lab4",
+    "topic_id": "ai-app-architecture",
+    "title": "Manage Conversation History",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write a function `add_message(history, role, content)` that appends `{'role': role, 'content': content}` to the `history` list and returns the updated list. History is the messages array — each call to the LLM sends the full list.",
+    "starter": "def add_message(history, role, content):\n    # append {'role': role, 'content': content} and return history\n    pass",
+    "tests": [
+      {"label": "appends one message", "call": "len(add_message([], 'user', 'Hello'))", "expected": 1},
+      {"label": "role is correct", "call": "add_message([], 'assistant', 'Hi')[0]['role']", "expected": "assistant"},
+      {"label": "content is correct", "call": "add_message([], 'user', 'test')[0]['content']", "expected": "test"},
+      {"label": "multi-turn grows list", "call": "len(add_message([{'role': 'user', 'content': 'q'}], 'assistant', 'a'))", "expected": 2}
+    ],
+    "hint": "Use `history.append({'role': role, 'content': content})` then `return history`.",
+    "solution": "def add_message(history, role, content):\n    history.append({'role': role, 'content': content})\n    return history",
+    "explanation": "`.append()` modifies the list in place, so the caller's list is updated even without the return value. Returning the list anyway makes the function chainable and testable. Each message dict has exactly two keys — role and content — matching the OpenAI messages spec."
+  },
+  {
+    "id": "ai-app-architecture-lab5",
+    "topic_id": "ai-app-architecture",
+    "title": "Fallback on Error",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write a function `with_fallback(fn, default)` that calls `fn()` with no arguments and returns its result. If `fn()` raises any exception, catch it and return `default` instead. This pattern keeps your AI app running even when a call fails.",
+    "starter": "def with_fallback(fn, default):\n    # call fn(), return its result; return default if any exception is raised\n    pass",
+    "tests": [
+      {"label": "returns result when no error", "call": "with_fallback(lambda: 42, 0)", "expected": 42},
+      {"label": "returns default on ZeroDivisionError", "call": "with_fallback(lambda: 1 / 0, -1)", "expected": -1},
+      {"label": "returns default on ValueError", "call": "with_fallback(lambda: int('bad'), 'error')", "expected": "error"},
+      {"label": "returns default on KeyError", "call": "with_fallback(lambda: {}['missing'], 'fallback')", "expected": "fallback"}
+    ],
+    "hint": "Use `try: return fn()` and `except Exception: return default`. Catching `Exception` handles all runtime errors.",
+    "solution": "def with_fallback(fn, default):\n    try:\n        return fn()\n    except Exception:\n        return default",
+    "explanation": "`except Exception` catches all standard runtime errors — ValueError, KeyError, TypeError, network errors, and so on. Returning `default` keeps the app running rather than crashing. The caller can log the real error separately; this function's only job is to make sure something is always returned."
+  },
+  {
+    "id": "ai-app-architecture-lab6",
+    "topic_id": "ai-app-architecture",
+    "title": "Simple AI App",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `SimpleAIApp` class that:\n- `__init__(model, system_prompt=None)`: sets `self.model`, initializes `self.history = []`, and if `system_prompt` is given appends `{'role': 'system', 'content': system_prompt}` to history\n- `add_message(role, content)`: appends to history; returns `self`\n- `build_request(temperature=0.7)`: returns `{'model': self.model, 'messages': self.history, 'temperature': temperature}`\n- `parse_response(response)`: returns `response['choices'][0]['message']['content']`\n- `message_count()`: returns `len(self.history)`",
+    "starter": "class SimpleAIApp:\n    def __init__(self, model, system_prompt=None):\n        pass\n\n    def add_message(self, role, content):\n        pass\n\n    def build_request(self, temperature=0.7):\n        pass\n\n    def parse_response(self, response):\n        pass\n\n    def message_count(self):\n        pass",
+    "tests": [
+      {"label": "system prompt in history", "call": "(app := SimpleAIApp('m', 'You are helpful'), app.history[0]['role'])[1]", "expected": "system"},
+      {"label": "add_message grows history", "call": "(app := SimpleAIApp('m'), app.add_message('user', 'Hi'), app.add_message('assistant', 'Hello'), app.message_count())[3]", "expected": 2},
+      {"label": "build_request includes model", "call": "(app := SimpleAIApp('gpt-4o-mini'), app.add_message('user', 'Hi'), app.build_request()['model'])[2]", "expected": "gpt-4o-mini"},
+      {"label": "parse_response extracts content", "call": "(app := SimpleAIApp('m'), app.parse_response({'choices': [{'message': {'content': 'Hi!'}}]}))[1]", "expected": "Hi!"}
+    ],
+    "hint": "In `__init__`, check `if system_prompt:` before appending. In `build_request`, return a dict with model, messages, and temperature. `parse_response` follows the same path as Lab 3.",
+    "solution": "class SimpleAIApp:\n    def __init__(self, model, system_prompt=None):\n        self.model = model\n        self.history = []\n        if system_prompt:\n            self.history.append({'role': 'system', 'content': system_prompt})\n\n    def add_message(self, role, content):\n        self.history.append({'role': role, 'content': content})\n        return self\n\n    def build_request(self, temperature=0.7):\n        return {'model': self.model, 'messages': self.history, 'temperature': temperature}\n\n    def parse_response(self, response):\n        return response['choices'][0]['message']['content']\n\n    def message_count(self):\n        return len(self.history)",
+    "explanation": "Each method has one responsibility: add_message grows history, build_request formats the payload, parse_response extracts the text, message_count reports state. The class holds shared state (model and history) so none of it has to be passed as arguments on every call. This is the minimal structure every real AI app starts from."
+  }
+]

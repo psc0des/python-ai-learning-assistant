@@ -1,0 +1,110 @@
+[
+  {
+    "id": "ai-evaluation-lab1",
+    "topic_id": "ai-evaluation",
+    "title": "Exact Match Evaluator",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write a function `exact_match(predicted, expected)` that returns `True` if the two strings are identical and `False` otherwise. This is the strictest evaluator — every character must match.",
+    "starter": "def exact_match(predicted, expected):\n    # return True if predicted == expected\n    pass",
+    "tests": [
+      {"label": "identical strings", "call": "exact_match('Paris', 'Paris')", "expected": true},
+      {"label": "case mismatch", "call": "exact_match('paris', 'Paris')", "expected": false},
+      {"label": "empty strings", "call": "exact_match('', '')", "expected": true},
+      {"label": "different values", "call": "exact_match('Berlin', 'Tokyo')", "expected": false}
+    ],
+    "hint": "Use the `==` operator to compare two strings.",
+    "solution": "def exact_match(predicted, expected):\n    return predicted == expected",
+    "explanation": "The `==` operator compares strings character by character. It returns True only when both strings have the same length and every character matches in order. This is the strictest possible evaluator — useful for labels and IDs where the output must be exact."
+  },
+  {
+    "id": "ai-evaluation-lab2",
+    "topic_id": "ai-evaluation",
+    "title": "Contains Check Evaluator",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write a function `contains_check(predicted, keywords)` that returns `True` if **all** keywords in the list appear somewhere in `predicted` (case-insensitive), and `False` if any are missing.",
+    "starter": "def contains_check(predicted, keywords):\n    # return True if every keyword appears in predicted (case-insensitive)\n    pass",
+    "tests": [
+      {"label": "all keywords present", "call": "contains_check('The capital of France is Paris', ['Paris', 'France'])", "expected": true},
+      {"label": "one keyword missing", "call": "contains_check('Berlin is a city', ['Berlin', 'capital'])", "expected": false},
+      {"label": "empty keyword list", "call": "contains_check('anything', [])", "expected": true},
+      {"label": "case insensitive", "call": "contains_check('hello world', ['HELLO', 'World'])", "expected": true}
+    ],
+    "hint": "Use `all(...)` with a generator expression. Check `kw.lower() in predicted.lower()` for each keyword.",
+    "solution": "def contains_check(predicted, keywords):\n    return all(kw.lower() in predicted.lower() for kw in keywords)",
+    "explanation": "`all()` returns True only if every element of the iterable is truthy. By calling `.lower()` on both sides, we make the check case-insensitive. An empty keyword list returns True because `all()` of an empty sequence is always True — there is nothing to fail."
+  },
+  {
+    "id": "ai-evaluation-lab3",
+    "topic_id": "ai-evaluation",
+    "title": "Normalize Text",
+    "difficulty": "Beginner",
+    "difficulty_order": 3,
+    "prompt": "Write a function `normalize(text)` that returns the string with leading and trailing whitespace removed and all characters converted to lowercase. This prevents false negatives from trailing newlines or inconsistent casing.",
+    "starter": "def normalize(text):\n    # strip whitespace and convert to lowercase\n    pass",
+    "tests": [
+      {"label": "strips whitespace", "call": "normalize('  Hello  ')", "expected": "hello"},
+      {"label": "strips newline and lowercases", "call": "normalize('PARIS\\n')", "expected": "paris"},
+      {"label": "empty string unchanged", "call": "normalize('')", "expected": ""},
+      {"label": "already normalized", "call": "normalize('london')", "expected": "london"}
+    ],
+    "hint": "Chain `.strip()` and `.lower()` on the string.",
+    "solution": "def normalize(text):\n    return text.strip().lower()",
+    "explanation": "`.strip()` removes leading and trailing whitespace characters including spaces, tabs, and newlines. `.lower()` converts all alphabetic characters to lowercase. Chaining them means both transformations happen in one expression. Apply this before any comparison to avoid false negatives from trivial formatting differences."
+  },
+  {
+    "id": "ai-evaluation-lab4",
+    "topic_id": "ai-evaluation",
+    "title": "Score a Batch of Predictions",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write a function `score_batch(predictions, labels, evaluator_fn)` that runs `evaluator_fn(predicted, expected)` on each paired element and returns the **pass rate** as a float between 0.0 and 1.0. Return `0.0` when the lists are empty.",
+    "starter": "def score_batch(predictions, labels, evaluator_fn):\n    # return the fraction of cases where evaluator_fn returns True\n    # return 0.0 for empty input\n    pass",
+    "tests": [
+      {"label": "all pass", "call": "score_batch(['a', 'b', 'c'], ['a', 'b', 'c'], lambda p, e: p == e)", "expected": 1.0},
+      {"label": "three of four pass", "call": "score_batch(['a', 'b', 'x', 'd'], ['a', 'b', 'c', 'd'], lambda p, e: p == e)", "expected": 0.75},
+      {"label": "none pass", "call": "score_batch(['x', 'y'], ['a', 'b'], lambda p, e: p == e)", "expected": 0.0},
+      {"label": "empty lists", "call": "score_batch([], [], lambda p, e: p == e)", "expected": 0.0}
+    ],
+    "hint": "Use `zip(predictions, labels)` to pair items. Count passes with `sum()` and divide by `len(labels)`. Guard against empty input first.",
+    "solution": "def score_batch(predictions, labels, evaluator_fn):\n    if not labels:\n        return 0.0\n    passed = sum(1 for p, e in zip(predictions, labels) if evaluator_fn(p, e))\n    return passed / len(labels)",
+    "explanation": "`zip()` pairs predictions with their expected labels. The generator inside `sum()` yields 1 for each passing pair and nothing for failures. Dividing by `len(labels)` gives the pass rate. The empty-list guard prevents a ZeroDivisionError."
+  },
+  {
+    "id": "ai-evaluation-lab5",
+    "topic_id": "ai-evaluation",
+    "title": "Multi-Metric Evaluator",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write a function `multi_metric(predicted, expected, keywords=None)` that returns a dict with three keys:\n- `'exact'`: True if normalized predicted equals normalized expected\n- `'contains'`: True if all keywords appear in predicted (case-insensitive); True when keywords is None or empty\n- `'length_ok'`: True if predicted has between 5 and 100 words inclusive",
+    "starter": "def multi_metric(predicted, expected, keywords=None):\n    # return {'exact': ..., 'contains': ..., 'length_ok': ...}\n    pass",
+    "tests": [
+      {"label": "exact match, short", "call": "multi_metric('Paris', 'Paris', ['Paris'])", "expected": {"exact": true, "contains": true, "length_ok": false}},
+      {"label": "no exact, has keywords, good length", "call": "multi_metric('The capital of France is Paris today', 'Paris', ['Paris', 'France'])", "expected": {"exact": false, "contains": true, "length_ok": true}},
+      {"label": "no keywords arg", "call": "multi_metric('hello world how are you today', 'hi')", "expected": {"exact": false, "contains": true, "length_ok": true}},
+      {"label": "missing keyword", "call": "multi_metric('Berlin is a city', 'Berlin', ['capital'])", "expected": {"exact": false, "contains": false, "length_ok": false}}
+    ],
+    "hint": "Normalize both strings with `.strip().lower()` before comparing. Use `all(kw.lower() in predicted.lower() for kw in (keywords or []))` for contains. Count words with `len(predicted.split())`.",
+    "solution": "def multi_metric(predicted, expected, keywords=None):\n    norm = lambda s: s.strip().lower()\n    exact = norm(predicted) == norm(expected)\n    contains = all(kw.lower() in predicted.lower() for kw in (keywords or []))\n    length_ok = 5 <= len(predicted.split()) <= 100\n    return {'exact': exact, 'contains': contains, 'length_ok': length_ok}",
+    "explanation": "Each key checks a different failure mode: exact catches wrong answers, contains catches omitted key facts, length_ok catches responses that are too brief or too verbose. Returning a dict instead of a single True/False gives you a breakdown of exactly what failed."
+  },
+  {
+    "id": "ai-evaluation-lab6",
+    "topic_id": "ai-evaluation",
+    "title": "Eval Harness",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build an `EvalHarness` class that:\n- `__init__`: initializes `self.cases = []` and `self.results = []`\n- `add_case(predicted, expected)`: appends `(predicted, expected)` to `self.cases`; returns `self`\n- `run(evaluator_fn)`: evaluates every case and stores the bool results in `self.results`; returns `self`\n- `score()`: returns the pass rate (0.0 when no results)\n- `report()`: returns `{'cases': len(self.cases), 'passed': sum(self.results), 'score': self.score()}`",
+    "starter": "class EvalHarness:\n    def __init__(self):\n        self.cases = []\n        self.results = []\n\n    def add_case(self, predicted, expected):\n        pass\n\n    def run(self, evaluator_fn):\n        pass\n\n    def score(self):\n        pass\n\n    def report(self):\n        pass",
+    "tests": [
+      {"label": "add_case stores cases", "call": "(h := EvalHarness(), h.add_case('a', 'a'), h.add_case('b', 'b'), len(h.cases))[3]", "expected": 2},
+      {"label": "perfect score", "call": "(h := EvalHarness(), h.add_case('Paris', 'Paris'), h.add_case('Berlin', 'Berlin'), h.run(lambda p, e: p == e), h.score())[4]", "expected": 1.0},
+      {"label": "zero score", "call": "(h := EvalHarness(), h.add_case('x', 'y'), h.run(lambda p, e: p == e), h.score())[3]", "expected": 0.0},
+      {"label": "report dict", "call": "(h := EvalHarness(), h.add_case('a', 'a'), h.run(lambda p, e: p == e), h.report())[3]", "expected": {"cases": 1, "passed": 1, "score": 1.0}}
+    ],
+    "hint": "In `run`, use a list comprehension: `[evaluator_fn(p, e) for p, e in self.cases]`. In `score`, guard against empty results with `if not self.results`. In `report`, call `self.score()` for the score field.",
+    "solution": "class EvalHarness:\n    def __init__(self):\n        self.cases = []\n        self.results = []\n\n    def add_case(self, predicted, expected):\n        self.cases.append((predicted, expected))\n        return self\n\n    def run(self, evaluator_fn):\n        self.results = [evaluator_fn(p, e) for p, e in self.cases]\n        return self\n\n    def score(self):\n        if not self.results:\n            return 0.0\n        return sum(self.results) / len(self.results)\n\n    def report(self):\n        return {'cases': len(self.cases), 'passed': sum(self.results), 'score': self.score()}",
+    "explanation": "The harness pattern separates three concerns: storing cases, running the evaluator, and reporting results. `add_case` and `run` return `self` so you can chain calls. `score()` uses `sum()` on a boolean list — Python treats True as 1 and False as 0. `report()` delegates to `score()` so the score value is always computed the same way."
+  }
+]

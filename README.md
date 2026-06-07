@@ -38,11 +38,11 @@ pip install -r requirements-dev.txt
 python -B -m pytest tests -q -p no:cacheprovider
 ```
 
-`pytest` is the only dev dependency. The app itself needs no `pip install`. All 988 tests should pass on a clean clone.
+`pytest` is the only dev dependency. The app itself needs no `pip install`. All 1080 tests should pass on a clean clone.
 
 ## What It Covers
 
-- 19 topics: Python basics, functions, data structures, OOP, errors/testing, async, LLM API calls, structured LLM outputs, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 110 labs total including one Advanced capstone per topic
+- 21 topics: Python basics, functions, data structures, OOP, errors/testing, async, LLM API calls, structured LLM outputs, basic AI evaluation, basic AI app architecture, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 122 labs total including one Advanced capstone per topic
 - Topic flow: overview → lesson (with inline concept diagrams) → hands-on labs → practice test
 - **Capstone labs** — one advanced multi-function project per major track (Python Core, Backend, AI Apps, DevOps, Engineering Habits) that integrates concepts from across the track
 - **Learner readiness signals** — sidebar badges show lab progress and test scores; a readiness bar shows "Core labs done" when all non-capstone labs and the practice test (≥80%) are complete, and "Topic complete" once the capstone is also passed, with a direct link to the next topic

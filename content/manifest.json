@@ -13,12 +13,14 @@
     "async",
     "llm-api-basics",
     "structured-llm-outputs",
+    "ai-evaluation",
     "langchain",
     "langgraph",
     "mcp",
     "rag-vectors",
     "simple-rag-project",
     "simple-tool-calling",
+    "ai-app-architecture",
     "python-devops",
     "sql-http-git"
   ]

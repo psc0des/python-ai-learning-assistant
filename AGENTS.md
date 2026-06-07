@@ -108,7 +108,7 @@ When adding or rewriting lesson content:
 
 ## Current Content Status
 
-All 19 topics have been rewritten to reference quality:
+All 21 topics have been rewritten to reference quality:
 
 - richer `intro` and `mental_model` fields; `python-basics` and `oop` intros further refined for tone (direct, confident engineering-handbook register — see Async Python intro as the target standard);
 - official source citations at the section level (`source_label` / `source_url`);
@@ -116,13 +116,13 @@ All 19 topics have been rewritten to reference quality:
 - each section: one-sentence analogy opener → technical explanation → beginner code example → production/professional code example (no inline `# Layman example:` or `# Professional example:` labels — labels were removed as they read awkwardly in-context);
 - `lesson.md` files updated to match the rich content in each `topic.json`.
 
-Topics at this level: `getting-started`, `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `llm-api-basics`, `structured-llm-outputs`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `simple-rag-project`, `simple-tool-calling`, `python-devops`, `sql-http-git`.
+Topics at this level: `getting-started`, `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `llm-api-basics`, `structured-llm-outputs`, `ai-evaluation`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `simple-rag-project`, `simple-tool-calling`, `ai-app-architecture`, `python-devops`, `sql-http-git`.
 
 ### Concept Diagrams
 
 Six topics have an inline SVG diagram in one lesson section (`diagram_svg` + `diagram_caption` on the section object in `topic.json`). These are rendered as a `<figure>` inside `.section-diagram`. The SVG is trusted authored content — it is NOT passed through `escapeHtml`. Locked palette: charcoal `#1e293b` (focal/your-code), green `#059669` (result/output), white with slate `#94a3b8` borders (plain boxes), gray `#4a5568` (arrows), amber `#b45309` (store/data).
 
-Topics with diagrams: `getting-started` (function), `fastapi` (request lifecycle), `rag-vectors` (pipeline with Vector DB), `mcp` (host/client/server), `langgraph` (state graph), `langchain` (ReAct agent loop).
+Topics with diagrams: `getting-started` (function), `fastapi` (request lifecycle), `rag-vectors` (pipeline with Vector DB), `mcp` (host/client/server), `langgraph` (state graph), `langchain` (ReAct agent loop), `ai-evaluation` (eval loop), `ai-app-architecture` (three-layer structure).
 
 Do not assume the curriculum is complete just because tests pass. Tests validate structure and exercise correctness, not full teaching quality.
 
@@ -153,7 +153,7 @@ When adding labs:
 - verify every solution passes its own tests;
 - prefer small functions that return values over print-only exercises.
 
-**Capstone labs** (one per topic, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate concepts from the topic into a class-based multi-method challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All code must be pure Python (no blocked imports). Every capstone must use a class with `__init__` and instance methods. All 15 topics now have capstones: `oop`, `fastapi`, `rag-vectors`, `python-devops`, `errors-testing`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `sql-http-git`, `llm-api-basics` (ChatSession), `structured-llm-outputs` (OutputValidator), `simple-rag-project` (MiniRAG), `simple-tool-calling` (ToolRegistry).
+**Capstone labs** (one per topic, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate concepts from the topic into a class-based multi-method challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All code must be pure Python (no blocked imports). Every capstone must use a class with `__init__` and instance methods. All 17 capstone topics: `oop`, `fastapi`, `rag-vectors`, `python-devops`, `errors-testing`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `sql-http-git`, `llm-api-basics` (ChatSession), `structured-llm-outputs` (OutputValidator), `simple-rag-project` (MiniRAG), `simple-tool-calling` (ToolRegistry), `ai-evaluation` (EvalHarness), `ai-app-architecture` (SimpleAIApp).
 
 ### Runner Safety
 
