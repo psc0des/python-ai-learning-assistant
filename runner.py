@@ -112,6 +112,13 @@ def scan_for_dangerous_code(code: str) -> list[str]:
                     f"Use variables and function parameters to work with data in your solution."
                 )
 
+        # --- Direct __builtins__ access (guards subscript bypass: __builtins__['__import__']('os')) ---
+        elif isinstance(node, ast.Name):
+            if node.id == "__builtins__":
+                violations.append(
+                    f"Line {node.lineno}: access to '__builtins__' is not allowed in the sandbox."
+                )
+
         # --- Dunder attribute access (e.g. __class__, __subclasses__) ---
         elif isinstance(node, ast.Attribute):
             if node.attr.startswith("__") and node.attr.endswith("__"):
@@ -216,13 +223,15 @@ def build_test_code(user_code: str, tests: list[dict[str, Any]]) -> str:
     # This avoids the JSON/Python literal mismatch (true vs True, null vs None).
     encoded_tests_json = json.dumps(json.dumps(tests))
     return f"""
+import builtins as _bi
 import contextlib
 import io
 import json
 import traceback
 
+_BLOCKED = frozenset({{'eval', 'exec', 'compile', 'breakpoint', 'open', 'input', 'globals', 'locals', 'vars', 'getattr', 'setattr', 'delattr'}})
 TESTS = json.loads({encoded_tests_json})
-USER_GLOBALS = {{"__name__": "__main__"}}
+USER_GLOBALS = {{"__name__": "__main__", "__builtins__": {{k: v for k, v in vars(_bi).items() if k not in _BLOCKED}}}}
 
 def _safe(value):
     # Keep JSON-serializable values as-is; fall back to a truncated repr so an
@@ -424,8 +433,10 @@ def build_trace_code(user_code: str) -> str:
     exotic value can never crash the recorder.
     """
     return f"""
+import builtins as _bi
 import sys, json, io, contextlib, types
 
+_BLOCKED = frozenset({{'eval', 'exec', 'compile', 'breakpoint', 'open', 'input', 'globals', 'locals', 'vars', 'getattr', 'setattr', 'delattr'}})
 MAX_STEPS = {MAX_TRACE_STEPS}
 USER_FILE = "<user>"
 steps = []
@@ -470,7 +481,7 @@ def _tracer(frame, event, arg):
     return _tracer
 
 result = {{"steps": steps, "stdout": "", "truncated": False, "error": "", "error_line": 0}}
-user_globals = {{"__name__": "__main__", "__file__": USER_FILE}}
+user_globals = {{"__name__": "__main__", "__file__": USER_FILE, "__builtins__": {{k: v for k, v in vars(_bi).items() if k not in _BLOCKED}}}}
 capture = io.StringIO()
 try:
     compiled = compile({user_code!r}, USER_FILE, "exec")

@@ -152,6 +152,11 @@
         ]
       },
       {
+        "label": "missing title field returns error",
+        "call": "collect_ticket_errors({'priority': 1})",
+        "expected": [{"field": "title", "code": "title_invalid"}]
+      },
+      {
         "label": "owner invalid",
         "call": "collect_ticket_errors({'title': 'ok', 'priority': 1, 'owner': 99})",
         "expected": [
@@ -291,6 +296,16 @@
             "priority": "required"
           }
         ]
+      },
+      {
+        "label": "bool field accepts True",
+        "call": "TicketValidator([{'field': 'active', 'type': 'bool', 'required': True}]).validate({'active': True})",
+        "expected": [true, {"active": true}]
+      },
+      {
+        "label": "bool field accepts False",
+        "call": "TicketValidator([{'field': 'active', 'type': 'bool', 'required': False, 'default': True}]).validate({'active': False})",
+        "expected": [true, {"active": false}]
       },
       {
         "label": "bool field rejects string yes",

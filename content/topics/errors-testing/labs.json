@@ -176,9 +176,29 @@
         "expected": "NameError"
       },
       {
+        "label": "classify_error finds TypeError",
+        "call": "DebugReportBuilder().classify_error('TypeError: unsupported operand type')",
+        "expected": "TypeError"
+      },
+      {
+        "label": "classify_error finds SyntaxError",
+        "call": "DebugReportBuilder().classify_error('SyntaxError: invalid syntax')",
+        "expected": "SyntaxError"
+      },
+      {
+        "label": "classify_error finds IndexError",
+        "call": "DebugReportBuilder().classify_error('IndexError: list index out of range')",
+        "expected": "IndexError"
+      },
+      {
         "label": "classify_error returns Unknown",
         "call": "DebugReportBuilder().classify_error('Some random error happened')",
         "expected": "Unknown"
+      },
+      {
+        "label": "suggest_fix returns TypeError hint",
+        "call": "DebugReportBuilder().suggest_fix('TypeError')",
+        "expected": "Check that you are passing the right types to functions and operators."
       },
       {
         "label": "extract_line_number from traceback",

@@ -270,6 +270,11 @@
         "label": "step returns False for unknown node",
         "call": "(lambda g: (g.add_node('init', 'h'), g.set_state({}), g.step('missing'))[-1])(StateGraph())",
         "expected": false
+      },
+      {
+        "label": "history returns a copy not the internal list",
+        "call": "(lambda g: (g.add_node('a', 'h'), g.set_state({}), g.step('a'), g.history().append('external'), g.history())[-1])(StateGraph())",
+        "expected": ["a"]
       }
     ],
     "hint": "Use self._nodes = {}, self._edges = {}, self._state = None. add_edge uses setdefault(from_node, []).append(to_node). step checks node in self._nodes and self._state is not None, then appends to history and updates current. describe sorts node keys.",

@@ -62,7 +62,7 @@ try:
     p = Product.model_validate({
         'name': 123,          # wrong type — should be str
         # 'price' is missing entirely
-        'in_stock': 'yes',    # 'yes' cannot be converted to bool
+        'in_stock': 'maybe',  # 'maybe' is not a recognised bool value
     })
 except ValidationError as e:
     print(e)

@@ -219,6 +219,14 @@
         ]
       },
       {
+        "label": "filter_errors includes 5xx not only 4xx",
+        "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200}, {'method': 'GET', 'path': '/b', 'status': 404}, {'method': 'GET', 'path': '/c', 'status': 500}]).filter_errors()",
+        "expected": [
+          {"method": "GET", "path": "/b", "status": 404},
+          {"method": "GET", "path": "/c", "status": 500}
+        ]
+      },
+      {
         "label": "group_by_status buckets by code",
         "call": "LogAnalyzer([{'method': 'GET', 'path': '/a', 'status': 200}, {'method': 'POST', 'path': '/b', 'status': 404}]).group_by_status()",
         "expected": {

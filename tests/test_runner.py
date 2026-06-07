@@ -216,3 +216,28 @@ class TestInputBlocking:
     def test_scan_blocks_input(self):
         violations = scan_for_dangerous_code("word = input('Enter a word: ')")
         assert any("input()" in v for v in violations)
+
+
+class TestSandboxBypassBlocking:
+    def test_scan_blocks_builtins_name_access(self):
+        violations = scan_for_dangerous_code("__builtins__['__import__']('os')")
+        assert violations, "Expected violation for direct __builtins__ access"
+        assert any("__builtins__" in v for v in violations)
+
+    def test_run_blocks_builtins_subscript_import(self):
+        result = run_user_code(
+            {"code": "os = __builtins__['__import__']('os')\nos.system('echo bypass')\n", "exercise_id": ""},
+            EXERCISES,
+        )
+        assert result["ok"] is False
+
+    def test_scan_blocks_builtins_attribute_access(self):
+        violations = scan_for_dangerous_code("__builtins__.__dict__['__import__']('os')")
+        assert violations, "Expected violation for __builtins__.__dict__ access"
+
+    def test_run_getattr_import_is_blocked(self):
+        result = run_user_code(
+            {"code": "f = getattr(__builtins__, '__import__')\nf('os')\n", "exercise_id": ""},
+            EXERCISES,
+        )
+        assert result["ok"] is False

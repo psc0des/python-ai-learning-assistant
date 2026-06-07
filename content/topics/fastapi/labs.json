@@ -14,8 +14,28 @@
         "expected": "success"
       },
       {
+        "label": "201",
+        "call": "status_meaning(201)",
+        "expected": "success"
+      },
+      {
+        "label": "299",
+        "call": "status_meaning(299)",
+        "expected": "success"
+      },
+      {
         "label": "302",
         "call": "status_meaning(302)",
+        "expected": "redirect"
+      },
+      {
+        "label": "301",
+        "call": "status_meaning(301)",
+        "expected": "redirect"
+      },
+      {
+        "label": "399",
+        "call": "status_meaning(399)",
         "expected": "redirect"
       },
       {
@@ -24,13 +44,38 @@
         "expected": "client_error"
       },
       {
+        "label": "400",
+        "call": "status_meaning(400)",
+        "expected": "client_error"
+      },
+      {
+        "label": "499",
+        "call": "status_meaning(499)",
+        "expected": "client_error"
+      },
+      {
         "label": "503",
         "call": "status_meaning(503)",
         "expected": "server_error"
       },
       {
+        "label": "500",
+        "call": "status_meaning(500)",
+        "expected": "server_error"
+      },
+      {
+        "label": "599",
+        "call": "status_meaning(599)",
+        "expected": "server_error"
+      },
+      {
         "label": "99",
         "call": "status_meaning(99)",
+        "expected": "unknown"
+      },
+      {
+        "label": "600",
+        "call": "status_meaning(600)",
         "expected": "unknown"
       }
     ],
@@ -73,6 +118,13 @@
       {
         "label": "invalid limit",
         "call": "parse_request('3', {'limit': '0'})",
+        "expected": {
+          "error": "invalid_query"
+        }
+      },
+      {
+        "label": "non-numeric limit returns invalid_query",
+        "call": "parse_request('3', {'limit': 'abc'})",
         "expected": {
           "error": "invalid_query"
         }
@@ -214,6 +266,20 @@
         }
       },
       {
+        "label": "missing id returns invalid_record",
+        "call": "build_user_response({'name': 'Ada', 'email': 'ada@example.com'})",
+        "expected": {
+          "error": "invalid_record"
+        }
+      },
+      {
+        "label": "missing name returns invalid_record",
+        "call": "build_user_response({'id': 1, 'email': 'ada@example.com'})",
+        "expected": {
+          "error": "invalid_record"
+        }
+      },
+      {
         "label": "strips internal fields",
         "call": "build_user_response({'id': 2, 'name': 'Lin', 'email': 'lin@example.com', 'internal_note': 'admin', 'password_hash': 'secret'})",
         "expected": {
@@ -233,7 +299,7 @@
     "title": "Capstone: Request Router",
     "difficulty": "Advanced",
     "difficulty_order": 6,
-    "prompt": "Build a `RequestRouter` class that owns a route registry and handles request validation — no imports needed.\n\nImplement:\n- `__init__(self)` — initialise an empty routes dict stored on the instance.\n- `register_route(self, method, path, handler)` — store `'METHOD:/path'` → handler name in the instance routes dict. Return `self` so calls can be chained.\n- `match_route(self, method, path)` — return the handler name string for the matching key, or None if not found.\n- `validate_request(self, body, required)` — return `[True, body]` if all required fields are present as non-empty strings. Return `[False, {'field': name, 'code': 'required'}]` for the first missing, blank, or non-string field.\n- `build_response(self, data, status)` — return `{'data': data, 'status': status, 'ok': status < 400}`.",
+    "prompt": "Build a `RequestRouter` class that owns a route registry and handles request validation — no imports needed.\n\nImplement:\n- `__init__(self)` — initialise `self._routes = {}` as the empty routes registry.\n- `register_route(self, method, path, handler)` — store `'METHOD:/path'` → handler name in the instance routes dict. Return `self` so calls can be chained.\n- `match_route(self, method, path)` — return the handler name string for the matching key, or None if not found.\n- `validate_request(self, body, required)` — return `[True, body]` if all required fields are present as non-empty strings. Return `[False, {'field': name, 'code': 'required'}]` for the first missing, blank, or non-string field.\n- `build_response(self, data, status)` — return `{'data': data, 'status': status, 'ok': status < 400}`.",
     "starter": "class RequestRouter:\n    def __init__(self):\n        pass\n\n    def register_route(self, method, path, handler):\n        pass\n\n    def match_route(self, method, path):\n        pass\n\n    def validate_request(self, body, required):\n        pass\n\n    def build_response(self, data, status):\n        pass\n",
     "tests": [
       {
@@ -264,6 +330,16 @@
       {
         "label": "validate rejects non-string field",
         "call": "RequestRouter().validate_request({'name': 123, 'email': 'ada@x.com'}, ['name', 'email'])",
+        "expected": [false, {"field": "name", "code": "required"}]
+      },
+      {
+        "label": "validate rejects empty string",
+        "call": "RequestRouter().validate_request({'name': ''}, ['name'])",
+        "expected": [false, {"field": "name", "code": "required"}]
+      },
+      {
+        "label": "validate rejects whitespace-only string",
+        "call": "RequestRouter().validate_request({'name': '   '}, ['name'])",
         "expected": [false, {"field": "name", "code": "required"}]
       },
       {

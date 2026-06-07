@@ -1700,10 +1700,25 @@ _aiSettingsBtn.addEventListener("click", (e) => {
     return;
   }
   const rect = _aiSettingsBtn.getBoundingClientRect();
-  _aiSettingsPanel.style.bottom = `${window.innerHeight - rect.top + 8}px`;
-  _aiSettingsPanel.style.left = `${rect.left}px`;
-  _aiSettingsPanel.style.width = `${rect.width}px`;
-  _aiSettingsPanel.hidden = false;
+  const panelW = 280;
+  const spaceRight = window.innerWidth - rect.right - 16;
+  _aiSettingsPanel.style.width = `${panelW}px`;
+  if (spaceRight >= panelW) {
+    // Enough room to the right of the sidebar — open there so it doesn't cover the topic list
+    _aiSettingsPanel.style.bottom = "auto";
+    _aiSettingsPanel.style.left = `${rect.right + 8}px`;
+    _aiSettingsPanel.style.top = `${rect.top}px`;
+    _aiSettingsPanel.hidden = false;
+    // Clamp after render so Save & Apply is never pushed below the viewport
+    const panelH = _aiSettingsPanel.offsetHeight;
+    _aiSettingsPanel.style.top = `${Math.max(8, Math.min(rect.top, window.innerHeight - panelH - 8))}px`;
+  } else {
+    // Narrow window fallback — open above the button
+    _aiSettingsPanel.style.top = "auto";
+    _aiSettingsPanel.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+    _aiSettingsPanel.style.left = `${Math.max(8, rect.left)}px`;
+    _aiSettingsPanel.hidden = false;
+  }
 });
 
 document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () => {

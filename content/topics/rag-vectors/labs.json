@@ -247,6 +247,11 @@
         "expected": 2
       },
       {
+        "label": "score_relevance is case-insensitive",
+        "call": "MiniRagPipeline().score_relevance('Python Is Fast', 'python speed')",
+        "expected": 1
+      },
+      {
         "label": "retrieve_top_k searches stored chunks",
         "call": "(lambda p: (p.add_document('python is fast java verbose', 5), p.add_document('python speed test run', 5), p.retrieve_top_k('python speed', 2))[-1])(MiniRagPipeline())",
         "expected": ["python speed test run", "python is fast java verbose"]

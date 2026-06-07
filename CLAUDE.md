@@ -108,7 +108,11 @@ Tests in `tests/test_origin_validation.py` cover: exact match, empty origin, loc
 
 ### Code runner
 
-`runner.py` runs learner code in a subprocess with a short timeout. It uses an AST scan to block dangerous imports (`os`, `subprocess`, `socket`, etc.), dangerous builtins (`exec`, `eval`, `__import__`, etc.), `open()` entirely, and `input()` — learner code cannot read or write files or prompt for keyboard input. This is a learning sandbox, not a production security boundary. **Do not expose this app to a network or multi-user environment.**
+`runner.py` runs learner code in a subprocess with a short timeout. It applies two layers of blocking:
+1. **AST scan** — rejects dangerous imports (`os`, `subprocess`, `socket`, etc.), dangerous builtins (`exec`, `eval`, `__import__`, etc.), `open()`, `input()`, and direct `__builtins__` name access (e.g. `__builtins__['__import__']('os')`).
+2. **Runtime restriction** — injects a stripped `__builtins__` dict into `USER_GLOBALS` for both run and trace paths, removing `eval`, `exec`, `compile`, `breakpoint`, `open`, `input`, `globals`, `locals`, `vars`, `getattr`, `setattr`, and `delattr` so the restricted set is enforced even if the AST scan is bypassed.
+
+Learner code cannot read or write files or prompt for keyboard input. This is a learning sandbox, not a production security boundary. **Do not expose this app to a network or multi-user environment.**
 
 `input()` is blocked before execution because the subprocess is non-interactive — a blocked `input()` call would silently wait until the run timeout, which looks like an infinite loop to a beginner. The runner returns a clear targeted message instead. Labs should use function parameters and sample variables, not `input()`.
 
@@ -204,6 +208,7 @@ Critical CSS invariants:
 - Both modals (`.viz-modal` and `.code-popup-modal`) use `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%)` to self-center — do **not** add `display: flex` centering back to `.viz-overlay` or `.code-popup` (that fights the drag logic)
 - `.viz-overlay` and `.code-popup` are plain backdrops with no flex — each modal positions itself and is draggable via JS mousedown on its header (`.viz-modal-head` / `.code-popup-header`)
 - Escape key priority: viz overlay handles Escape first; code popup Escape is skipped while viz is open — do not break this ordering
+- `.ai-settings-panel` is `position: fixed; z-index: 800; max-height: calc(100vh - 24px); overflow-y: auto`. JS opens it to the right of the sidebar (`rect.right + 8`) on wide viewports, reads `offsetHeight` after render, then clamps `top` so Save & Apply is never off-screen. Falls back to above-the-button on narrow viewports. Do not revert to `width: rect.width` (the button width) — that was the original bug that caused the panel to overlap the sidebar topic list.
 
 ## Vendor Bundle Rules
 
@@ -278,7 +283,7 @@ Do not add features, refactor, or introduce abstractions beyond what the task re
 
 ### 5. Security is load-bearing
 
-The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers two independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP) and AI coach (`/api/ai-coach` — 10 req/60s per IP).
+The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers two independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP) and AI (`/api/ai-coach`, `/api/ai-models` — 10 req/60s per IP).
 
 ### 6. Verify before reporting
 

@@ -216,6 +216,16 @@
         "expected": [false, null]
       },
       {
+        "label": "validate_port rejects port 0",
+        "call": "DeploymentChecker().validate_port('0')",
+        "expected": [false, null]
+      },
+      {
+        "label": "validate_port rejects negative port",
+        "call": "DeploymentChecker().validate_port('-1')",
+        "expected": [false, null]
+      },
+      {
         "label": "generate_report fails with missing var",
         "call": "(lambda d: (d.load_env('PORT=8080'), d.generate_report('api', ['PORT', 'SECRET']))[-1])(DeploymentChecker())",
         "expected": {"service": "api", "missing": ["SECRET"], "port_valid": true, "ok": false}

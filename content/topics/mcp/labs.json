@@ -110,6 +110,22 @@
           false,
           "invalid_shape"
         ]
+      },
+      {
+        "label": "valid call with no required keys",
+        "call": "validate_tool_call({'tool': 'ping', 'args': {}}, [])",
+        "expected": [
+          true,
+          "ok"
+        ]
+      },
+      {
+        "label": "bad shape with no required keys returns invalid_shape",
+        "call": "validate_tool_call(None, [])",
+        "expected": [
+          false,
+          "invalid_shape"
+        ]
       }
     ],
     "hint": "Validate structure first, required fields second.",
@@ -194,7 +210,7 @@
     "title": "Capstone: Tool Registry",
     "difficulty": "Advanced",
     "difficulty_order": 6,
-    "prompt": "Build a ToolRegistry class that manages MCP tool definitions and validates incoming tool calls before they reach the handler — the same job an MCP server does before dispatching.\n\nImplement:\n- __init__(self) — start with an empty registry dict.\n- register(self, name, description, required_args) — store the tool and return self (for chaining).\n- find(self, name) — return the tool dict or None.\n- validate_call(self, name, args) — return [True, args] if tool exists and all required_args are present. Return [False, 'unknown_tool'] if not found. Return [False, 'missing_args:{comma-joined names}'] if args are incomplete.\n- list_tools(self) — return a sorted list of registered tool names.\n- tool_count(self) — return the number of registered tools.",
+    "prompt": "Build a ToolRegistry class that manages MCP tool definitions and validates incoming tool calls before they reach the handler — the same job an MCP server does before dispatching.\n\nImplement:\n- __init__(self) — start with an empty registry dict.\n- register(self, name, description, required_args) — store the tool and return self (for chaining).\n- find(self, name) — return the tool dict or None.\n- validate_call(self, name, args) — return [True, args] if tool exists and all required_args are present. Return [False, 'unknown_tool'] if not found. Return [False, 'missing_args:{comma-joined names}'] if args are incomplete or not a dict.\n- list_tools(self) — return a sorted list of registered tool names.\n- tool_count(self) — return the number of registered tools.",
     "starter": "class ToolRegistry:\n    def __init__(self):\n        pass\n\n    def register(self, name, description, required_args):\n        pass\n\n    def find(self, name):\n        pass\n\n    def validate_call(self, name, args):\n        pass\n\n    def list_tools(self):\n        pass\n\n    def tool_count(self):\n        pass\n",
     "tests": [
       {
@@ -240,6 +256,30 @@
         ]
       },
       {
+        "label": "validate_call rejects None args",
+        "call": "ToolRegistry().register('search', 'Search', ['query']).validate_call('search', None)",
+        "expected": [
+          false,
+          "missing_args:query"
+        ]
+      },
+      {
+        "label": "validate_call rejects list args",
+        "call": "ToolRegistry().register('search', 'Search', ['query']).validate_call('search', [])",
+        "expected": [
+          false,
+          "missing_args:query"
+        ]
+      },
+      {
+        "label": "validate_call rejects non-dict args even with no required args",
+        "call": "ToolRegistry().register('ping', 'Ping', []).validate_call('ping', None)",
+        "expected": [
+          false,
+          "missing_args:"
+        ]
+      },
+      {
         "label": "list_tools returns sorted names",
         "call": "ToolRegistry().register('z_tool', 'Z', []).register('a_tool', 'A', []).list_tools()",
         "expected": [
@@ -253,8 +293,8 @@
         "expected": 2
       }
     ],
-    "hint": "Use self._tools = {}. register stores name to {name, description, required_args}. find does a dict get. validate_call: find the tool first, then missing = [a for a in required_args if a not in args], join with comma for the error string.",
-    "solution": "class ToolRegistry:\n    def __init__(self):\n        self._tools = {}\n\n    def register(self, name, description, required_args):\n        self._tools[name] = {'name': name, 'description': description, 'required_args': required_args}\n        return self\n\n    def find(self, name):\n        return self._tools.get(name)\n\n    def validate_call(self, name, args):\n        tool = self.find(name)\n        if tool is None:\n            return [False, 'unknown_tool']\n        missing = [a for a in tool['required_args'] if a not in args]\n        if missing:\n            return [False, 'missing_args:' + ','.join(missing)]\n        return [True, args]\n\n    def list_tools(self):\n        return sorted(self._tools.keys())\n\n    def tool_count(self):\n        return len(self._tools)\n",
+    "hint": "Use self._tools = {}. register stores name to {name, description, required_args}. find does a dict get. validate_call: find the tool first, guard with isinstance(args, dict) — if not a dict treat all required_args as missing. Then missing = [a for a in required_args if a not in args], join with comma for the error string.",
+    "solution": "class ToolRegistry:\n    def __init__(self):\n        self._tools = {}\n\n    def register(self, name, description, required_args):\n        self._tools[name] = {'name': name, 'description': description, 'required_args': required_args}\n        return self\n\n    def find(self, name):\n        return self._tools.get(name)\n\n    def validate_call(self, name, args):\n        tool = self.find(name)\n        if tool is None:\n            return [False, 'unknown_tool']\n        if not isinstance(args, dict):\n            return [False, 'missing_args:' + ','.join(tool['required_args'])]\n        missing = [a for a in tool['required_args'] if a not in args]\n        if missing:\n            return [False, 'missing_args:' + ','.join(missing)]\n        return [True, args]\n\n    def list_tools(self):\n        return sorted(self._tools.keys())\n\n    def tool_count(self):\n        return len(self._tools)\n",
     "explanation": "An MCP server's tool registry does exactly this: holds tool schemas, exposes them via tools/list, and validates each tools/call before dispatching. The missing-args check produces machine-readable errors that let the LLM retry with corrected arguments instead of crashing the session."
   }
 ]

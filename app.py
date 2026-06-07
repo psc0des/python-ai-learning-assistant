@@ -188,14 +188,15 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         # Rate limiting on AI endpoints
-        if self.path == "/api/ai-coach":
+        if self.path in ("/api/ai-coach", "/api/ai-models"):
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip, bucket="ai", max_requests=AI_RATE_LIMIT_MAX):
                 logger.warning("AI rate limit exceeded for IP: %s", client_ip)
-                self.send_json(
-                    {"ok": False, "reply": f"Rate limit exceeded: max {AI_RATE_LIMIT_MAX} AI requests per {RATE_LIMIT_WINDOW}s. Wait a moment."},
-                    status=429,
-                )
+                msg = f"Rate limit exceeded: max {AI_RATE_LIMIT_MAX} AI requests per {RATE_LIMIT_WINDOW}s. Wait a moment."
+                if self.path == "/api/ai-models":
+                    self.send_json({"ok": False, "models": [], "error": msg}, status=429)
+                else:
+                    self.send_json({"ok": False, "reply": msg}, status=429)
                 return
 
         # Rate limiting on the code-execution endpoints

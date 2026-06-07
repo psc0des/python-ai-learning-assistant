@@ -1,8 +1,14 @@
 """Tests for AI model listing behavior."""
 
+import json
+import threading
 import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
+from urllib.error import HTTPError
 
 import ai_coach
+import app
 
 
 def test_ollama_model_listing_does_not_invent_fallbacks_when_down(monkeypatch):
@@ -138,3 +144,34 @@ def test_lmstudio_chat_requires_live_selected_model():
 
     assert result["ok"] is False
     assert "Choose a loaded LM Studio model" in result["error"]
+
+
+def test_ai_models_endpoint_rate_limit_returns_429(monkeypatch):
+    monkeypatch.setattr(app, "check_rate_limit", lambda _ip, **kw: False)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+    host, port = server.server_address
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        req = urllib.request.Request(
+            f"http://{host}:{port}/api/ai-models",
+            data=json.dumps({"provider": "ollama"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=5) as response:
+                payload = json.load(response)
+                status = response.status
+        except HTTPError as exc:
+            status = exc.code
+            payload = json.loads(exc.read().decode("utf-8"))
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    assert status == 429
+    assert payload["ok"] is False
+    assert payload["models"] == []
+    assert "Rate limit exceeded" in payload["error"]

@@ -67,7 +67,7 @@ print(passing)
 # [{'score': 72, 'grade': 'B'}, {'score': 91, 'grade': 'A'}, {'score': 88, 'grade': 'B'}]
 ```
 
-**Readability rule:** if you need more than one `if` or a nested loop inside a comprehension, write a regular `for` loop instead. Comprehensions are only better when they fit on one line and are easy to read at a glance.
+**Readability rule:** the `if` at the end of a comprehension is a *filter* (which items to include). The `if/else` inside the expression is a *transform* (how to label each item). They serve different purposes and can coexist. If you need a *second filter* condition or a nested loop, write a regular `for` loop instead — comprehensions only help when they fit on one readable line.
 
 ## 3. Tuples — Fixed Records
 

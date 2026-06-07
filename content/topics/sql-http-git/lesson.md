@@ -146,7 +146,8 @@ grep -c 'WARN' app.log            # count matching lines
 
 # Processes:
 ps aux | grep python              # find Python processes
-kill -9 <pid>                     # force-stop a process by its PID
+kill <pid>                        # ask process to stop gracefully (try this first)
+kill -9 <pid>                     # force-stop — only use if kill alone didn't work
 
 # Environment:
 echo $PATH                        # see your executable search path

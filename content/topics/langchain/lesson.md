@@ -73,12 +73,16 @@ def get_weather(city: str) -> str:
 
 @tool
 def calculator(expression: str) -> str:
-    """Evaluate a simple mathematical expression."""
-    try:
-        result = eval(expression, {"__builtins__": {}})  # restrict builtins for safety
-        return str(result)
-    except Exception as e:
-        return f'Error: {e}'
+    """Add, subtract, multiply, or divide two numbers: '15 * 7', '100 / 4'."""
+    for sym, fn in [('+', float.__add__), ('-', float.__sub__),
+                    ('*', float.__mul__), ('/', float.__truediv__)]:
+        if sym in expression:
+            left, right = expression.split(sym, 1)
+            try:
+                return str(fn(float(left), float(right)))
+            except (ValueError, ZeroDivisionError) as e:
+                return f'Error: {e}'
+    return 'Error: use format like "15 * 7"'
 
 # Bind tools to a model:
 model_with_tools = model.bind_tools([get_weather, calculator])
@@ -107,12 +111,11 @@ chain = prompt | model | StrOutputParser()
 result = chain.invoke({'topic': 'Python lists', 'domain': 'programming'})
 # Runs exactly: prompt → model → parse output. Always.
 
-# Agent — model decides what to do:
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+# Agent — model decides what to do (current approach via LangGraph's prebuilt harness):
+from langgraph.prebuilt import create_react_agent
 
-agent = create_tool_calling_agent(model, tools=[get_weather, calculator], prompt=prompt)
-executor = AgentExecutor(agent=agent, tools=[get_weather, calculator])
-result = executor.invoke({'input': 'What is 15*7 and is it hot in London?'})
+agent = create_react_agent(model, tools=[get_weather, calculator])
+result = agent.invoke({'messages': [('user', 'What is 15*7 and is it hot in London?')]})
 # Model might call calculator, then get_weather, then respond. Or in different order.
 ```
 

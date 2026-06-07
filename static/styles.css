@@ -1311,6 +1311,9 @@ button.secondary:hover {
   border-radius: var(--radius-md);
   box-shadow: 4px 4px 0 var(--ink);
   padding: 16px;
+  min-width: 260px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
 }
 
 .ai-settings-panel:not([hidden]) {

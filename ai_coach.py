@@ -419,9 +419,16 @@ def ask_ai_coach(
     question = str(payload.get("question", "")).strip()
     chat_history = payload.get("chat_history", [])
     mode = str(payload.get("mode", "lab"))
-    temperature = max(0.0, min(1.0, float(payload.get("temperature", 0.2))))
-    top_p = max(0.0, min(1.0, float(payload.get("top_p", 0.9))))
-    top_k = max(1, min(200, int(payload.get("top_k", 40))))
+    try:
+        temperature = max(0.0, min(1.0, float(payload.get("temperature", 0.2))))
+        top_p = max(0.0, min(1.0, float(payload.get("top_p", 0.9))))
+        top_k = max(1, min(200, int(payload.get("top_k", 40))))
+    except (TypeError, ValueError) as exc:
+        return {
+            "ok": False,
+            "answer": "- Check your AI settings: temperature and top_p must be numbers between 0 and 1; top_k must be an integer.",
+            "error": str(exc),
+        }
 
     topic = next((item for item in topics if item["id"] == topic_id), None)
     exercise = next((item for item in exercises if item["id"] == exercise_id), None)

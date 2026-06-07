@@ -184,6 +184,11 @@
         "expected": [false, {"error": "invalid_answer"}]
       },
       {
+        "label": "whitespace-only answer rejected",
+        "call": "validate_response({'answer': '   ', 'confidence': 0.8, 'citations': ['doc-1']})",
+        "expected": [false, {"error": "invalid_answer"}]
+      },
+      {
         "label": "citations not a list",
         "call": "validate_response({'answer': 'yes', 'confidence': 0.5, 'citations': 'doc-1'})",
         "expected": [false, {"error": "invalid_citations"}]
