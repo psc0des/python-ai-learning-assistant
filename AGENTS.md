@@ -108,7 +108,7 @@ When adding or rewriting lesson content:
 
 ## Current Content Status
 
-All 16 topics have been rewritten to reference quality:
+All 17 topics have been rewritten to reference quality:
 
 - richer `intro` and `mental_model` fields; `python-basics` and `oop` intros further refined for tone (direct, confident engineering-handbook register — see Async Python intro as the target standard);
 - official source citations at the section level (`source_label` / `source_url`);
@@ -116,7 +116,7 @@ All 16 topics have been rewritten to reference quality:
 - each section: one-sentence analogy opener → technical explanation → beginner code example → production/professional code example (no inline `# Layman example:` or `# Professional example:` labels — labels were removed as they read awkwardly in-context);
 - `lesson.md` files updated to match the rich content in each `topic.json`.
 
-Topics at this level: `getting-started`, `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `llm-api-basics`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `python-devops`, `sql-http-git`.
+Topics at this level: `getting-started`, `python-basics`, `functions`, `data-structures`, `oop`, `errors-testing`, `fastapi`, `pydantic`, `async`, `llm-api-basics`, `structured-llm-outputs`, `langchain`, `langgraph`, `mcp`, `rag-vectors`, `python-devops`, `sql-http-git`.
 
 ### Concept Diagrams
 
@@ -153,7 +153,7 @@ When adding labs:
 - verify every solution passes its own tests;
 - prefer small functions that return values over print-only exercises.
 
-**Capstone labs** (one per topic, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate concepts from the topic into a class-based multi-method challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All code must be pure Python (no blocked imports). Every capstone must use a class with `__init__` and instance methods. All 12 topics now have capstones: `oop`, `fastapi`, `rag-vectors`, `python-devops`, `errors-testing`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `sql-http-git`, `llm-api-basics` (ChatSession).
+**Capstone labs** (one per topic, `difficulty_order: 6`, `difficulty: "Advanced"`) integrate concepts from the topic into a class-based multi-method challenge. Capstone labs live in `labs.json` alongside regular labs — no `topic.json` or `lesson.md` changes needed. All code must be pure Python (no blocked imports). Every capstone must use a class with `__init__` and instance methods. All 13 topics now have capstones: `oop`, `fastapi`, `rag-vectors`, `python-devops`, `errors-testing`, `pydantic`, `async`, `langchain`, `langgraph`, `mcp`, `sql-http-git`, `llm-api-basics` (ChatSession), `structured-llm-outputs` (OutputValidator).
 
 ### Runner Safety
 

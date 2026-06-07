@@ -20,7 +20,7 @@ Python_Learning_Assistant/
   exercises.py        Legacy coding labs (fallback only)
   practice_tests.py   Legacy practice tests (fallback only)
   content/
-    manifest.json     Topic order and schema metadata (16 topics)
+    manifest.json     Topic order and schema metadata (17 topics)
     sources.json      Official source registry
     topics/           Per-topic authored content (topic.json, lesson.md, labs.json, practice.json)
   static/
@@ -294,7 +294,7 @@ Before deploying for multiple users, a senior developer should review and harden
 
 ## Current Product Shape
 
-The app is learning-focused, not interview-only. 16 topics across Python Core, Engineering Habits, Backend, AI Foundations, AI Apps, and DevOps.
+The app is learning-focused, not interview-only. 17 topics across Python Core, Engineering Habits, Backend, AI Foundations, AI Apps, and DevOps.
 
 Each topic is organized as:
 
