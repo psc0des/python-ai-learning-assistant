@@ -5,6 +5,10 @@ Handles prompt construction and calls to multiple AI providers:
 - LM Studio (local, OpenAI-compatible)
 - OpenAI (hosted)
 - Anthropic (hosted)
+- Google AI Studio (hosted)
+- Grok (xAI, hosted)
+- Groq Cloud (hosted, OpenAI-compatible)
+- Azure AI Foundry (hosted, OpenAI-compatible)
 
 API keys can be provided via environment variables (preferred) or client-side.
 """
@@ -31,6 +35,7 @@ ENV_ANTHROPIC_API_KEY = "PY_SKILL_LAB_ANTHROPIC_KEY"
 ENV_GOOGLE_API_KEY = "PY_SKILL_LAB_GOOGLE_KEY"
 ENV_GROK_API_KEY = "PY_SKILL_LAB_GROK_KEY"
 ENV_GROQ_API_KEY = "PY_SKILL_LAB_GROQ_KEY"
+ENV_AZURE_FOUNDRY_API_KEY = "PY_SKILL_LAB_AZURE_FOUNDRY_KEY"
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +93,7 @@ _ENV_KEY_MAP = {
     "google": ENV_GOOGLE_API_KEY,
     "grok": ENV_GROK_API_KEY,
     "groq": ENV_GROQ_API_KEY,
+    "azure-foundry": ENV_AZURE_FOUNDRY_API_KEY,
 }
 
 
@@ -494,6 +500,17 @@ def ask_ai_coach(
                 model or "llama-3.3-70b-versatile",
                 prompt, temperature, top_p,
             )
+        elif provider == "azure-foundry":
+            if not api_key:
+                raise ValueError("Azure AI Foundry API key is required. Enter it in AI Settings or set PY_SKILL_LAB_AZURE_FOUNDRY_KEY env var.")
+            if not endpoint:
+                raise ValueError("Azure AI Foundry endpoint is required. Enter your project URL in AI Settings.")
+            call_result = call_openai_compatible(
+                openai_compatible_chat_url(endpoint, endpoint),
+                api_key,
+                model or "",
+                prompt, temperature, top_p,
+            )
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
@@ -554,7 +571,7 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
         "groq": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
     }
 
-    if provider in {"openai", "anthropic", "google", "grok", "groq"} and not api_key:
+    if provider in {"openai", "anthropic", "google", "grok", "groq", "azure-foundry"} and not api_key:
         return {
             "ok": False,
             "models": fallback.get(provider, []),
@@ -596,6 +613,12 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
                 if item.get("name", "").startswith("models/gemini")
                 and "generateContent" in item.get("supportedGenerationMethods", [])
             ]
+        elif provider == "azure-foundry":
+            if not endpoint:
+                raise ValueError("Azure AI Foundry endpoint is required (e.g. https://….services.ai.azure.com/…/v1)")
+            url = openai_compatible_models_url(endpoint, endpoint)
+            data = get_json(url, {"Authorization": f"Bearer {api_key}"})
+            models = [item["id"] for item in data.get("data", []) if item.get("id")]
         else:
             raise ValueError(f"Unknown provider: {provider}")
 

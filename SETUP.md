@@ -45,7 +45,7 @@ Python_Learning_Assistant/
     test_origin_validation.py    HTTP origin header security tests (exact match, hostile prefix, wrong port)
     test_content_drift.py        Parity guard: lesson.md headings must match topic.json lesson_sections
   docs/
-    ai_provider_qa.md   Manual QA checklist for all 7 AI providers (sign-off before release)
+    ai_provider_qa.md   Manual QA checklist for all 8 AI providers (sign-off before release changes to ai_coach.py)
   AGENTS.md           Contributor instructions and project quality rules
   README.md           Short project overview
   SETUP.md            Setup and deployment notes
@@ -243,7 +243,20 @@ API key: your Groq API key
 
 Recommended free models: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`.
 
-When a hosted provider key is configured, click **Save & Apply** — the model dropdown will show verified models fetched from the provider instead of suggestions. If no API key is entered, the button shows "API key required" and nothing is saved.
+### Azure AI Foundry
+
+Get your endpoint and API key from the Azure AI Foundry portal. In the app, open **AI Settings** and enter:
+
+```text
+Provider: Azure AI Foundry
+Endpoint: https://<your-project>.services.ai.azure.com/api/projects/<project-name>/v1/
+API key: your Azure AI Foundry API key
+Model: type the deployed model name (e.g. gpt-4o, Phi-4-mini-instruct)
+```
+
+Click **↻** after saving to load the model list from your Foundry project. The model field is a free-text input — type the exact deployed model name if the refresh does not list it.
+
+When a hosted provider key is configured, click **Save & Apply** — the model field will populate with verified models fetched from the provider. If no API key is entered, the button shows "API key required" and nothing is saved.
 
 ### Server-side API key environment variables
 
@@ -256,6 +269,7 @@ Instead of entering keys in the UI, you can set them as environment variables be
 | Google AI Studio | `PY_SKILL_LAB_GOOGLE_KEY` |
 | Grok (xAI) | `PY_SKILL_LAB_GROK_KEY` |
 | Groq Cloud | `PY_SKILL_LAB_GROQ_KEY` |
+| Azure AI Foundry | `PY_SKILL_LAB_AZURE_FOUNDRY_KEY` |
 
 When a server-side key is set, the model list refresh will connect to the provider directly and the UI will show verified models rather than suggestions.
 

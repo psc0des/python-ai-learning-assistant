@@ -1346,7 +1346,8 @@ button.secondary:hover {
   align-items: stretch;
 }
 
-.model-select-row select {
+.model-select-row select,
+.model-select-row input[type="text"] {
   flex: 1;
   min-width: 0;
 }
@@ -1358,10 +1359,28 @@ button.secondary:hover {
   line-height: 1;
 }
 
+.ai-settings-test-status {
+  margin-top: 10px;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-height: 80px;
+  overflow-y: auto;
+}
+.ai-settings-test-status.ok    { color: #059669; border-color: #059669; background: #f0fdf4; }
+.ai-settings-test-status.error { color: #dc2626; border-color: #fca5a5; background: #fff1f1; }
+.ai-settings-test-status.warn  { color: #b45309; border-color: #fcd34d; background: #fffbeb; }
+
 .ai-settings-panel-footer {
   margin-top: 14px;
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .ai-settings-panel-footer button {

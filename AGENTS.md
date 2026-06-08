@@ -50,7 +50,7 @@ python -B -m pytest tests/test_curriculum.py tests/test_exercises.py -q -p no:ca
 
 - `app.py`: local HTTP server and API routes. Serves `index.html` with `Cache-Control: no-cache` so browsers never serve a stale HTML with mismatched JS.
 - `content_loader.py`: loads structured curriculum from `content/`.
-- `ai_coach.py`: AI provider integration for Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), and Groq Cloud.
+- `ai_coach.py`: AI provider integration for Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), Groq Cloud, and Azure AI Foundry.
 - `runner.py`: local Python exercise runner.
 - `models.py`: request/response validation and startup content checks.
 - `curriculum.py`: topic metadata, overview copy, lesson content, citations, real-world notes.

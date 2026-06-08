@@ -763,13 +763,14 @@ function loadAiSettings() {
 
 function applyProviderDefaults() {
   const defaults = {
-    ollama:    { model: "",                           endpoint: "http://127.0.0.1:11434" },
-    lmstudio:  { model: "",                           endpoint: "http://127.0.0.1:1234" },
-    openai:    { model: "gpt-4.1-mini",               endpoint: "https://api.openai.com/v1/chat/completions" },
-    anthropic: { model: "claude-3-5-haiku-latest",    endpoint: "https://api.anthropic.com/v1/messages" },
-    google:    { model: "gemini-2.0-flash",           endpoint: "https://generativelanguage.googleapis.com/v1beta" },
-    grok:      { model: "grok-3-mini",                endpoint: "https://api.x.ai/v1/chat/completions" },
-    groq:      { model: "llama-3.3-70b-versatile",    endpoint: "https://api.groq.com/openai/v1/chat/completions" },
+    ollama:         { model: "",                           endpoint: "http://127.0.0.1:11434" },
+    lmstudio:       { model: "",                           endpoint: "http://127.0.0.1:1234" },
+    openai:         { model: "gpt-4.1-mini",               endpoint: "https://api.openai.com/v1/chat/completions" },
+    anthropic:      { model: "claude-3-5-haiku-latest",    endpoint: "https://api.anthropic.com/v1/messages" },
+    google:         { model: "gemini-2.0-flash",           endpoint: "https://generativelanguage.googleapis.com/v1beta" },
+    grok:           { model: "grok-3-mini",                endpoint: "https://api.x.ai/v1/chat/completions" },
+    groq:           { model: "llama-3.3-70b-versatile",    endpoint: "https://api.groq.com/openai/v1/chat/completions" },
+    "azure-foundry": { model: "",                          endpoint: "" },
   };
   const selected = defaults[els.provider.value];
   preferredModel = selected.model;
@@ -781,11 +782,12 @@ async function loadModels(options = {}) {
   const persistOnSuccess = options.persistOnSuccess !== false;
   const notify = options.notify !== false;
   const providerDefaults = {
-    openai:    ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
-    anthropic: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
-    google:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
-    grok:      ["grok-3-mini", "grok-3", "grok-2-1212"],
-    groq:      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
+    openai:          ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
+    anthropic:       ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
+    google:          ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
+    grok:            ["grok-3-mini", "grok-3", "grok-2-1212"],
+    groq:            ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
+    "azure-foundry": [],
   };
   const fallback = providerDefaults[els.provider.value] || [];
   const isLocalProvider = ["ollama", "lmstudio"].includes(els.provider.value);
@@ -849,10 +851,15 @@ async function loadModels(options = {}) {
 
 function setModelOptions(models, selectedModel) {
   const uniqueModels = [...new Set(models.filter(Boolean))];
-  els.model.innerHTML = uniqueModels
-    .map((model) => `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`)
+  document.querySelector("#modelSuggestions").innerHTML = uniqueModels
+    .map((m) => `<option value="${escapeHtml(m)}">`)
     .join("");
-  els.model.value = selectedModel && uniqueModels.includes(selectedModel) ? selectedModel : uniqueModels[0] || "";
+  if (uniqueModels.length > 0) {
+    els.model.value = uniqueModels.includes(selectedModel) ? selectedModel : uniqueModels[0];
+  } else if (selectedModel != null) {
+    // Preserve a non-null selectedModel even when the list is empty (e.g. no-key state)
+    els.model.value = selectedModel;
+  }
   preferredModel = els.model.value;
 }
 
@@ -1432,7 +1439,12 @@ els.editor.addEventListener("input", () => {
   }
 });
 
-els.provider.addEventListener("change", () => { applyProviderDefaults(); _updateSettingsBtnLabel(); });
+els.provider.addEventListener("change", () => {
+  applyProviderDefaults();
+  _updateSettingsBtnLabel();
+  const s = document.querySelector("#aiSettingsTestStatus");
+  if (s) { s.hidden = true; s.textContent = ""; }
+});
 els.model.addEventListener("change", () => {
   preferredModel = els.model.value;
   saveAiSettings();
@@ -1697,6 +1709,14 @@ window.addEventListener("resize", () => {
 const _aiSettingsBtn = document.querySelector("#aiSettingsBtn");
 const _aiSettingsPanel = document.querySelector("#aiSettingsPanel");
 
+function _reclampPanel() {
+  if (_aiSettingsPanel.hidden) return;
+  const top = parseFloat(_aiSettingsPanel.style.top) || 0;
+  const panelH = _aiSettingsPanel.offsetHeight;
+  const clamped = Math.max(8, Math.min(top, window.innerHeight - panelH - 8));
+  if (clamped !== top) _aiSettingsPanel.style.top = `${clamped}px`;
+}
+
 function _updateSettingsBtnLabel() {
   if (!_aiSettingsBtn) return;
   const provider = els.provider.value || "Ollama";
@@ -1740,6 +1760,40 @@ _aiSettingsBtn.addEventListener("click", (e) => {
   }
 });
 
+document.querySelector("#aiSettingsTestBtn").addEventListener("click", async () => {
+  const testBtn = document.querySelector("#aiSettingsTestBtn");
+  const statusEl = document.querySelector("#aiSettingsTestStatus");
+  testBtn.textContent = "Testing…";
+  testBtn.disabled = true;
+  statusEl.hidden = false;
+  statusEl.className = "ai-settings-test-status";
+  statusEl.textContent = "Connecting…";
+  try {
+    const result = await postJsonWithTimeout("/api/ai-models", {
+      provider: els.provider.value,
+      endpoint: els.endpoint.value,
+      api_key: els.apiKey.value,
+    }, 10000);
+    if (!result.ok) {
+      statusEl.className = "ai-settings-test-status error";
+      statusEl.textContent = `✗ ${result.error || "Could not connect to endpoint"}`;
+    } else if (result.suggestions_only) {
+      statusEl.className = "ai-settings-test-status warn";
+      statusEl.textContent = "⚠ No API key — suggested models only, connection not verified";
+    } else {
+      const count = result.models ? result.models.length : 0;
+      statusEl.className = "ai-settings-test-status ok";
+      statusEl.textContent = `✓ Connected — ${count} model${count !== 1 ? "s" : ""} available`;
+    }
+  } catch (err) {
+    statusEl.className = "ai-settings-test-status error";
+    statusEl.textContent = `✗ ${err.message || "Connection failed"}`;
+  }
+  testBtn.textContent = "Test Connection";
+  testBtn.disabled = false;
+  requestAnimationFrame(_reclampPanel);
+});
+
 document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () => {
   const saveBtn = document.querySelector("#aiSettingsSaveBtn");
   saveBtn.textContent = "Checking…";
@@ -1765,6 +1819,8 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
     saveBtn.textContent = "Save & Apply";
     saveBtn.disabled = false;
     _updateSettingsBtnLabel();
+    const s = document.querySelector("#aiSettingsTestStatus");
+    if (s) { s.hidden = true; s.textContent = ""; }
   }, 900);
 });
 

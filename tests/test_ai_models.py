@@ -130,6 +130,84 @@ def test_hosted_provider_no_key_returns_suggestions_only():
         assert "API key" in result["error"], f"{provider}: expected key-related error message"
 
 
+def test_azure_foundry_no_key_returns_suggestions_only():
+    result = ai_coach.list_ai_models({
+        "provider": "azure-foundry",
+        "api_key": "",
+        "endpoint": "https://example.services.ai.azure.com/api/projects/proj/v1",
+    })
+    assert result["ok"] is False
+    assert result.get("suggestions_only") is True
+    assert result["models"] == []
+    assert "API key" in result["error"]
+
+
+def test_azure_foundry_model_listing_calls_v1_models(monkeypatch):
+    requested = {}
+
+    def fake_get(url, headers):
+        requested["url"] = url
+        requested["auth"] = headers.get("Authorization", "")
+        return {"data": [{"id": "gpt-4o"}, {"id": "gpt-4o-mini"}]}
+
+    monkeypatch.setattr(ai_coach, "get_json", fake_get)
+
+    result = ai_coach.list_ai_models({
+        "provider": "azure-foundry",
+        "endpoint": "https://example.services.ai.azure.com/api/projects/proj/v1",
+        "api_key": "test-key",
+    })
+
+    assert requested["url"] == "https://example.services.ai.azure.com/api/projects/proj/v1/models"
+    assert requested["auth"] == "Bearer test-key"
+    assert result == {"ok": True, "models": ["gpt-4o", "gpt-4o-mini"]}
+
+
+def test_azure_foundry_model_listing_trailing_slash_endpoint(monkeypatch):
+    requested = {}
+
+    def fake_get(url, headers):
+        requested["url"] = url
+        return {"data": [{"id": "gpt-4o"}]}
+
+    monkeypatch.setattr(ai_coach, "get_json", fake_get)
+
+    ai_coach.list_ai_models({
+        "provider": "azure-foundry",
+        "endpoint": "https://example.services.ai.azure.com/api/projects/proj/v1/",
+        "api_key": "test-key",
+    })
+
+    assert requested["url"] == "https://example.services.ai.azure.com/api/projects/proj/v1/models"
+
+
+def test_azure_foundry_chat_uses_openai_compatible_path(monkeypatch):
+    requested = {}
+
+    def fake_post(url, headers, payload):
+        requested["url"] = url
+        return {"choices": [{"message": {"content": "hello"}}], "usage": {}}
+
+    monkeypatch.setattr(ai_coach, "post_json", fake_post)
+
+    result = ai_coach.ask_ai_coach(
+        {
+            "provider": "azure-foundry",
+            "endpoint": "https://example.services.ai.azure.com/api/projects/proj/v1",
+            "api_key": "test-key",
+            "model": "gpt-4o",
+            "question": "hi",
+            "mode": "chat",
+        },
+        topics=[],
+        exercises=[],
+    )
+
+    assert requested["url"] == "https://example.services.ai.azure.com/api/projects/proj/v1/chat/completions"
+    assert result["ok"] is True
+    assert result["answer"] == "hello"
+
+
 def test_lmstudio_chat_requires_live_selected_model():
     result = ai_coach.ask_ai_coach(
         {

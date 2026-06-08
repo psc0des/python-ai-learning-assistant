@@ -62,9 +62,10 @@ CONTENT_LOADED_AT = datetime.now(timezone.utc).isoformat()
 # Rate limiting (per-IP, per-bucket)
 # ---------------------------------------------------------------------------
 
-RATE_LIMIT_WINDOW = 60   # seconds
-RATE_LIMIT_MAX = 15      # max code-run requests per IP per window
-AI_RATE_LIMIT_MAX = 10   # max AI coach requests per IP per window
+RATE_LIMIT_WINDOW = 60        # seconds
+RATE_LIMIT_MAX = 15           # max code-run requests per IP per window
+AI_RATE_LIMIT_MAX = 10        # max AI coach requests per IP per window
+AI_MODELS_RATE_LIMIT_MAX = 30 # max model-list requests per IP per window
 
 _rate_lock = threading.Lock()
 _rate_buckets: collections.defaultdict[str, list[float]] = collections.defaultdict(list)
@@ -187,16 +188,22 @@ class Handler(SimpleHTTPRequestHandler):
             )
             return
 
-        # Rate limiting on AI endpoints
-        if self.path in ("/api/ai-coach", "/api/ai-models"):
+        # Rate limiting on AI coach endpoint
+        if self.path == "/api/ai-coach":
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip, bucket="ai", max_requests=AI_RATE_LIMIT_MAX):
                 logger.warning("AI rate limit exceeded for IP: %s", client_ip)
                 msg = f"Rate limit exceeded: max {AI_RATE_LIMIT_MAX} AI requests per {RATE_LIMIT_WINDOW}s. Wait a moment."
-                if self.path == "/api/ai-models":
-                    self.send_json({"ok": False, "models": [], "error": msg}, status=429)
-                else:
-                    self.send_json({"ok": False, "reply": msg}, status=429)
+                self.send_json({"ok": False, "reply": msg}, status=429)
+                return
+
+        # Rate limiting on model-list endpoint (separate bucket — listing is cheaper than inference)
+        if self.path == "/api/ai-models":
+            client_ip = self.client_address[0]
+            if not check_rate_limit(client_ip, bucket="models", max_requests=AI_MODELS_RATE_LIMIT_MAX):
+                logger.warning("Model-list rate limit exceeded for IP: %s", client_ip)
+                msg = f"Rate limit exceeded: max {AI_MODELS_RATE_LIMIT_MAX} model-list requests per {RATE_LIMIT_WINDOW}s. Wait a moment."
+                self.send_json({"ok": False, "models": [], "error": msg}, status=429)
                 return
 
         # Rate limiting on the code-execution endpoints

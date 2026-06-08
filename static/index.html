@@ -43,11 +43,13 @@
                 <option value="google">Google AI Studio</option>
                 <option value="grok">Grok (xAI)</option>
                 <option value="groq">Groq Cloud</option>
+                <option value="azure-foundry">Azure AI Foundry</option>
               </select>
             </label>
             <label>Model
               <div class="model-select-row">
-                <select id="model"></select>
+                <input id="model" type="text" list="modelSuggestions" placeholder="Model name" autocomplete="off" />
+                <datalist id="modelSuggestions"></datalist>
                 <button id="refreshModelsBtn" type="button" class="secondary" title="Refresh models">↻</button>
               </div>
             </label>
@@ -58,7 +60,9 @@
               <input id="apiKey" type="password" placeholder="Only needed for hosted APIs" />
             </label>
           </div>
+          <div id="aiSettingsTestStatus" class="ai-settings-test-status" hidden></div>
           <div class="ai-settings-panel-footer">
+            <button id="aiSettingsTestBtn" type="button" class="secondary">Test Connection</button>
             <button id="aiSettingsSaveBtn" type="button">Save &amp; Apply</button>
           </div>
         </div>
@@ -287,6 +291,6 @@
       </div>
     </div>
 
-    <script src="/app.js"></script>
+    <script src="/app.js?v=4"></script>
   </body>
 </html>

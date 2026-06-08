@@ -285,7 +285,7 @@ Do not add features, refactor, or introduce abstractions beyond what the task re
 
 ### 5. Security is load-bearing
 
-The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers two independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP) and AI (`/api/ai-coach`, `/api/ai-models` — 10 req/60s per IP).
+The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers three independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP), AI coach (`/api/ai-coach` — 10 req/60s per IP), and model-list (`/api/ai-models` — 30 req/60s per IP).
 
 ### 6. Verify before reporting
 

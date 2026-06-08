@@ -1,6 +1,6 @@
 # AI Provider QA Checklist
 
-Manual sign-off checklist for each of the 7 supported providers. Run this before every release that touches `ai_coach.py`, `static/app.js` AI settings, or provider model lists.
+Manual sign-off checklist for each of the 8 supported providers. Run this before every release that touches `ai_coach.py`, `static/app.js` AI settings, or provider model lists.
 
 Tester initials and date go in the Sign-off column. A blank cell means untested.
 
@@ -160,12 +160,32 @@ Tester initials and date go in the Sign-off column. A blank cell means untested.
 
 ---
 
+### 8. Azure AI Foundry
+
+**Prerequisites:** Azure AI Foundry project with at least one model deployed. Project endpoint URL and API key.
+
+**Settings:**
+- Provider: Azure AI Foundry
+- Endpoint: `https://<project>.services.ai.azure.com/api/projects/<name>/v1/`
+- Model: type the deployed model name (e.g. `gpt-4o`)
+- API key: your Azure AI Foundry key
+
+| Test | Pass | Fail | Notes | Sign-off |
+|------|------|------|-------|---------|
+| 1 Settings save | | | Model field is a text input — type model name, click ↻ to load list from endpoint | |
+| 2 Model list loads | | | App calls `{endpoint}/models` with Bearer auth | |
+| 3 Coach responds | | | | |
+| 4 Visualizer deterministic note / optional Ask AI | | | | |
+| 5 Missing key fallback | | | Expect "AI Coach unavailable" + key error message | |
+
+---
+
 ## Release Gate
 
 Do not ship a release that changes AI provider code unless at minimum:
 
 - Ollama (local) passes all 4 applicable steps
-- At least one hosted provider (OpenAI, Anthropic, Google, Grok, or Groq) passes all 5 steps
+- At least one hosted provider (OpenAI, Anthropic, Google, Grok, Groq, or Azure AI Foundry) passes all 5 steps
 - No JS console errors during any test step
 
-Full certification (all 7 providers) is preferred before a major version bump.
+Full certification (all 8 providers) is preferred before a major version bump.
