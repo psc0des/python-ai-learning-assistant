@@ -39,12 +39,12 @@
       "url": "https://modelcontextprotocol.io/docs/learn/server-concepts"
     },
     {
-      "label": "MCP Specification Overview",
-      "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/index"
+      "label": "MCP Specification (2025-11-25)",
+      "url": "https://modelcontextprotocol.io/specification/2025-11-25/"
     },
     {
-      "label": "MCP Specification: Lifecycle",
-      "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle"
+      "label": "MCP Specification: Lifecycle (2025-11-25)",
+      "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle"
     }
   ],
   "real_world": [
@@ -71,14 +71,14 @@
     {
       "title": "3. Capability Discovery — Explicit, Not Assumed",
       "body": "When an MCP client first connects to a server, it does not assume what capabilities exist. It **discovers** them through a standardised handshake.\n\nThis is important because:\n- Different environments may have different servers with different capability sets\n- A host can adapt its behaviour based on what is actually available\n- Capability discovery creates an audit trail: you know what was offered and what was used\n\n**The connection lifecycle:**\n\n```\n1. initialize       → client tells server its capabilities and protocol version\n2. initialized      → server confirms, shares its own capabilities\n3. tools/list       → client discovers available tools\n4. resources/list   → client discovers available resources\n5. tools/call       → client invokes a specific tool with arguments\n6. resources/read   → client reads a specific resource\n7. [work happens]\n8. connection ends  → clean shutdown\n```\n\nBecause discovery is explicit, a host can gracefully handle 'this server does not have a search tool' rather than crashing. It can also present the user with a meaningful message: 'I do not have access to the ticket system in this environment.'",
-      "source_label": "MCP Specification: Lifecycle",
-      "source_url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle"
+      "source_label": "MCP Specification: Lifecycle (2025-11-25)",
+      "source_url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle"
     },
     {
       "title": "4. Tool Contracts — Input Schema and Safe Execution",
       "body": "Every MCP tool must have a clear input schema that defines what arguments it accepts, their types, and which are required. This schema is what the model sees when deciding how to call the tool — a good schema prevents the model from sending malformed requests.\n\n**What makes a good tool contract:**\n\n```python\n# GOOD tool definition — clear, constrained, defensive:\n{\n    'name': 'create_ticket',\n    'description': 'Create a new support ticket. Use only when the user explicitly asks to create a ticket.',\n    'inputSchema': {\n        'type': 'object',\n        'properties': {\n            'title':    {'type': 'string', 'minLength': 5, 'maxLength': 200},\n            'priority': {'type': 'integer', 'minimum': 1, 'maximum': 5},\n            'category': {'type': 'string', 'enum': ['billing', 'technical', 'account']},\n        },\n        'required': ['title', 'priority', 'category']\n    }\n}\n\n# BAD tool definition — too broad, no constraints:\n{\n    'name': 'do_thing',\n    'description': 'Does stuff',\n    'inputSchema': {'type': 'object'}  # accepts anything — dangerous\n}\n```\n\n**On the server side, always validate inputs even if they passed schema checking** — never trust that the client validated correctly. Treat tool arguments the same way you treat user input in a web API.",
-      "source_label": "MCP Specification Overview",
-      "source_url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/index"
+      "source_label": "MCP Specification (2025-11-25)",
+      "source_url": "https://modelcontextprotocol.io/specification/2025-11-25/"
     },
     {
       "title": "5. Security — Least Privilege by Design",

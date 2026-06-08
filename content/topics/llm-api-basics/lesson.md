@@ -32,6 +32,8 @@ print(mock_response["choices"][0]["message"]["content"])  # Python is a programm
 
 The same message format works across providers — OpenAI, Anthropic (via compatibility layer), Groq, Ollama, and others all support the same messages array structure.
 
+**Provider note:** OpenAI launched a separate Responses API (returning `response.output_text`) for OpenAI-exclusive integrations. This course teaches Chat Completions because it is the universal format supported by every provider — Ollama, Groq, LM Studio, and others — keeping your code portable from day one.
+
 ## 2. The Messages Array
 
 The `messages` field is the heart of every LLM API call. It is a list of dictionaries, each with two keys: `role` and `content`. The model reads every message in the list, in order, before generating a reply.
@@ -118,6 +120,26 @@ print(f"Stopped because: {finish}")
 ```
 
 `finish_reason` tells you why the model stopped. `"stop"` means it finished naturally. `"length"` means it hit the `max_tokens` limit and the response may be cut off.
+
+**Modern OpenAI alternative — Responses API:**
+
+If you use OpenAI directly (not Ollama, Groq, or LM Studio), OpenAI's newer Responses API uses a simpler response shape:
+
+```python
+# OpenAI Responses API — OpenAI-only, requires openai SDK >= 1.x
+# response = client.responses.create(model='gpt-4o', input='What is Python?')
+# Shorthand access:
+# reply = response.output_text
+
+# The underlying structure looks like this:
+mock_responses = {
+    'output': [{'content': [{'text': 'Python is a programming language.'}]}]
+}
+print(mock_responses['output'][0]['content'][0]['text'])
+# or via SDK: response.output_text
+```
+
+This course uses the Chat Completions format (`choices[0].message.content`) throughout because every provider — Ollama, Groq, LM Studio, Anthropic, and others — shares that shape. Your code stays portable without changes when you switch providers.
 
 ## 5. Prompt Templates as Functions
 

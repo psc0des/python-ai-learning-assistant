@@ -50,7 +50,7 @@
     ],
     "hint": "Access nested dict keys step by step: `response['choices'][0]['message']['content']`.",
     "solution": "def parse_response(response):\n    return response['choices'][0]['message']['content']",
-    "explanation": "OpenAI-compatible APIs always wrap the reply in `choices[0].message.content`. Extracting it in one place means the rest of your app works with plain strings, not nested dicts. If the structure ever changes you only update this one function."
+    "explanation": "Chat Completions-compatible APIs (OpenAI, Ollama, Groq, LM Studio, and others) wrap the reply in `choices[0].message.content`. Extracting it in one function means the rest of your app works with plain strings, not nested dicts. OpenAI also has a newer Responses API that returns text at `response.output_text` — if you switch to that API, only this function needs to change."
   },
   {
     "id": "ai-app-architecture-lab4",

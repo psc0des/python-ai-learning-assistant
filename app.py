@@ -245,7 +245,11 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         try:
-            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                self.send_json({"ok": False, "error": "Invalid request."}, status=400)
+                return
             if length > MAX_REQUEST_BODY_BYTES:
                 self.send_json(
                     {"ok": False, "error": "Request body too large."},

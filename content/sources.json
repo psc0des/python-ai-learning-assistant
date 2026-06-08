@@ -383,17 +383,29 @@
     "official": true,
     "checked_at": "2026-05-27"
   },
-  "src.modelcontextprotocol.io.specification.2024-11-05.basic.index": {
-    "title": "MCP Specification Overview",
-    "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/index",
+  "src.modelcontextprotocol.io.specification.2025-11-25": {
+    "title": "MCP Specification (2025-11-25)",
+    "url": "https://modelcontextprotocol.io/specification/2025-11-25/",
     "official": true,
-    "checked_at": "2026-05-26"
+    "checked_at": "2026-06-08"
   },
-  "src.modelcontextprotocol.io.specification.2024-11-05.basic.lifecycle": {
-    "title": "MCP Specification: Lifecycle",
-    "url": "https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle",
+  "src.modelcontextprotocol.io.specification.2025-11-25.basic.lifecycle": {
+    "title": "MCP Specification: Lifecycle (2025-11-25)",
+    "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle",
     "official": true,
-    "checked_at": "2026-05-27"
+    "checked_at": "2026-06-08"
+  },
+  "src.platform.openai.com.docs.api-reference.responses": {
+    "title": "OpenAI Responses API Reference",
+    "url": "https://platform.openai.com/docs/api-reference/responses",
+    "official": true,
+    "checked_at": "2026-06-08"
+  },
+  "src.platform.openai.com.docs.guides.migrate-to-responses": {
+    "title": "OpenAI: Migrate to Responses API",
+    "url": "https://platform.openai.com/docs/guides/migrate-to-responses",
+    "official": true,
+    "checked_at": "2026-06-08"
   },
   "src.platform.openai.com.docs.guides.embeddings": {
     "title": "OpenAI Embeddings Guide",

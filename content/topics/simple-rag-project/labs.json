@@ -188,6 +188,16 @@
         "label": "both chunks included",
         "call": "'- alpha' in build_rag_prompt('q', ['alpha', 'beta']) and '- beta' in build_rag_prompt('q', ['alpha', 'beta'])",
         "expected": true
+      },
+      {
+        "label": "blank line separates context and question",
+        "call": "'\\n\\nQuestion:' in build_rag_prompt('q', ['c1'])",
+        "expected": true
+      },
+      {
+        "label": "query appears right after Question label",
+        "call": "build_rag_prompt('test query', ['chunk']).endswith('Question: test query')",
+        "expected": true
       }
     ],
     "hint": "Join chunks with newlines and a '- ' prefix. Use an f-string to combine context and question.",
@@ -231,6 +241,21 @@
       {
         "label": "prompt contains Question label",
         "call": "(r := MiniRAG(), r.add_doc('Python rocks.'), r.index(), 'Question:' in r.prompt('What is Python'))[3]",
+        "expected": true
+      },
+      {
+        "label": "prompt uses dash prefix for chunks",
+        "call": "(r := MiniRAG(), r.add_doc('Python rocks.'), r.index(), '- ' in r.prompt('Python'))[3]",
+        "expected": true
+      },
+      {
+        "label": "prompt ends with query text",
+        "call": "(r := MiniRAG(), r.add_doc('Python rocks.'), r.index(), r.prompt('my question').endswith('my question'))[3]",
+        "expected": true
+      },
+      {
+        "label": "blank line separates context and question",
+        "call": "(r := MiniRAG(), r.add_doc('Python rocks.'), r.index(), '\\n\\nQuestion:' in r.prompt('Python'))[3]",
         "expected": true
       }
     ],

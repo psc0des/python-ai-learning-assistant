@@ -301,8 +301,13 @@ function renderTopicList() {
   els.topicList.innerHTML = "";
 
   const filteredTopics = topics.filter((topic) => {
-    const haystack = `${topic.title} ${topic.track} ${topic.intro}`.toLowerCase();
-    return haystack.includes(query);
+    const titleTrack = `${topic.title} ${topic.track}`.toLowerCase();
+    const intro = topic.intro.toLowerCase();
+    return titleTrack.includes(query) || intro.includes(query);
+  }).sort((a, b) => {
+    const aScore = `${a.title} ${a.track}`.toLowerCase().includes(query) ? 1 : 0;
+    const bScore = `${b.title} ${b.track}`.toLowerCase().includes(query) ? 1 : 0;
+    return bScore - aScore;
   });
 
   if (filteredTopics.length === 0 && query) {
@@ -866,7 +871,14 @@ function toggleSolution() {
     solutionRevealed = false;
   } else {
     if (failedAttempts < 2) {
-      appendCoachMessage("assistant", `Try at least ${2 - failedAttempts} more time(s) before viewing the solution. You'll learn more by working through it!`);
+      const remaining = 2 - failedAttempts;
+      const orig = els.solutionBtn.textContent;
+      els.solutionBtn.textContent = `Try ${remaining} more time${remaining === 1 ? "" : "s"} first`;
+      els.solutionBtn.disabled = true;
+      setTimeout(() => {
+        els.solutionBtn.textContent = orig;
+        els.solutionBtn.disabled = false;
+      }, 2500);
       return;
     }
     // Save current code as draft before showing solution
@@ -1713,11 +1725,18 @@ _aiSettingsBtn.addEventListener("click", (e) => {
     const panelH = _aiSettingsPanel.offsetHeight;
     _aiSettingsPanel.style.top = `${Math.max(8, Math.min(rect.top, window.innerHeight - panelH - 8))}px`;
   } else {
-    // Narrow window fallback — open above the button
-    _aiSettingsPanel.style.top = "auto";
-    _aiSettingsPanel.style.bottom = `${window.innerHeight - rect.top + 8}px`;
-    _aiSettingsPanel.style.left = `${Math.max(8, rect.left)}px`;
+    // Narrow window fallback — position above or below button, clamped to viewport
+    _aiSettingsPanel.style.top = "0";
+    _aiSettingsPanel.style.bottom = "auto";
+    _aiSettingsPanel.style.width = `${Math.min(panelW, window.innerWidth - 16)}px`;
     _aiSettingsPanel.hidden = false;
+    const panelH2 = _aiSettingsPanel.offsetHeight;
+    const panelW2 = _aiSettingsPanel.offsetWidth;
+    const topPos = rect.top - 8 >= panelH2
+      ? rect.top - panelH2 - 8
+      : Math.min(rect.bottom + 8, window.innerHeight - panelH2 - 8);
+    _aiSettingsPanel.style.top = `${Math.max(8, topPos)}px`;
+    _aiSettingsPanel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panelW2 - 8))}px`;
   }
 });
 

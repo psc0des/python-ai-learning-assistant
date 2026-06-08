@@ -215,7 +215,7 @@ The runner applies two layers of blocking:
 1. **AST scan** — rejects dangerous imports (`os`, `subprocess`, `socket`, etc.), dangerous builtins (`exec`, `eval`, `__import__`, etc.), `open()`, `input()`, and direct `__builtins__` name access (the subscript bypass `__builtins__['__import__']('os')` and attribute variants).
 2. **Runtime restriction** — injects a stripped `__builtins__` dict into `USER_GLOBALS` for both run and trace subprocess harnesses, removing `eval`, `exec`, `compile`, `breakpoint`, `open`, `input`, `globals`, `locals`, `vars`, `getattr`, `setattr`, and `delattr`. This closes bypass paths that might survive the AST scan.
 
-`input()` is blocked before execution because the subprocess is non-interactive; a waiting `input()` call would silently time out, which looks like an infinite loop. HTTP request bodies are capped at 100 KB before JSON parsing (`MAX_REQUEST_BODY_BYTES` in `app.py`).
+`input()` is blocked before execution because the subprocess is non-interactive; a waiting `input()` call would silently time out, which looks like an infinite loop. HTTP request bodies are capped at 100 KB before JSON parsing (`MAX_REQUEST_BODY_BYTES` in `app.py`). A malformed `Content-Length` header (non-integer) returns `400 Bad Request` rather than a `500` with internal exception text.
 
 Do not expose this app to a network or multiple users without reviewing:
 

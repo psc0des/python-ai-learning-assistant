@@ -34,16 +34,16 @@
     "title": "Chain vs Agent Decision",
     "difficulty": "Beginner",
     "difficulty_order": 2,
-    "prompt": "Write `choose_mode(task)`.\n\nRules:\n- Return `chain` when task has fixed steps (`summarize`, `classify`, `extract`).\n- Return `agent` when task includes dynamic tool choice (`research`, `investigate`, `triage`).\n- Otherwise return `unknown`.",
+    "prompt": "Write `choose_mode(task)`.\n\nRules:\n- Return `chain` when the task string **contains** a fixed-step keyword (`summarize`, `classify`, `extract`) as a whole word.\n- Return `agent` when the task string **contains** a dynamic tool-choice keyword (`research`, `investigate`, `triage`) as a whole word.\n- Matching must be case-insensitive.\n- Otherwise return `unknown`.",
     "starter": "def choose_mode(task):\n    pass\n",
     "tests": [
       {
-        "label": "fixed task",
+        "label": "fixed task keyword",
         "call": "choose_mode('summarize')",
         "expected": "chain"
       },
       {
-        "label": "dynamic task",
+        "label": "dynamic task keyword",
         "call": "choose_mode('investigate')",
         "expected": "agent"
       },
@@ -51,11 +51,31 @@
         "label": "unknown",
         "call": "choose_mode('chat')",
         "expected": "unknown"
+      },
+      {
+        "label": "phrase with agent keyword",
+        "call": "choose_mode('research pricing options')",
+        "expected": "agent"
+      },
+      {
+        "label": "phrase with chain keyword",
+        "call": "choose_mode('please summarize this text')",
+        "expected": "chain"
+      },
+      {
+        "label": "case-insensitive agent",
+        "call": "choose_mode('INVESTIGATE this issue')",
+        "expected": "agent"
+      },
+      {
+        "label": "triage phrase",
+        "call": "choose_mode('triage this support ticket')",
+        "expected": "agent"
       }
     ],
-    "hint": "Use membership checks with small sets.",
-    "solution": "def choose_mode(task):\n    fixed = {'summarize', 'classify', 'extract'}\n    dynamic = {'research', 'investigate', 'triage'}\n    if task in fixed:\n        return 'chain'\n    if task in dynamic:\n        return 'agent'\n    return 'unknown'\n",
-    "explanation": "Not every task needs an agent. Choosing architecture intentionally improves reliability."
+    "hint": "Lowercase the task, split on whitespace into a set of words, then check set intersection with each keyword group.",
+    "solution": "def choose_mode(task):\n    words = set(task.lower().split())\n    fixed = {'summarize', 'classify', 'extract'}\n    dynamic = {'research', 'investigate', 'triage'}\n    if words & fixed:\n        return 'chain'\n    if words & dynamic:\n        return 'agent'\n    return 'unknown'\n",
+    "explanation": "Not every task needs an agent. Choosing architecture intentionally improves reliability. Using word-set intersection instead of exact match means the function handles real task descriptions like 'research pricing options' correctly — not just bare keywords."
   },
   {
     "id": "rank-retrieved-context",
