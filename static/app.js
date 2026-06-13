@@ -761,17 +761,26 @@ function loadAiSettings() {
   }
 }
 
+// Default/fallback model IDs age quickly. Used as starter suggestions when a
+// provider has no saved model and when a live /models refresh isn't available;
+// the live refresh result is always the source of truth.
+const FALLBACK_MODELS = {
+  openai:    ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
+  anthropic: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
+  google:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
+  grok:      ["grok-3-mini", "grok-3", "grok-2-1212"],
+  groq:      ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
+};
+
 function applyProviderDefaults() {
-  // Default hosted model names are only starter suggestions. Providers change
-  // model catalogs often; the live refresh button is the source of truth.
   const defaults = {
-    ollama:         { model: "",                           endpoint: "http://127.0.0.1:11434" },
-    lmstudio:       { model: "",                           endpoint: "http://127.0.0.1:1234" },
-    openai:         { model: "gpt-4.1-mini",               endpoint: "https://api.openai.com/v1/chat/completions" },
-    anthropic:      { model: "claude-3-5-haiku-latest",    endpoint: "https://api.anthropic.com/v1/messages" },
-    google:         { model: "gemini-2.0-flash",           endpoint: "https://generativelanguage.googleapis.com/v1beta" },
-    grok:           { model: "grok-3-mini",                endpoint: "https://api.x.ai/v1/chat/completions" },
-    groq:           { model: "llama-3.3-70b-versatile",    endpoint: "https://api.groq.com/openai/v1/chat/completions" },
+    ollama:         { model: "",                          endpoint: "http://127.0.0.1:11434" },
+    lmstudio:       { model: "",                          endpoint: "http://127.0.0.1:1234" },
+    openai:         { model: FALLBACK_MODELS.openai[0],    endpoint: "https://api.openai.com/v1/chat/completions" },
+    anthropic:      { model: FALLBACK_MODELS.anthropic[0], endpoint: "https://api.anthropic.com/v1/messages" },
+    google:         { model: FALLBACK_MODELS.google[0],    endpoint: "https://generativelanguage.googleapis.com/v1beta" },
+    grok:           { model: FALLBACK_MODELS.grok[0],      endpoint: "https://api.x.ai/v1/chat/completions" },
+    groq:           { model: FALLBACK_MODELS.groq[0],      endpoint: "https://api.groq.com/openai/v1/chat/completions" },
     "azure-foundry": { model: "",                          endpoint: "" },
   };
   const selected = defaults[els.provider.value];
@@ -785,15 +794,7 @@ async function loadModels(options = {}) {
   const notify = options.notify !== false;
   // Suggestions shown before a hosted API key is configured or when refresh
   // fails. Prefer live /models responses whenever available.
-  const providerDefaults = {
-    openai:          ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
-    anthropic:       ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
-    google:          ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
-    grok:            ["grok-3-mini", "grok-3", "grok-2-1212"],
-    groq:            ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
-    "azure-foundry": [],
-  };
-  const fallback = providerDefaults[els.provider.value] || [];
+  const fallback = FALLBACK_MODELS[els.provider.value] || [];
   const isLocalProvider = ["ollama", "lmstudio"].includes(els.provider.value);
   setModelOptions(fallback, preferredModel || fallback[0]);
 

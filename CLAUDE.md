@@ -63,7 +63,7 @@ Python_Learning_Assistant/
         practice.json     Practice test questions
   static/
     index.html            App shell — loads from /vendor/fonts.css and /codemirror-init.js
-    app.js                All UI logic (~2006 lines) — topic rendering, labs, AI coach, visualizer
+    app.js                All UI logic (~2010 lines) — topic rendering, labs, AI coach, visualizer
     styles.css            Warm notebook visual design (~2471 lines)
     codemirror-init.js    CodeMirror 6 setup — imports from /vendor/codemirror-bundle.js only
     favicon.svg
@@ -87,8 +87,8 @@ Python_Learning_Assistant/
     test_api_contract.py        API payload shape tests
     test_origin_validation.py   HTTP origin header security tests
     test_ai_prompt.py           AI coach prompt tests
-    test_curriculum.py          Curriculum metadata tests
-    test_exercises.py           Exercise structure tests
+    test_content_integrity.py   Topic metadata, practice test quality, and content validation tests
+    test_lab_content.py         Lab/exercise field and solution-execution tests
     test_runtime_api.py         Live server smoke tests
     test_ai_models.py           AI model listing and local provider contract tests
   CLAUDE.md               This file — project rules for Claude
@@ -134,7 +134,7 @@ Each question object uses `"answer"` (not `"correct_index"`) for the zero-based 
 {"question": "...", "options": ["A", "B", "C", "D"], "answer": 0, "explanation": "..."}
 ```
 
-`tests/test_curriculum.py` and `tests/test_content_quality.py` both read `q["answer"]`. Never use `correct_index`.
+`tests/test_content_integrity.py` and `tests/test_content_quality.py` both read `q["answer"]`. Never use `correct_index`.
 
 ### Source of truth
 

@@ -35,7 +35,7 @@ python -m ruff check --no-cache .
 For content-only edits, this faster check is useful while iterating:
 
 ```powershell
-python -B -m pytest tests/test_curriculum.py tests/test_exercises.py tests/test_content_drift.py -q -p no:cacheprovider
+python -B -m pytest tests/test_content_integrity.py tests/test_lab_content.py tests/test_content_drift.py -q -p no:cacheprovider
 ```
 
 Before release-oriented changes, also run strict startup validation:

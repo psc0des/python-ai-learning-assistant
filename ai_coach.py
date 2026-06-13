@@ -37,6 +37,17 @@ ENV_GROK_API_KEY = "PY_SKILL_LAB_GROK_KEY"
 ENV_GROQ_API_KEY = "PY_SKILL_LAB_GROQ_KEY"
 ENV_AZURE_FOUNDRY_API_KEY = "PY_SKILL_LAB_AZURE_FOUNDRY_KEY"
 
+# Default/fallback model IDs age quickly. Used when a request omits a model
+# and when a provider's live model list can't be fetched; the UI's live
+# refresh result is always the source of truth.
+FALLBACK_MODELS: dict[str, list[str]] = {
+    "openai": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
+    "anthropic": ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
+    "google": ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
+    "grok": ["grok-3-mini", "grok-3", "grok-2-1212"],
+    "groq": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
+}
+
 
 # ---------------------------------------------------------------------------
 # HTTP helpers
@@ -490,7 +501,7 @@ def ask_ai_coach(
             call_result = call_openai_compatible(
                 endpoint or "https://api.openai.com/v1/chat/completions",
                 api_key,
-                model or "gpt-4.1-mini",
+                model or FALLBACK_MODELS["openai"][0],
                 prompt, temperature, top_p,
             )
         elif provider == "anthropic":
@@ -499,7 +510,7 @@ def ask_ai_coach(
             call_result = call_anthropic(
                 endpoint or "https://api.anthropic.com/v1/messages",
                 api_key,
-                model or "claude-3-5-haiku-latest",
+                model or FALLBACK_MODELS["anthropic"][0],
                 prompt, temperature, top_p,
             )
         elif provider == "google":
@@ -508,7 +519,7 @@ def ask_ai_coach(
             call_result = call_google(
                 endpoint or "https://generativelanguage.googleapis.com/v1beta",
                 api_key,
-                model or "gemini-2.0-flash",
+                model or FALLBACK_MODELS["google"][0],
                 prompt, temperature, top_p, top_k,
             )
         elif provider == "grok":
@@ -517,7 +528,7 @@ def ask_ai_coach(
             call_result = call_openai_compatible(
                 endpoint or "https://api.x.ai/v1/chat/completions",
                 api_key,
-                model or "grok-3-mini",
+                model or FALLBACK_MODELS["grok"][0],
                 prompt, temperature, top_p,
             )
         elif provider == "groq":
@@ -526,7 +537,7 @@ def ask_ai_coach(
             call_result = call_openai_compatible(
                 endpoint or "https://api.groq.com/openai/v1/chat/completions",
                 api_key,
-                model or "llama-3.3-70b-versatile",
+                model or FALLBACK_MODELS["groq"][0],
                 prompt, temperature, top_p,
             )
         elif provider == "azure-foundry":
@@ -592,20 +603,10 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     client_key = str(payload.get("api_key", ""))
     api_key = resolve_api_key(provider, client_key)
 
-    # Fallback suggestions age quickly. Use them only when the provider cannot
-    # return a live model list; the UI refresh result is the source of truth.
-    fallback: dict[str, list[str]] = {
-        "openai": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
-        "anthropic": ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
-        "google": ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"],
-        "grok": ["grok-3-mini", "grok-3", "grok-2-1212"],
-        "groq": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
-    }
-
     if provider in {"openai", "anthropic", "google", "grok", "groq", "azure-foundry"} and not api_key:
         return {
             "ok": False,
-            "models": fallback.get(provider, []),
+            "models": FALLBACK_MODELS.get(provider, []),
             "suggestions_only": True,
             "error": "No API key configured — showing suggested models only.",
         }
@@ -653,11 +654,11 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
-        return {"ok": True, "models": models or fallback.get(provider, [])}
+        return {"ok": True, "models": models or FALLBACK_MODELS.get(provider, [])}
     except Exception as exc:
         logger.warning("Model listing failed (%s): %s", provider, exc)
         return {
             "ok": False,
-            "models": fallback.get(provider, []),
+            "models": FALLBACK_MODELS.get(provider, []),
             "error": friendly_provider_error(provider, endpoint, exc),
         }

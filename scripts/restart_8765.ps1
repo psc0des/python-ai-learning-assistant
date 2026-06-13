@@ -9,13 +9,13 @@ Write-Host "Restarting Python Skill Lab on port $port..." -ForegroundColor Cyan
 # Stop any listener on :8765
 $listeners = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
 if ($listeners) {
-  $pids = $listeners | Select-Object -ExpandProperty OwningProcess -Unique
-  foreach ($pid in $pids) {
+  $procIds = $listeners | Select-Object -ExpandProperty OwningProcess -Unique
+  foreach ($procId in $procIds) {
     try {
-      Stop-Process -Id $pid -Force -ErrorAction Stop
-      Write-Host "Stopped process $pid on port $port"
+      Stop-Process -Id $procId -Force -ErrorAction Stop
+      Write-Host "Stopped process $procId on port $port"
     } catch {
-      Write-Warning "Could not stop process ${pid}: $($_.Exception.Message)"
+      Write-Warning "Could not stop process ${procId}: $($_.Exception.Message)"
     }
   }
 }
