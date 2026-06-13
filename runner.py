@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 MAX_CODE_BYTES = 20_000
 RUN_TIMEOUT_SECONDS = 6
 
+# Each run/trace request starts a fresh isolated Python subprocess on purpose.
+# Reusing an interpreter would be faster, but it would also keep learner state
+# alive between runs and weaken the local safety boundary.
+
 # ---------------------------------------------------------------------------
 # Dangerous construct detection
 # ---------------------------------------------------------------------------

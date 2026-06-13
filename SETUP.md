@@ -13,12 +13,9 @@ E:\AI\Python_Learning_Assistant
 ```text
 Python_Learning_Assistant/
   app.py              Local HTTP server, API routes (including /api/trace)
-  content_loader.py   Structured content loader with legacy fallback
+  content_loader.py   Structured content loader from content/
   runner.py           Lab test runner and execution tracer (sys.settrace in subprocess)
   ai_coach.py         AI provider integration
-  curriculum.py       Legacy topic metadata (fallback only)
-  exercises.py        Legacy coding labs (fallback only)
-  practice_tests.py   Legacy practice tests (fallback only)
   content/
     manifest.json     Topic order and schema metadata (21 topics)
     sources.json      Official source registry
@@ -37,6 +34,8 @@ Python_Learning_Assistant/
     codemirror-entry.js  Entry point that re-exports all required CodeMirror symbols
     package.json      npm manifest for esbuild + CodeMirror packages
     vendor_fonts.py   Downloads Inter and JetBrains Mono from Google Fonts into static/vendor/fonts/
+  pyproject.toml      Ruff lint configuration
+  .pre-commit-config.yaml Optional pre-commit hook configuration
   tests/
     test_content_loader.py       Content structure and loader tests
     test_content_quality.py      Quality gate (≥5 labs, ≥8 questions, sources present)
@@ -46,6 +45,9 @@ Python_Learning_Assistant/
     test_content_drift.py        Parity guard: lesson.md headings must match topic.json lesson_sections
   docs/
     ai_provider_qa.md   Manual QA checklist for all 8 AI providers (sign-off before release changes to ai_coach.py)
+  .env.example        Documented environment variables
+  CONTRIBUTING.md     Human contributor setup and PR guide
+  SECURITY.md         Vulnerability reporting and local-only security model
   AGENTS.md           Contributor instructions and project quality rules
   README.md           Short project overview
   SETUP.md            Setup and deployment notes
@@ -55,6 +57,7 @@ Python_Learning_Assistant/
 
 - Python 3.10 or newer
 - No required third-party Python packages for the current version
+- Development tools from `requirements-dev.txt` for tests, lint, and pre-commit
 - Node.js 18 or newer (only needed to rebuild the CodeMirror vendor bundle — pre-built bundle is committed)
 - Optional local AI:
   - Ollama running at `http://127.0.0.1:11434`
@@ -62,6 +65,10 @@ Python_Learning_Assistant/
 - Optional hosted AI:
   - OpenAI API key
   - Anthropic API key
+  - Google AI Studio API key
+  - Grok (xAI) API key
+  - Groq Cloud API key
+  - Azure AI Foundry API key and endpoint
 
 ## First-Time Vendor Setup
 
@@ -79,6 +86,27 @@ To refresh the local font files:
 
 ```powershell
 python scripts/vendor_fonts.py
+```
+
+## Development Checks
+
+Install development tools:
+
+```powershell
+pip install -r requirements-dev.txt
+```
+
+Run lint:
+
+```powershell
+python -m ruff check --no-cache .
+```
+
+Optional local pre-commit setup:
+
+```powershell
+pre-commit install
+pre-commit run --all-files
 ```
 
 ## Run Locally
@@ -121,14 +149,9 @@ python app.py
 
 When strict mode is on, startup fails if content validation warnings exist.
 
-Legacy content fallback (developer use only — not for production):
-
-```powershell
-$env:PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK="1"
-python app.py
-```
-
-By default, if `content/manifest.json` exists and structured content fails to load, the server raises a fatal error so a broken release cannot silently serve stale legacy data. Set this variable to restore the old silent-fallback behaviour during local development only.
+Structured content is the only runtime source of truth. If `content/` fails to
+load, startup raises a fatal error so a broken release cannot silently serve
+stale generated data.
 
 Optional AI timeout tuning (useful for slower/faster local models):
 
@@ -154,6 +177,29 @@ http://127.0.0.1:9000
 ```
 
 `PY_SKILL_LAB_PORT` is the primary env var. The legacy alias `PY_INTERVIEW_PORT` also works but is not recommended for new setups.
+
+## Configuration
+
+All supported environment variables are listed in `.env.example`. The app does
+not auto-load `.env` files, so set variables in your shell or use your own env
+loader before starting `python app.py`.
+
+| Variable | Default | Purpose |
+|---|---:|---|
+| `PY_SKILL_LAB_PORT` | `8765` | Local server port. |
+| `PY_SKILL_LAB_OPEN_BROWSER` | `1` | Opens the browser automatically when the server starts. |
+| `PY_SKILL_LAB_STRICT_CONTENT` | `0` | Fails startup when content validation has warnings. |
+| `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` | `25` | Timeout for AI coach calls. |
+| `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` | `8` | Timeout for model-list refresh calls. |
+| `PY_SKILL_LAB_OPENAI_KEY` | blank | Optional server-side OpenAI key. |
+| `PY_SKILL_LAB_ANTHROPIC_KEY` | blank | Optional server-side Anthropic key. |
+| `PY_SKILL_LAB_GOOGLE_KEY` | blank | Optional server-side Google AI Studio key. |
+| `PY_SKILL_LAB_GROK_KEY` | blank | Optional server-side Grok (xAI) key. |
+| `PY_SKILL_LAB_GROQ_KEY` | blank | Optional server-side Groq Cloud key. |
+| `PY_SKILL_LAB_AZURE_FOUNDRY_KEY` | blank | Optional server-side Azure AI Foundry key. |
+
+Deprecated compatibility aliases: `PY_INTERVIEW_PORT` and
+`PY_INTERVIEW_OPEN_BROWSER`. Prefer the `PY_SKILL_LAB_*` names for new setup.
 
 ## AI Coach Setup
 
@@ -319,7 +365,7 @@ Each topic is organized as:
 
 ### Concept Diagrams
 
-Six topics have an inline SVG concept diagram embedded in one lesson section (`diagram_svg` + `diagram_caption` fields in `topic.json`): `getting-started` (function input/output), `fastapi` (request lifecycle), `rag-vectors` (pipeline), `mcp` (host/client/server), `langgraph` (state graph), `langchain` (agent loop). Diagrams use the locked palette: charcoal `#1e293b` (focal), green `#059669` (result), slate `#94a3b8` (borders), gray `#4a5568` (arrows).
+Eight topics have an inline SVG concept diagram embedded in one lesson section (`diagram_svg` + `diagram_caption` fields in `topic.json`): `getting-started` (function input/output), `fastapi` (request lifecycle), `rag-vectors` (pipeline), `mcp` (host/client/server), `langgraph` (state graph), `langchain` (agent loop), `ai-evaluation` (eval loop), and `ai-app-architecture` (three-layer structure). Diagrams use the locked palette: charcoal `#1e293b` (focal), green `#059669` (result), slate `#94a3b8` (borders), gray `#4a5568` (arrows).
 
 ### Execution Visualizer
 

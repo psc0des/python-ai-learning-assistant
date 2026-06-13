@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_from": "legacy_python_modules",
+  "generated_from": "structured_content",
   "topic_order": [
     "getting-started",
     "python-basics",

@@ -205,3 +205,31 @@ show_history()
 ```
 
 One important constraint: every model has a context window — the maximum number of tokens it can process in one request. A long conversation eventually fills this limit. In production, you truncate old messages, keep only the system message and the most recent turns, or summarize earlier history before it overflows.
+
+## 7. Try The Real SDK
+
+The labs in this topic use plain dictionaries and mock responses so you understand the request and response shape before spending tokens. To call a real model, install the official SDK, set an API key in your shell, and run a tiny request:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install openai
+$env:OPENAI_API_KEY="sk-..."
+python call_model.py
+```
+
+Save this as `call_model.py`:
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+response = client.responses.create(
+    model='gpt-5.5',
+    input='Explain Python functions in one sentence for a beginner.',
+)
+
+print(response.output_text)
+```
+
+If your account uses a different model name, change only the `model` value. The core idea stays the same as the labs: construct a structured request, send it to the model endpoint, then read structured output from the response object.

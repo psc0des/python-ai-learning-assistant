@@ -9,7 +9,7 @@ A local-first, beginner-focused learning app for Python, backend APIs, DevOps au
 - **Code editor:** CodeMirror 6 — vendored as a pre-built ESM bundle at `static/vendor/codemirror-bundle.js` (rebuilt via `scripts/build.js` using esbuild + npm)
 - **Fonts:** Inter + JetBrains Mono — vendored as woff2 files at `static/vendor/fonts/` (downloaded via `scripts/vendor_fonts.py`)
 - **HTTP server:** `http.server.ThreadingHTTPServer` (stdlib only — no Flask, no FastAPI)
-- **AI Coach:** OpenAI-compatible endpoints — Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), Groq Cloud
+- **AI Coach:** OpenAI-compatible endpoints — Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), Groq Cloud, Azure AI Foundry
 - **Testing:** pytest (no third-party packages required to run the app)
 - **Vendor tooling (build-time only):** Node.js 18+, esbuild, npm — only needed to rebuild the CodeMirror bundle
 
@@ -21,6 +21,9 @@ python app.py
 
 # Run full test suite (always do this before reporting changes complete)
 python -B -m pytest tests -q -p no:cacheprovider
+
+# Run lint
+python -m ruff check --no-cache .
 
 # Run just the security and content tests (fast check)
 python -B -m pytest tests/test_origin_validation.py tests/test_content_drift.py -v
@@ -47,11 +50,8 @@ Python_Learning_Assistant/
   app.py                  HTTP server, API routes, origin validation (_is_allowed_origin)
   content_loader.py       Structured curriculum loader from content/
   runner.py               Lab runner + execution tracer (sys.settrace, AST safety scan)
-  ai_coach.py             AI provider integration (7 providers, fallback-safe)
+  ai_coach.py             AI provider integration (8 providers, fallback-safe)
   models.py               Request/response validation and startup content checks
-  curriculum.py           Legacy topic metadata (fallback only — do not add to)
-  exercises.py            Legacy coding labs (fallback only — do not add to)
-  practice_tests.py       Legacy practice tests (fallback only — do not add to)
   content/
     manifest.json         Topic order and schema metadata (21 topics)
     sources.json          Official source registry with checked_at dates
@@ -63,8 +63,8 @@ Python_Learning_Assistant/
         practice.json     Practice test questions
   static/
     index.html            App shell — loads from /vendor/fonts.css and /codemirror-init.js
-    app.js                All UI logic (~1429 lines) — topic rendering, labs, AI coach, visualizer
-    styles.css            Warm notebook visual design (~2137 lines)
+    app.js                All UI logic (~2006 lines) — topic rendering, labs, AI coach, visualizer
+    styles.css            Warm notebook visual design (~2471 lines)
     codemirror-init.js    CodeMirror 6 setup — imports from /vendor/codemirror-bundle.js only
     favicon.svg
     vendor/
@@ -76,6 +76,8 @@ Python_Learning_Assistant/
     codemirror-entry.js   Re-exports all CodeMirror symbols used by codemirror-init.js
     package.json          npm manifest (esbuild + CodeMirror packages)
     vendor_fonts.py       Downloads font CSS + woff2 from Google Fonts into static/vendor/
+  pyproject.toml          Ruff lint configuration
+  .pre-commit-config.yaml Optional pre-commit hook configuration
   tests/
     test_runner.py              Lab runner and _safe()/_norm() normalization tests
     test_trace.py               Execution tracer tests
@@ -90,7 +92,7 @@ Python_Learning_Assistant/
     test_runtime_api.py         Live server smoke tests
     test_ai_models.py           AI model listing and local provider contract tests
   CLAUDE.md               This file — project rules for Claude
-  AGENTS.md               Contributor instructions and architectural notes
+  AGENTS.md               Short agent orientation; CLAUDE.md remains authoritative
   README.md               Short project overview
   SETUP.md                Full setup, deployment, and AI provider notes
   .gitignore              Excludes __pycache__, scripts/node_modules, .env, etc.
@@ -136,7 +138,9 @@ Each question object uses `"answer"` (not `"correct_index"`) for the zero-based 
 
 ### Source of truth
 
-`content/topics/` is the authoritative source for all curriculum. The legacy `curriculum.py`, `exercises.py`, `practice_tests.py` files exist only as fallback — do not add content to them.
+`content/topics/` is the authoritative source for all curriculum. There is no
+runtime fallback to legacy Python content modules; broken structured content
+must fail fast and be fixed in `content/`.
 
 ### Section sync (enforced by test)
 
@@ -186,7 +190,7 @@ If a block fails either test, remove the `run` tag from both files rather than p
 
 ### SVG diagrams
 
-Six topics have an inline `diagram_svg` + `diagram_caption` in one `lesson_sections` entry. The SVG is trusted authored content and is **not** passed through `escapeHtml`. Locked palette: `#1e293b` charcoal (focal), `#059669` green (result), `#94a3b8` slate (borders), `#4a5568` gray (arrows), `#b45309` amber (data stores).
+Eight topics have an inline `diagram_svg` + `diagram_caption` in one `lesson_sections` entry: `getting-started`, `fastapi`, `rag-vectors`, `mcp`, `langgraph`, `langchain`, `ai-evaluation`, and `ai-app-architecture`. The SVG is trusted authored content and is **not** passed through `escapeHtml`. Locked palette: `#1e293b` charcoal (focal), `#059669` green (result), `#94a3b8` slate (borders), `#4a5568` gray (arrows), `#b45309` amber (data stores).
 
 ## UI Rules
 
@@ -227,7 +231,7 @@ Every code or content change must be accompanied by doc updates in the same comm
 ### Always check when making changes
 
 - `CLAUDE.md` — when project rules, architecture, or security decisions change
-- `AGENTS.md` — when main files, security model, or contributor rules change
+- `AGENTS.md` — only when the short orientation or CLAUDE.md handoff changes
 - `SETUP.md` — when project structure, requirements, or setup steps change
 - `README.md` — when major features or the offline/local-first story changes
 
@@ -269,7 +273,9 @@ Every code or content change must be accompanied by doc updates in the same comm
 
 ### 1. Tests before done
 
-Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. The current baseline is 1080 tests passing. Do not ship a regression.
+Run `python -B -m pytest tests -q -p no:cacheprovider` before reporting any task complete. Do not ship a regression.
+
+Run `python -m ruff check --no-cache .` before reporting Python code or CI/tooling changes complete.
 
 ### 2. No CDN drift
 
@@ -297,3 +303,10 @@ For UI changes: start the dev server (`python app.py`) and test the golden path 
 - **Local-first**: the app works fully offline after setup. No cloud services required to learn or practice.
 - **Simplicity**: stdlib over frameworks. Minimal impact per change. No premature abstractions.
 - **Honest quality**: tests passing does not mean content is good. Teaching quality requires human review.
+
+## AGENTS.md Relationship
+
+`CLAUDE.md` is the authoritative project instruction file. `AGENTS.md` is a
+short compatibility/orientation file that points back here. Do not duplicate
+large architecture, content, UI, or security sections into `AGENTS.md`; update
+this file first, then adjust the short pointer only if needed.

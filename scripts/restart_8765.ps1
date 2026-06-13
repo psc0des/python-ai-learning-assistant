@@ -15,7 +15,7 @@ if ($listeners) {
       Stop-Process -Id $pid -Force -ErrorAction Stop
       Write-Host "Stopped process $pid on port $port"
     } catch {
-      Write-Warning "Could not stop process $pid: $($_.Exception.Message)"
+      Write-Warning "Could not stop process ${pid}: $($_.Exception.Message)"
     }
   }
 }

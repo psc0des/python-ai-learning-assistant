@@ -83,6 +83,35 @@ def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
         raise
 
 
+def friendly_provider_error(provider: str, endpoint: str, exc: Exception) -> str:
+    """Convert low-level network errors into learner-readable setup guidance."""
+    provider_label = {
+        "ollama": "Ollama",
+        "lmstudio": "LM Studio",
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "google": "Google AI Studio",
+        "grok": "Grok",
+        "groq": "Groq Cloud",
+        "azure-foundry": "Azure AI Foundry",
+    }.get(provider, provider or "AI provider")
+    default_endpoint = {
+        "ollama": "http://127.0.0.1:11434",
+        "lmstudio": "http://127.0.0.1:1234",
+    }.get(provider, endpoint)
+    endpoint_text = endpoint or default_endpoint
+    text = str(exc)
+    lower = text.lower()
+
+    if "timed out" in lower:
+        return f"{provider_label} did not respond before the timeout. Check that the provider is running and the endpoint is correct."
+    if "connection refused" in lower or "winerror 10061" in lower:
+        if provider in {"ollama", "lmstudio"}:
+            return f"Could not reach {provider_label} at {endpoint_text}. Is it running?"
+        return f"Could not reach {provider_label} at {endpoint_text}. Check that the endpoint is correct."
+    return text
+
+
 # ---------------------------------------------------------------------------
 # API key resolution
 # ---------------------------------------------------------------------------
@@ -539,7 +568,7 @@ def ask_ai_coach(
         return {
             "ok": False,
             "answer": "\n".join(f"- {item}" for item in fallback),
-            "error": str(exc),
+            "error": friendly_provider_error(provider, endpoint, exc),
         }
 
 
@@ -563,6 +592,8 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     client_key = str(payload.get("api_key", ""))
     api_key = resolve_api_key(provider, client_key)
 
+    # Fallback suggestions age quickly. Use them only when the provider cannot
+    # return a live model list; the UI refresh result is the source of truth.
     fallback: dict[str, list[str]] = {
         "openai": ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
         "anthropic": ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],
@@ -625,4 +656,8 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": True, "models": models or fallback.get(provider, [])}
     except Exception as exc:
         logger.warning("Model listing failed (%s): %s", provider, exc)
-        return {"ok": False, "models": fallback.get(provider, []), "error": str(exc)}
+        return {
+            "ok": False,
+            "models": fallback.get(provider, []),
+            "error": friendly_provider_error(provider, endpoint, exc),
+        }

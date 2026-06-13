@@ -762,6 +762,8 @@ function loadAiSettings() {
 }
 
 function applyProviderDefaults() {
+  // Default hosted model names are only starter suggestions. Providers change
+  // model catalogs often; the live refresh button is the source of truth.
   const defaults = {
     ollama:         { model: "",                           endpoint: "http://127.0.0.1:11434" },
     lmstudio:       { model: "",                           endpoint: "http://127.0.0.1:1234" },
@@ -781,6 +783,8 @@ function applyProviderDefaults() {
 async function loadModels(options = {}) {
   const persistOnSuccess = options.persistOnSuccess !== false;
   const notify = options.notify !== false;
+  // Suggestions shown before a hosted API key is configured or when refresh
+  // fails. Prefer live /models responses whenever available.
   const providerDefaults = {
     openai:          ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini"],
     anthropic:       ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"],

@@ -90,6 +90,12 @@
       "body": "LLMs have no memory between separate API calls. To simulate a multi-turn conversation, you maintain the full list of messages yourself and send it with every request.\n\nThe loop: append the user message → call the API → extract the reply → append it as an `\"assistant\"` message → repeat.\n\n```python run\nhistory = []\n\ndef add_message(role, content):\n    history.append({\"role\": role, \"content\": content})\n\ndef show_history():\n    for msg in history:\n        print(f'  {msg[\"role\"].upper()}: {msg[\"content\"]}')\n\n# Turn 1\nadd_message(\"system\", \"You are a Python tutor.\")\nadd_message(\"user\", \"What is a list?\")\nadd_message(\"assistant\", \"An ordered, mutable sequence. Example: [1, 2, 3].\")\n\n# Turn 2\nadd_message(\"user\", \"How do I add an item?\")\nadd_message(\"assistant\", \"Use list.append(item). Example: mylist.append(4).\")\n\nprint(f\"{len(history)} messages in history:\")\nshow_history()\n```\n\nOne important constraint: every model has a context window — the maximum number of tokens it can process in one request. A long conversation eventually fills this limit. In production, you truncate old messages, keep only the system message and the most recent turns, or summarize earlier history before it overflows.",
       "source_label": "OpenAI Text Generation Guide",
       "source_url": "https://platform.openai.com/docs/guides/text-generation"
+    },
+    {
+      "title": "7. Try The Real SDK",
+      "body": "The labs in this topic use plain dictionaries and mock responses so you understand the request and response shape before spending tokens. To call a real model, install the official SDK, set an API key in your shell, and run a tiny request:\n\n```powershell\npython -m venv .venv\n.\\.venv\\Scripts\\Activate.ps1\npip install openai\n$env:OPENAI_API_KEY=\"sk-...\"\npython call_model.py\n```\n\nSave this as `call_model.py`:\n\n```python\nfrom openai import OpenAI\n\nclient = OpenAI()\nresponse = client.responses.create(\n    model='gpt-5.5',\n    input='Explain Python functions in one sentence for a beginner.',\n)\n\nprint(response.output_text)\n```\n\nIf your account uses a different model name, change only the `model` value. The core idea stays the same as the labs: construct a structured request, send it to the model endpoint, then read structured output from the response object.",
+      "source_label": "OpenAI API Quickstart",
+      "source_url": "https://platform.openai.com/docs/quickstart"
     }
   ],
   "lesson_path": "content/topics/llm-api-basics/lesson.md",

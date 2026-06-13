@@ -31,6 +31,16 @@ Then open `http://127.0.0.1:8765` in your browser.
 
 The app runs fully offline — fonts and the code editor are bundled in `static/vendor/` with no CDN calls at runtime.
 
+## Screenshots
+
+![Lesson view with notebook-style curriculum](docs/media/lesson-view.png)
+
+![Lab runner with passing tests](docs/media/lab-runner.png)
+
+![Execution visualizer stepping through code](docs/media/execution-visualizer.png)
+
+![Execution visualizer stepping through a loop](docs/media/execution-visualizer.gif)
+
 ## Tests
 
 ```powershell
@@ -38,22 +48,30 @@ pip install -r requirements-dev.txt
 python -B -m pytest tests -q -p no:cacheprovider
 ```
 
-`pytest` is the only dev dependency. The app itself needs no `pip install`. All 1080 tests should pass on a clean clone.
+`pytest` is the only dev dependency. The app itself needs no `pip install`. Run the full suite before publishing changes.
 
 ## What It Covers
 
-- 21 topics: Python basics, functions, data structures, OOP, errors/testing, async, LLM API calls, structured LLM outputs, basic AI evaluation, basic AI app architecture, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 122 labs total including one Advanced capstone per topic
+- 21 topics: Python basics, functions, data structures, OOP, errors/testing, async, LLM API calls, structured LLM outputs, basic AI evaluation, basic AI app architecture, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 122 labs total, including Advanced capstones for the 17 capstone topics
 - Topic flow: overview → lesson (with inline concept diagrams) → hands-on labs → practice test
 - **Capstone labs** — one advanced multi-function project per major track (Python Core, Backend, AI Apps, DevOps, Engineering Habits) that integrates concepts from across the track
 - **Learner readiness signals** — sidebar badges show lab progress and test scores; a readiness bar shows "Core labs done" when all non-capstone labs and the practice test (≥80%) are complete, and "Topic complete" once the capstone is also passed, with a direct link to the next topic
 - **Execution Visualizer** — step through your own code line by line, watching variables change; draggable overlay, available in every editor; beginner-friendly error explanations for both runtime and syntax errors
-- Practice exercises with local test runner and context-aware AI coaching — inline inside the Try It popup and Visualizer, or via the full AI Coach chat; supports 7 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq)
+- Practice exercises with local test runner and context-aware AI coaching — inline inside the Try It popup and Visualizer, or via the full AI Coach chat; supports 8 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq Cloud, Azure AI Foundry)
 
 ## Content System
 
 Curriculum content now lives in `content/` as structured files (per-topic `topic.json`, `lesson.md`, `labs.json`, `practice.json`) plus `content/sources.json`.
 
 The app loads this through `content_loader.py` and keeps the same `/api/curriculum` response shape used by the current UI.
+
+## Project Docs
+
+- Setup and configuration: [`SETUP.md`](SETUP.md)
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Security policy: [`SECURITY.md`](SECURITY.md)
+- Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- License: [`MIT`](LICENSE)
 
 ## Notes
 

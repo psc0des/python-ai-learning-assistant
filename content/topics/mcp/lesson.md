@@ -205,3 +205,33 @@ async def handle_tool_call(tool_name: str, arguments: dict, session_id: str):
 ```
 
 **Why this matters:** if an AI system takes an unintended action, your logs let you reconstruct: which session called it, with what arguments, at what time, and what result was returned. This is the difference between 'the assistant did something strange' and 'the assistant called create_ticket with these exact args at 14:32, here is the evidence.'
+
+## 7. Try The Real SDK
+
+The labs in this topic build MCP ideas in pure Python: tool definitions, input schemas, dispatch, and audit-friendly results. The real Python MCP SDK lets you expose those same capabilities to an MCP host:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install "mcp[cli]"
+python notes_server.py
+```
+
+Save this as `notes_server.py`:
+
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP('notes')
+
+@mcp.tool()
+def summarize_note(note: str) -> str:
+    """Return a tiny summary of a note."""
+    words = note.split()
+    return ' '.join(words[:12]) + ('...' if len(words) > 12 else '')
+
+if __name__ == '__main__':
+    mcp.run(transport='stdio')
+```
+
+This server waits for an MCP host or inspector to connect over stdio. Keep the lab lessons in mind: a tool needs a narrow name, a clear docstring, typed arguments, careful logging, and no broad filesystem or shell access unless you have designed explicit approval gates.

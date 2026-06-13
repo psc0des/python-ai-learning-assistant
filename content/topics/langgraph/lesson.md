@@ -178,3 +178,46 @@ for event in graph.stream(initial_input, config=config):
 - When a run fails or produces a bad result, replay the exact run from its checkpoint to debug step by step
 
 **Production habit:** log the full state at each node. The cost of storing this data is tiny compared to the debugging time saved when something goes wrong.
+
+## 7. Try The Real Library
+
+The labs in this topic build graph workflow ideas in pure Python so state, nodes, edges, and history are visible. The real LangGraph library gives you a production graph runtime for those same concepts:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -U langgraph
+python graph_demo.py
+```
+
+Save this as `graph_demo.py`:
+
+```python
+from typing import TypedDict
+from langgraph.graph import END, START, StateGraph
+
+class State(TypedDict):
+    question: str
+    route: str
+    answer: str
+
+def classify(state: State):
+    route = 'policy' if 'policy' in state['question'].lower() else 'general'
+    return {'route': route}
+
+def answer(state: State):
+    return {'answer': f"Handled by {state['route']} route"}
+
+graph = StateGraph(State)
+graph.add_node('classify', classify)
+graph.add_node('answer', answer)
+graph.add_edge(START, 'classify')
+graph.add_edge('classify', 'answer')
+graph.add_edge('answer', END)
+app = graph.compile()
+
+result = app.invoke({'question': 'What is the refund policy?', 'route': '', 'answer': ''})
+print(result['answer'])
+```
+
+Compare this with the pure-Python graph lab: the names changed, but the mental model did not. You still define state, register nodes, connect edges, compile the graph, and invoke it with input.

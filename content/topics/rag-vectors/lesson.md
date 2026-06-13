@@ -225,3 +225,40 @@ def evaluate_rag(benchmark, retrieve_fn, generate_fn):
 4. If retrieval was wrong — adjust chunk size, overlap, metadata filters, or reranking
 
 Change one thing at a time. A RAG system has many moving parts, and changing several at once makes it impossible to know what helped.
+
+## 7. Try A Real Vector Store
+
+The labs in this topic build the RAG pipeline in pure Python so chunking, embeddings, retrieval, and evaluation are visible. To try a real local vector store without hiding the idea, use Chroma with explicit toy vectors:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install chromadb
+python chroma_demo.py
+```
+
+Save this as `chroma_demo.py`:
+
+```python
+import chromadb
+
+client = chromadb.Client()
+collection = client.create_collection('support_docs')
+
+collection.add(
+    ids=['refund', 'password'],
+    documents=[
+        'Refunds are available for 30 days after purchase.',
+        'Password resets are sent by email from account settings.',
+    ],
+    embeddings=[
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+    ],
+)
+
+results = collection.query(query_embeddings=[[1.0, 0.1, 0.0]], n_results=1)
+print(results['documents'][0][0])
+```
+
+Real systems usually generate embeddings with a model API and store metadata for citations, but this starter keeps the moving parts small: add documents, store vectors, query nearest vectors, then inspect whether the retrieved text actually answers the question.

@@ -207,3 +207,37 @@ print(order.model_dump_json(indent=2))
 ```
 
 **`exclude=True`** on a field means it will never appear in serialized output — perfect for internal flags, sensitive data, or fields that are only used for processing. This is cleaner than manually filtering dicts everywhere.
+
+## 7. Try The Real Library
+
+The labs in this topic build validation ideas in pure Python so you can see the checks directly: required fields, type checks, defaults, constraints, and clear error reporting. The real Pydantic library gives you those same boundary checks through typed models:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install pydantic
+python validate_order.py
+```
+
+Save this as `validate_order.py`:
+
+```python
+from pydantic import BaseModel, Field, ValidationError
+
+class Order(BaseModel):
+    item: str = Field(min_length=1)
+    quantity: int = Field(ge=1, le=20)
+    rush: bool = False
+
+for payload in [
+    {'item': 'book', 'quantity': '2'},
+    {'item': '', 'quantity': 99},
+]:
+    try:
+        order = Order.model_validate(payload)
+        print('valid:', order.model_dump())
+    except ValidationError as exc:
+        print('invalid:', exc.errors())
+```
+
+Notice how Pydantic both parses friendly input (`'2'` becomes `2`) and refuses data that violates your model. That is the production version of the manual validators you wrote in the labs.

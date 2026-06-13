@@ -206,3 +206,33 @@ def create_order(order: OrderCreate):
 ```
 
 The docstring, `summary`, `responses`, and `Field(description=...)` all appear in `/docs`. Good documentation is not extra work — it emerges naturally from writing clean, type-hinted FastAPI code.
+
+## 7. Try The Real Library
+
+The labs in this topic build API concepts in pure Python so you understand routing, validation, status codes, and dependency boundaries before a framework hides them. When you are ready to use the real framework, try the official FastAPI path in a throwaway folder:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install "fastapi[standard]"
+fastapi dev main.py
+```
+
+Save this as `main.py` before running the command:
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Ticket(BaseModel):
+    title: str
+    priority: int
+
+@app.post('/tickets')
+def create_ticket(ticket: Ticket):
+    return {'accepted': True, 'ticket': ticket.model_dump()}
+```
+
+Open `http://127.0.0.1:8000/docs`, send a valid ticket, then send a bad one like `{"title": "oops", "priority": "high"}`. Connect what you see back to the pure-Python labs: route matching, schema validation, and structured error responses are the same ideas with production tooling around them.

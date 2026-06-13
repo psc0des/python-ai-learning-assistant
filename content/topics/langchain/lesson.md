@@ -186,3 +186,27 @@ print(result.needs_human)   # True
 ```
 
 Structured output eliminates brittle regex parsing, gives you validated field types, and makes your LLM pipeline as reliable as any other typed API.
+
+## 7. Try The Real Library
+
+The labs in this topic build LangChain-shaped concepts in pure Python: prompt templates, tool registries, structured outputs, and retrieval steps. The real library adds provider integrations and a standard runtime around those same pieces:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -U langchain langchain-openai
+$env:OPENAI_API_KEY="sk-..."
+python chain_demo.py
+```
+
+Save this as `chain_demo.py`:
+
+```python
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model('openai:gpt-5.5')
+reply = model.invoke('Give one practical rule for writing reliable prompts.')
+print(reply.content)
+```
+
+After that works, replace the literal prompt with a small function that builds prompts from variables. That bridge from pure-Python templates to real model calls is the point: LangChain organizes the same workflow you practiced by hand.

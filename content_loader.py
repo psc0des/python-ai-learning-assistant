@@ -1,22 +1,18 @@
 """Structured curriculum loader for Python Skill Lab.
 
 This module loads curriculum content from `content/` and keeps the API shape
-compatible with the current frontend. It can fall back to legacy Python module
-data if structured content is missing.
+compatible with the current frontend.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger("skill_lab.content_loader")
-
-_ALLOW_LEGACY_FALLBACK = os.environ.get("PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK", "0") == "1"
 
 ROOT = Path(__file__).parent.resolve()
 CONTENT_DIR = ROOT / "content"
@@ -105,54 +101,21 @@ def _load_structured_content() -> LoadedContent:
     )
 
 
-def _load_legacy_content() -> LoadedContent:
-    from curriculum import TOPICS  # local import to avoid import cycles
-    from exercises import EXERCISES
-    from practice_tests import PRACTICE_TESTS
-
-    topics = [_normalize_topic(t) for t in TOPICS]
-    return LoadedContent(
-        topics=topics,
-        exercises=list(EXERCISES),
-        practice_tests=list(PRACTICE_TESTS),
-        sources={},
-        manifest={},
-        mode="legacy",
-    )
-
-
 def load_content() -> LoadedContent:
     """Load content from structured files.
 
-    When content/manifest.json exists, structured loading must succeed. A
-    failure is fatal by default so a broken release cannot silently serve
-    stale legacy data. Set PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK=1 to restore
-    the old fallback behaviour (developer use only).
+    Structured content is the only runtime source of truth. A load failure is
+    fatal so a broken release cannot silently serve stale generated data.
     """
-    if MANIFEST_PATH.exists():
-        try:
-            loaded = _load_structured_content()
-            logger.info(
-                "Loaded structured content: %d topics, %d labs, %d practice tests",
-                len(loaded.topics),
-                len(loaded.exercises),
-                len(loaded.practice_tests),
-            )
-            return loaded
-        except Exception as exc:
-            if not _ALLOW_LEGACY_FALLBACK:
-                raise RuntimeError(
-                    f"Structured content failed to load and legacy fallback is disabled. "
-                    f"Fix content/ or set PY_SKILL_LAB_ALLOW_LEGACY_FALLBACK=1. Error: {exc}"
-                ) from exc
-            logger.exception("Structured content load failed; falling back to legacy: %s", exc)
+    try:
+        loaded = _load_structured_content()
+    except Exception as exc:
+        raise RuntimeError(f"Structured content failed to load. Fix content/. Error: {exc}") from exc
 
-    loaded = _load_legacy_content()
-    logger.warning(
-        "Using legacy content modules: %d topics, %d labs, %d practice tests",
+    logger.info(
+        "Loaded structured content: %d topics, %d labs, %d practice tests",
         len(loaded.topics),
         len(loaded.exercises),
         len(loaded.practice_tests),
     )
     return loaded
-

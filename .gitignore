@@ -2,10 +2,22 @@ __pycache__/
 *.py[cod]
 .runner_tmp/
 .pytest_cache/
+.ruff_cache/
+.venv/
+venv/
 *.egg-info/
 dist/
 build/
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.log
 
 # Vendor build tooling (npm packages, not the built output)
 scripts/node_modules/
@@ -22,3 +34,7 @@ audit.md
 audit_*.md
 ai_audit_*.md
 ai_implementation_*.md
+fable.md
+qa_server_*.log
+qa_server_*.err
+python-ai-learning-assistant-qa.png

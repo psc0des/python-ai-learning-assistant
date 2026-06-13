@@ -24,7 +24,8 @@ def test_ollama_model_listing_does_not_invent_fallbacks_when_down(monkeypatch):
 
     assert result["ok"] is False
     assert result["models"] == []
-    assert "connection refused" in result["error"]
+    assert "Could not reach Ollama" in result["error"]
+    assert "Is it running?" in result["error"]
 
 
 def test_ollama_model_listing_returns_only_installed_models(monkeypatch):

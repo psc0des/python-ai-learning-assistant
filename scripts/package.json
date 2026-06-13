@@ -1,5 +1,5 @@
 {
-  "name": "python-skill-lab-vendor",
+  "name": "python-ai-learning-assistant-vendor",
   "version": "1.0.0",
   "private": true,
   "description": "Build script to vendor frontend dependencies for offline use",
