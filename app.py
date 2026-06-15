@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from ai_coach import ask_ai_coach, list_ai_models
+from ai_coach import ask_ai_coach, list_ai_models, stream_ai_coach
 from content_loader import load_content
 from models import validate_content_at_startup
 from runner import run_user_code, trace_user_code
@@ -173,7 +173,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:
-        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-models"}
+        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-coach-stream", "/api/ai-models"}
         if self.path not in allowed_endpoints:
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
@@ -189,12 +189,15 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         # Rate limiting on AI coach endpoint
-        if self.path == "/api/ai-coach":
+        if self.path in {"/api/ai-coach", "/api/ai-coach-stream"}:
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip, bucket="ai", max_requests=AI_RATE_LIMIT_MAX):
                 logger.warning("AI rate limit exceeded for IP: %s", client_ip)
                 msg = f"Rate limit exceeded: max {AI_RATE_LIMIT_MAX} AI requests per {RATE_LIMIT_WINDOW}s. Wait a moment."
-                self.send_json({"ok": False, "reply": msg}, status=429)
+                self.send_json(
+                    {"ok": False, "answer": msg, "error": msg, "reply": msg},
+                    status=429,
+                )
                 return
 
         # Rate limiting on model-list endpoint (separate bucket — listing is cheaper than inference)
@@ -271,6 +274,9 @@ class Handler(SimpleHTTPRequestHandler):
                 result = trace_user_code(payload)
             elif self.path == "/api/ai-models":
                 result = list_ai_models(payload)
+            elif self.path == "/api/ai-coach-stream":
+                self.send_ndjson_stream(stream_ai_coach(payload, TOPICS, EXERCISES))
+                return
             else:
                 result = ask_ai_coach(payload, TOPICS, EXERCISES)
 
@@ -303,6 +309,20 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def send_ndjson_stream(self, events: Any, status: int = 200) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.end_headers()
+        for event in events:
+            line = json.dumps(event).encode("utf-8") + b"\n"
+            try:
+                self.wfile.write(line)
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                logger.info("Client disconnected from AI stream.")
+                break
 
     def log_message(self, format: str, *args: Any) -> None:
         logger.debug("%s %s", self.address_string(), format % args)

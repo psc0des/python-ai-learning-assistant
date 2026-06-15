@@ -63,8 +63,8 @@ Python_Learning_Assistant/
         practice.json     Practice test questions
   static/
     index.html            App shell — loads from /vendor/fonts.css and /codemirror-init.js
-    app.js                All UI logic (~2010 lines) — topic rendering, labs, AI coach, visualizer
-    styles.css            Warm notebook visual design (~2471 lines)
+    app.js                All UI logic — topic rendering, labs, AI coach, visualizer
+    styles.css            Warm notebook visual design
     codemirror-init.js    CodeMirror 6 setup — imports from /vendor/codemirror-bundle.js only
     favicon.svg
     vendor/
@@ -215,6 +215,16 @@ Critical CSS invariants:
 - `.ai-settings-panel` is `position: fixed; z-index: 800; max-height: calc(100vh - 24px); overflow-y: auto`. JS opens it to the right of the sidebar (`rect.right + 8`) on wide viewports, reads `offsetHeight` after render, then clamps `top` so Save & Apply is never off-screen. On narrow viewports it opens above the button when there is room, otherwise below, and clamps both `top` and `left` so the panel stays within the viewport on all screen sizes. Do not revert to `width: rect.width` (the button width) — that was the original bug that caused the panel to overlap the sidebar topic list. Do not revert to `bottom`-based positioning for the narrow fallback — that caused the panel to go above the viewport on mobile.
 - Topic search in `renderTopicList` scores matches: title/track hits rank above intro-only hits. Do not flatten this back to a single `haystack` string — that caused unrelated topics to appear ahead of direct title matches.
 - The Show Solution gate requires 2 failed attempts before revealing the solution. When blocked, the gate message is shown on the button itself (temporary text change + `disabled` for 2.5 s) — do not move the message to the AI Coach panel, which is too far from the blocked action to be useful.
+- Practice tests can be retaken. Readiness uses the latest submitted attempt, not the first attempt. `practiceHash` must represent the full current question set (question text, options, answer, explanation), so score state is invalidated when content changes.
+- Do not reintroduce the old top-level readiness/progress bar without a fresh UX design pass. Learner progress should stay lightweight in sidebar badges unless the progress model is made clearer.
+- Keep AI help split into two surfaces: embedded Labs `AI Coach` (`#aiOutput`, `#coachInput`, `#coachStatus`) for exercise/test coaching, and floating bottom-right `Ask AI` (`#askAiDock`) for selected text, lesson Ask AI, Try It Ask AI, Visualizer Ask AI, and independent chat. Do not merge these surfaces or reuse the lab coach IDs in the floating messenger. The floating Ask AI sits above popups and the visualizer (`z-index: 1100`), so Escape closes Ask AI before closing the underlying surface when both are open.
+- Freeform floating Ask AI chat must stay independent: do not send `selectedTopicId` unless the learner used a contextual action such as lesson Ask AI, selected text, Try It Ask AI, or Visualizer Ask AI.
+- Floating Ask AI freeform history must not include previous contextual snippets, Try It code/output, or Visualizer state. Compute chat history before appending the current user message so the current question is not duplicated in both `chat_history` and `question`.
+- Floating Ask AI close only hides the messenger; `New chat` resets `askAiMessages` so learners can intentionally start fresh after changing models or context.
+- Keep AI Settings split by learner intent: Ollama/LM Studio expose **Show local models** for installed-model inventory and **Test selected model** for an actual reply check; hosted/API providers expose **Verify provider** for the configured key/model. Do not show model counts as a generic "Connected" state.
+- Treat AI Settings as draft until the learner clicks **Save & Apply** or a provider/model test succeeds. Do not persist provider/model changes from boot, provider switching, model listing, or ordinary AI chat.
+- AI chat should feel live: route AI Coach and floating Ask AI messages through `/api/ai-coach-stream` so supported providers stream chunks into the transcript. Keep `/api/ai-coach` as the fallback JSON route, not as the default frontend chat path.
+- AI Coach and Ask AI streams use generation counters (`coachStreamGen`, `askAiStreamGen`) to prevent a late chunk from a previous request landing in a new conversation. `selectExercise()` and `startNewAskAiChat()` increment the counter for the surface they reset; `askLabCoach()`/`askFloatingAi()` capture the counter at call start (`const generation = ++coachStreamGen` / `++askAiStreamGen`) and bail out of `onChunk`, the post-stream success path, and the `catch` block if the counter has since changed. Do not remove these guards or write streamed text into `coachMessages`/`askAiMessages` without checking `generation` first — `coachMessages`/`askAiMessages` are reassigned on reset, and an unguarded async callback can append a stray message into the new array.
 
 ## Vendor Bundle Rules
 

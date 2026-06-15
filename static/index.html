@@ -6,7 +6,7 @@
     <title>Python Skill Lab — Learn Python from Basics to AI</title>
     <meta name="description" content="A free, local Python learning app covering basics, data structures, OOP, FastAPI, async, LangChain, RAG, and more. Practice with guided labs, AI coaching, and progress tracking." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/styles.css?v=warm-notebook" />
+    <link rel="stylesheet" href="/styles.css?v=6" />
     <link rel="stylesheet" href="/vendor/fonts.css?v=local-vendor" />
     <!-- CodeMirror 6: loaded as ES module from local vendor bundle, degrades to textarea if unavailable -->
     <script type="module" src="/codemirror-init.js?v=local-vendor"></script>
@@ -46,18 +46,21 @@
                 <option value="azure-foundry">Azure AI Foundry</option>
               </select>
             </label>
-            <label>Model
+            <label id="modelFieldLabel">Model
               <div class="model-select-row">
                 <input id="model" type="text" list="modelSuggestions" placeholder="Model name" autocomplete="off" />
+                <select id="modelSelect" hidden aria-label="Installed local model"></select>
                 <datalist id="modelSuggestions"></datalist>
-                <button id="refreshModelsBtn" type="button" class="secondary" title="Refresh models">↻</button>
+                <button id="refreshModelsBtn" type="button" class="secondary" title="Show local models">Show local models</button>
               </div>
+              <span id="modelHelpText" class="field-help">Local providers list models installed on your machine.</span>
             </label>
             <label>Endpoint
               <input id="endpoint" type="text" value="http://127.0.0.1:11434" />
             </label>
-            <label>API key
+            <label id="apiKeyFieldLabel">API key
               <input id="apiKey" type="password" placeholder="Only needed for hosted APIs" />
+              <span id="apiKeyHelpText" class="field-help">Not needed for Ollama or LM Studio.</span>
             </label>
           </div>
           <div id="aiSettingsTestStatus" class="ai-settings-test-status" hidden></div>
@@ -84,7 +87,6 @@
             <button class="mode-button" type="button" role="tab" aria-selected="false" aria-controls="labsSection" data-section="labsSection">Labs</button>
             <button class="mode-button" type="button" role="tab" aria-selected="false" aria-controls="testSection" data-section="testSection">Practice Test</button>
           </div>
-          <div id="readinessBar" class="readiness-bar" hidden></div>
 
           <section id="overviewSection" class="topic-section active">
             <p id="intro" class="intro"></p>
@@ -197,11 +199,11 @@
                   </div>
                 </section>
 
-                <section class="coach-card">
+                <section class="coach-card lab-coach-card">
                   <div class="coach-heading">
                     <div>
-                      <h3>AI Coach Chat</h3>
-                      <p>Ask about the lesson, your code, or test results.</p>
+                      <h3>AI Coach</h3>
+                      <p>Ask about this exercise, your code, or test results.</p>
                     </div>
                     <span id="coachStatus" class="coach-status">Provider ready</span>
                   </div>
@@ -209,14 +211,14 @@
                   <div id="aiOutput" class="coach-transcript"></div>
 
                   <div class="coach-composer">
-                    <textarea id="coachInput" rows="3" placeholder="Ask: Why did my test fail? Explain this concept with a real-world example? (Ctrl+Enter to send)" aria-label="Ask the AI coach"></textarea>
+                    <textarea id="coachInput" rows="3" placeholder="Ask: Why did my test fail? Explain this concept with a real-world example? (Ctrl+Enter to send)" aria-label="Ask the lab AI coach"></textarea>
                     <div class="coach-actions">
                       <button id="aiBtn" type="button">Send</button>
                       <button id="explainBtn" type="button" class="secondary">Explain Code</button>
                     </div>
                   </div>
-
                 </section>
+
               </div>
             </section>
           </section>
@@ -228,9 +230,16 @@
                   <h3>Practice Test</h3>
                   <p>Quick checkpoint before you move on.</p>
                 </div>
-                <button id="checkTestBtn" type="button">Check Answers</button>
+                <div class="test-actions">
+                  <button id="checkTestBtn" type="button">Check Answers</button>
+                  <button id="resetTestBtn" type="button" class="secondary">Retake Test</button>
+                </div>
               </div>
               <div id="practiceQuestions" class="practice-questions"></div>
+              <div class="test-actions test-actions-bottom">
+                <button id="checkTestBtnBottom" type="button">Check Answers</button>
+                <button id="resetTestBtnBottom" type="button" class="secondary">Retake Test</button>
+              </div>
               <div id="testResult" class="test-result">Choose an answer, then check your result.</div>
             </section>
           </section>
@@ -257,13 +266,6 @@
           <button id="codePopupClearBtn" type="button" class="secondary">Clear</button>
         </div>
         <pre id="codePopupOutput" class="code-popup-output">Ready.</pre>
-        <div id="codePopupAiPanel" class="code-popup-ai-panel" hidden>
-          <div class="code-popup-ai-header">
-            <span class="viz-ai-badge">AI</span>
-            <button id="codePopupAiClose" type="button" class="code-popup-icon-btn" title="Dismiss">✕</button>
-          </div>
-          <div id="codePopupAiBody" class="code-popup-ai-body"></div>
-        </div>
       </div>
     </div>
 
@@ -291,6 +293,45 @@
       </div>
     </div>
 
-    <script src="/app.js?v=4"></script>
+    <div id="askAiDock" class="ask-ai-dock">
+      <section id="askAiPanel" class="ask-ai-panel" hidden aria-label="Ask AI chat">
+        <div class="ask-ai-heading">
+          <div>
+            <h3>Ask AI</h3>
+            <p>Quick help while you read, try examples, or step through code.</p>
+          </div>
+          <div class="ask-ai-heading-actions">
+            <button id="askAiNewChat" type="button" class="secondary ask-ai-new-chat">New chat</button>
+            <button id="askAiClose" type="button" class="ask-ai-close" aria-label="Close Ask AI">✕</button>
+          </div>
+        </div>
+        <div class="ask-ai-status-row">
+          <span id="askAiStatus" class="coach-status">Provider ready</span>
+        </div>
+        <div id="askAiOutput" class="coach-transcript"></div>
+        <div class="coach-composer">
+          <textarea id="askAiInput" rows="3" placeholder="Ask what this means, why it works, or for a small example... (Ctrl+Enter to send)" aria-label="Ask AI"></textarea>
+          <div class="coach-actions">
+            <button id="askAiSendBtn" type="button">Send</button>
+          </div>
+        </div>
+      </section>
+      <button id="askAiLauncher" type="button" class="ask-ai-launcher" aria-label="Open Ask AI" aria-controls="askAiPanel" aria-expanded="false">
+        <span class="ask-ai-launcher-icon" aria-hidden="true">
+          <svg class="ask-ai-chat-icon" viewBox="0 0 24 24" focusable="false">
+            <path d="M5.6 5.2h12.8c1.35 0 2.4 1.02 2.4 2.3v7.3c0 1.28-1.05 2.3-2.4 2.3h-5.2l-4.55 3.15v-3.15H5.6c-1.35 0-2.4-1.02-2.4-2.3V7.5c0-1.28 1.05-2.3 2.4-2.3Z" />
+            <circle cx="8.6" cy="11.1" r="1.15" />
+            <circle cx="12" cy="11.1" r="1.15" />
+            <circle cx="15.4" cy="11.1" r="1.15" />
+          </svg>
+        </span>
+        <span>
+          <strong>Ask AI</strong>
+          <small id="askAiLauncherStatus">Ready</small>
+        </span>
+      </button>
+    </div>
+
+    <script src="/app.js?v=6"></script>
   </body>
 </html>

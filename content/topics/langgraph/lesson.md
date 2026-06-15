@@ -119,11 +119,8 @@ initial_input = {'ticket_text': 'My invoice is wrong and I need help urgently'}
 
 result = graph.invoke(initial_input, config=config)
 
-# Later — resume the SAME run (it loads from checkpoint):
-resume_result = graph.invoke(
-    {'approved': True},   # provide the human approval decision
-    config=config,        # same thread_id — picks up where it left off
-)
+# Later — resume the SAME run after a crash or restart (it loads from checkpoint):
+resume_result = graph.invoke(None, config=config)  # same thread_id — picks up where it left off
 ```
 
 **Practical value:** if a long workflow crashes halfway through (a network error, a timeout), you do not start from scratch. You resume from the last checkpoint. For expensive LLM pipelines, this saves both time and cost.
@@ -135,7 +132,7 @@ AI agents can make mistakes. For high-impact actions — deleting records, sendi
 LangGraph's **interrupt** mechanism pauses the workflow at a specific node, surfaces the current state to a human, waits for their decision, then resumes.
 
 ```python
-from langgraph.types import interrupt
+from langgraph.types import interrupt, Command
 
 def review_and_approve(state: TicketState) -> dict:
     # This pauses the workflow and returns control to the caller
@@ -151,7 +148,7 @@ def review_and_approve(state: TicketState) -> dict:
 # After adding this node and its edges:
 # 1. graph.invoke(input, config)    → runs until interrupt, returns current state
 # 2. human reviews state in your UI
-# 3. graph.invoke({'approve': True}, config) → resumes from the interrupt
+# 3. graph.invoke(Command(resume={'approve': True}), config) → resumes the paused interrupt()
 ```
 
 **Safety principle:** any action that cannot be easily undone (send, delete, deploy, charge) should have a human-in-the-loop interrupt before it runs. This is not a limitation — it is a design choice that makes AI systems trustworthy enough to use in production.

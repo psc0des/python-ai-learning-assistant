@@ -26,7 +26,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-AI_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_TIMEOUT_SECONDS", "25"))
+AI_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_TIMEOUT_SECONDS", "45"))
 AI_MODEL_LIST_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS", "8"))
 
 # Environment variable names for server-side API keys (preferred over client-sent)
@@ -60,6 +60,28 @@ def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dic
     try:
         with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
+    except TimeoutError as exc:
+        raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, "reason", "")
+        if isinstance(reason, TimeoutError):
+            raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+        raise
+
+
+def _post_stream_lines(url: str, headers: dict[str, str], payload: dict[str, Any]):
+    """POST JSON and yield provider streaming response lines."""
+    body = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
+            for raw_line in response:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if line:
+                    yield line
     except TimeoutError as exc:
         raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
     except urllib.error.HTTPError as exc:
@@ -115,7 +137,10 @@ def friendly_provider_error(provider: str, endpoint: str, exc: Exception) -> str
     lower = text.lower()
 
     if "timed out" in lower:
-        return f"{provider_label} did not respond before the timeout. Check that the provider is running and the endpoint is correct."
+        warmup = ""
+        if provider in {"ollama", "lmstudio"}:
+            warmup = " Local models may need one warm-up request after launch; try once more after the model finishes loading."
+        return f"{provider_label} did not respond before the timeout. Check that the provider is running and the endpoint is correct.{warmup}"
     if "connection refused" in lower or "winerror 10061" in lower:
         if provider in {"ollama", "lmstudio"}:
             return f"Could not reach {provider_label} at {endpoint_text}. Is it running?"
@@ -333,6 +358,55 @@ def call_ollama(base_url: str, model: str, prompt: str,
     return _make_result(text, tokens_in, tokens_out, elapsed, gen_sec)
 
 
+def stream_ollama(
+    base_url: str,
+    model: str,
+    prompt: str,
+    temperature: float = 0.2,
+    top_p: float = 0.9,
+    top_k: int = 40,
+):
+    """Yield standard stream events from the Ollama chat API."""
+    url = base_url.rstrip("/") + "/api/chat"
+    t0 = time.time()
+    text_parts: list[str] = []
+    tokens_in = 0
+    tokens_out = 0
+    gen_sec: float | None = None
+
+    for line in _post_stream_lines(
+        url,
+        {"Content-Type": "application/json"},
+        {
+            "model": model,
+            "stream": True,
+            "messages": [
+                {"role": "system", "content": SYSTEM_MESSAGE},
+                {"role": "user", "content": prompt},
+            ],
+            "options": {
+                "temperature": temperature,
+                "top_p": top_p,
+                "top_k": top_k,
+            },
+        },
+    ):
+        data = json.loads(line)
+        chunk = data.get("message", {}).get("content", "")
+        if chunk:
+            text_parts.append(chunk)
+            yield {"type": "chunk", "text": chunk}
+        if data.get("done"):
+            tokens_out = int(data.get("eval_count") or 0)
+            tokens_in = int(data.get("prompt_eval_count") or 0)
+            eval_ns = data.get("eval_duration") or 0
+            gen_sec = eval_ns / 1e9 if eval_ns and tokens_out else None
+
+    elapsed = time.time() - t0
+    result = _make_result("".join(text_parts).strip(), tokens_in, tokens_out, elapsed, gen_sec)
+    yield {"type": "done", "ok": True, **result}
+
+
 def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
                            temperature: float = 0.2, top_p: float = 0.9) -> dict[str, Any]:
     """Call an OpenAI-compatible API (OpenAI, LM Studio, Grok, Groq, etc.)."""
@@ -362,6 +436,60 @@ def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
     groq_gen_sec = usage.get("completion_time")
     gen_sec = float(groq_gen_sec) if groq_gen_sec else None
     return _make_result(text, tokens_in, tokens_out, elapsed, gen_sec)
+
+
+def stream_openai_compatible(
+    url: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    temperature: float = 0.2,
+    top_p: float = 0.9,
+):
+    """Yield standard stream events from an OpenAI-compatible chat endpoint."""
+    t0 = time.time()
+    text_parts: list[str] = []
+    tokens_in = 0
+    tokens_out = 0
+
+    for line in _post_stream_lines(
+        url,
+        {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        {
+            "model": model,
+            "stream": True,
+            "messages": [
+                {"role": "system", "content": SYSTEM_MESSAGE},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": temperature,
+            "top_p": top_p,
+        },
+    ):
+        if not line.startswith("data:"):
+            continue
+        data_text = line[len("data:"):].strip()
+        if data_text == "[DONE]":
+            break
+        data = json.loads(data_text)
+        usage = data.get("usage") or {}
+        if usage:
+            tokens_in = int(usage.get("prompt_tokens") or tokens_in or 0)
+            tokens_out = int(usage.get("completion_tokens") or tokens_out or 0)
+        choices = data.get("choices") or []
+        if choices:
+            delta = choices[0].get("delta") or {}
+            chunk = delta.get("content") or ""
+            if chunk:
+                text_parts.append(chunk)
+                yield {"type": "chunk", "text": chunk}
+
+    elapsed = time.time() - t0
+    result = _make_result("".join(text_parts).strip(), tokens_in, tokens_out, elapsed)
+    yield {"type": "done", "ok": True, **result}
 
 
 def openai_compatible_chat_url(endpoint: str, default_base: str) -> str:
@@ -447,12 +575,11 @@ def call_google(endpoint: str, api_key: str, model: str, prompt: str,
 # Main AI coach entry point
 # ---------------------------------------------------------------------------
 
-def ask_ai_coach(
+def _prepare_ai_request(
     payload: dict[str, Any],
     topics: list[dict[str, Any]],
     exercises: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Process an AI coach request and return the response."""
     provider = str(payload.get("provider", "ollama")).lower()
     client_key = str(payload.get("api_key", ""))
     api_key = resolve_api_key(provider, client_key)
@@ -470,15 +597,71 @@ def ask_ai_coach(
         top_p = max(0.0, min(1.0, float(payload.get("top_p", 0.9))))
         top_k = max(1, min(200, int(payload.get("top_k", 40))))
     except (TypeError, ValueError) as exc:
-        return {
-            "ok": False,
-            "answer": "- Check your AI settings: temperature and top_p must be numbers between 0 and 1; top_k must be an integer.",
-            "error": str(exc),
-        }
+        raise ValueError(
+            "Check your AI settings: temperature and top_p must be numbers between 0 and 1; "
+            "top_k must be an integer."
+        ) from exc
 
     topic = next((item for item in topics if item["id"] == topic_id), None)
     exercise = next((item for item in exercises if item["id"] == exercise_id), None)
     prompt = build_ai_prompt(topic, exercise, code, run_result, question, chat_history, mode)
+
+    return {
+        "provider": provider,
+        "api_key": api_key,
+        "model": model,
+        "endpoint": endpoint,
+        "code": code,
+        "run_result": run_result,
+        "exercise": exercise,
+        "prompt": prompt,
+        "temperature": temperature,
+        "top_p": top_p,
+        "top_k": top_k,
+    }
+
+
+def _fallback_ai_result(request: dict[str, Any], exc: Exception) -> dict[str, Any]:
+    from runner import coach_feedback
+
+    fallback = coach_feedback(
+        request["code"],
+        str(request["run_result"].get("stdout", "")),
+        str(request["run_result"].get("stderr", "")),
+        request["run_result"].get("tests", []),
+        request["exercise"],
+    )
+    return {
+        "ok": False,
+        "answer": "\n".join(f"- {item}" for item in fallback),
+        "error": friendly_provider_error(request["provider"], request["endpoint"], exc),
+    }
+
+
+def ask_ai_coach(
+    payload: dict[str, Any],
+    topics: list[dict[str, Any]],
+    exercises: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Process an AI coach request and return the response."""
+    try:
+        request = _prepare_ai_request(payload, topics, exercises)
+    except Exception as exc:
+        provider = str(payload.get("provider", "ollama")).lower()
+        return {
+            "ok": False,
+            "answer": "- Check your AI settings and try again.",
+            "error": friendly_provider_error(provider, str(payload.get("endpoint", "")), exc),
+        }
+
+    provider = request["provider"]
+    api_key = request["api_key"]
+    model = request["model"]
+    endpoint = request["endpoint"]
+    prompt = request["prompt"]
+    temperature = request["temperature"]
+    top_p = request["top_p"]
+    top_k = request["top_k"]
 
     try:
         if provider == "ollama":
@@ -567,20 +750,93 @@ def ask_ai_coach(
 
     except Exception as exc:
         logger.warning("AI coach failed (%s): %s", provider, exc)
-        from runner import coach_feedback
+        return _fallback_ai_result(request, exc)
 
-        fallback = coach_feedback(
-            code,
-            str(run_result.get("stdout", "")),
-            str(run_result.get("stderr", "")),
-            run_result.get("tests", []),
-            exercise,
-        )
-        return {
+
+def stream_ai_coach(
+    payload: dict[str, Any],
+    topics: list[dict[str, Any]],
+    exercises: list[dict[str, Any]],
+):
+    """Yield standard NDJSON events for an AI coach request."""
+    try:
+        request = _prepare_ai_request(payload, topics, exercises)
+    except Exception as exc:
+        provider = str(payload.get("provider", "ollama")).lower()
+        yield {
+            "type": "done",
             "ok": False,
-            "answer": "\n".join(f"- {item}" for item in fallback),
-            "error": friendly_provider_error(provider, endpoint, exc),
+            "answer": "- Check your AI settings and try again.",
+            "error": friendly_provider_error(provider, str(payload.get("endpoint", "")), exc),
         }
+        return
+
+    provider = request["provider"]
+    api_key = request["api_key"]
+    model = request["model"]
+    endpoint = request["endpoint"]
+    prompt = request["prompt"]
+    temperature = request["temperature"]
+    top_p = request["top_p"]
+    top_k = request["top_k"]
+
+    try:
+        if provider == "ollama":
+            if not model:
+                raise ValueError("Choose an installed Ollama model from the live model dropdown.")
+            yield from stream_ollama(endpoint or "http://127.0.0.1:11434", model, prompt,
+                                     temperature, top_p, top_k)
+        elif provider == "lmstudio":
+            if not model:
+                raise ValueError("Choose a loaded LM Studio model from the live model dropdown.")
+            yield from stream_openai_compatible(
+                openai_compatible_chat_url(endpoint, "http://127.0.0.1:1234"),
+                api_key or "lm-studio",
+                model,
+                prompt, temperature, top_p,
+            )
+        elif provider in {"openai", "grok", "groq", "azure-foundry"}:
+            if provider == "openai":
+                if not api_key:
+                    raise ValueError("OpenAI API key is required. Set it in the UI or as PY_SKILL_LAB_OPENAI_KEY env var.")
+                url = endpoint or "https://api.openai.com/v1/chat/completions"
+                selected_model = model or FALLBACK_MODELS["openai"][0]
+            elif provider == "grok":
+                if not api_key:
+                    raise ValueError("Grok API key is required. Get one at console.x.ai or set PY_SKILL_LAB_GROK_KEY env var.")
+                url = endpoint or "https://api.x.ai/v1/chat/completions"
+                selected_model = model or FALLBACK_MODELS["grok"][0]
+            elif provider == "groq":
+                if not api_key:
+                    raise ValueError("Groq API key is required. Get one free at console.groq.com or set PY_SKILL_LAB_GROQ_KEY env var.")
+                url = endpoint or "https://api.groq.com/openai/v1/chat/completions"
+                selected_model = model or FALLBACK_MODELS["groq"][0]
+            else:
+                if not api_key:
+                    raise ValueError("Azure AI Foundry API key is required. Enter it in AI Settings or set PY_SKILL_LAB_AZURE_FOUNDRY_KEY env var.")
+                if not endpoint:
+                    raise ValueError("Azure AI Foundry endpoint is required. Enter your project URL in AI Settings.")
+                url = openai_compatible_chat_url(endpoint, endpoint)
+                selected_model = model or ""
+            yield from stream_openai_compatible(url, api_key, selected_model, prompt, temperature, top_p)
+        else:
+            result = ask_ai_coach(payload, topics, exercises)
+            if result.get("answer"):
+                yield {"type": "chunk", "text": result["answer"]}
+            yield {
+                "type": "done",
+                "ok": result.get("ok", False),
+                "text": result.get("answer", ""),
+                "tokens_in": result.get("tokens_in", 0),
+                "tokens_out": result.get("tokens_out", 0),
+                "elapsed_sec": result.get("elapsed_sec", 0),
+                "tok_per_sec": result.get("tok_per_sec", 0),
+                "error": result.get("error", ""),
+            }
+        logger.info("AI coach streamed via %s/%s", provider, model)
+    except Exception as exc:
+        logger.warning("AI coach stream failed (%s): %s", provider, exc)
+        yield {"type": "done", **_fallback_ai_result(request, exc)}
 
 
 # ---------------------------------------------------------------------------

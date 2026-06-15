@@ -39,13 +39,19 @@ const els = {
   solutionBtn: document.querySelector("#solutionBtn"),
   provider: document.querySelector("#provider"),
   model: document.querySelector("#model"),
+  modelSelect: document.querySelector("#modelSelect"),
   refreshModelsBtn: document.querySelector("#refreshModelsBtn"),
+  modelHelpText: document.querySelector("#modelHelpText"),
   endpoint: document.querySelector("#endpoint"),
   apiKey: document.querySelector("#apiKey"),
+  apiKeyFieldLabel: document.querySelector("#apiKeyFieldLabel"),
+  apiKeyHelpText: document.querySelector("#apiKeyHelpText"),
   practiceQuestions: document.querySelector("#practiceQuestions"),
   checkTestBtn: document.querySelector("#checkTestBtn"),
+  resetTestBtn: document.querySelector("#resetTestBtn"),
+  checkTestBtnBottom: document.querySelector("#checkTestBtnBottom"),
+  resetTestBtnBottom: document.querySelector("#resetTestBtnBottom"),
   testResult: document.querySelector("#testResult"),
-  readinessBar: document.querySelector("#readinessBar"),
   scratchpad: document.querySelector("#scratchpad"),
   scratchToggle: document.querySelector("#scratchToggle"),
   scratchBody: document.querySelector("#scratchBody"),
@@ -77,17 +83,37 @@ const els = {
   codePopupAiBtn: document.querySelector("#codePopupAiBtn"),
   codePopupClearBtn: document.querySelector("#codePopupClearBtn"),
   codePopupOutput: document.querySelector("#codePopupOutput"),
-  codePopupAiPanel: document.querySelector("#codePopupAiPanel"),
-  codePopupAiClose: document.querySelector("#codePopupAiClose"),
-  codePopupAiBody: document.querySelector("#codePopupAiBody"),
+  askAiDock: document.querySelector("#askAiDock"),
+  askAiPanel: document.querySelector("#askAiPanel"),
+  askAiClose: document.querySelector("#askAiClose"),
+  askAiNewChat: document.querySelector("#askAiNewChat"),
+  askAiLauncher: document.querySelector("#askAiLauncher"),
+  askAiLauncherStatus: document.querySelector("#askAiLauncherStatus"),
+  askAiOutput: document.querySelector("#askAiOutput"),
+  askAiInput: document.querySelector("#askAiInput"),
+  askAiStatus: document.querySelector("#askAiStatus"),
+  askAiSendBtn: document.querySelector("#askAiSendBtn"),
 };
 
 let lastRunResult = null;
 let preferredModel = "";
 let coachMessages = [];
+const ASK_AI_WELCOME_MESSAGE = "Need a quick explanation? Ask about highlighted text, a lesson idea, a Try It example, or a visualizer step. I can break it down, give a small example, or connect it to what you are learning.";
+let askAiMessages = [{ role: "assistant", text: ASK_AI_WELCOME_MESSAGE }];
+const MESSAGE_TYPE_INTERVAL_MS = 24;
+const MESSAGE_TYPE_CHUNK_SIZE = 2;
+let coachTypingTimer = null;
+let askAiTypingTimer = null;
+// Bumped whenever the AI Coach transcript or Ask AI chat is reset (exercise
+// switch, New chat). In-flight streams capture the value at start and check
+// it before writing into coachMessages/askAiMessages, so a late chunk from a
+// stale request cannot land in a different conversation.
+let coachStreamGen = 0;
+let askAiStreamGen = 0;
+const LOCAL_AI_PROVIDERS = new Set(["ollama", "lmstudio"]);
 let solutionRevealed = false;
 let failedAttempts = 0;
-const AI_REQUEST_TIMEOUT_MS = 32000;
+const AI_REQUEST_TIMEOUT_MS = 52000;
 // ---------------------------------------------------------------------------
 // Progress tracking (localStorage)
 // ---------------------------------------------------------------------------
@@ -121,7 +147,17 @@ function markExercisePassed(exerciseId) {
 }
 
 function practiceContentHash(questions) {
-  return questions.slice(0, 3).map(q => (q.question || '').slice(0, 24)).join('|');
+  const canonical = JSON.stringify((questions || []).map((q) => ({
+    question: q.question || "",
+    options: (q.options || []).map((option) => String(option)),
+    answer: q.answer,
+    explanation: q.explanation || "",
+  })));
+  let hash = 2166136261;
+  for (let i = 0; i < canonical.length; i += 1) {
+    hash = Math.imul(hash ^ canonical.charCodeAt(i), 16777619) >>> 0;
+  }
+  return `${questions.length}:${hash.toString(16)}`;
 }
 
 function markTestScore(topicId, score, total, questions) {
@@ -131,9 +167,32 @@ function markTestScore(topicId, score, total, questions) {
   progress[topicId].testTotal = total;
   if (questions && questions.length) {
     progress[topicId].practiceHash = practiceContentHash(questions);
+    // Retakes are intentional: readiness reflects the latest submitted attempt.
     progress[topicId].practiceSubmitted = true;
   }
   saveProgress(progress);
+}
+
+function resetPracticeProgress(topicId) {
+  const progress = loadProgress();
+  if (!progress[topicId]) return;
+  delete progress[topicId].testScore;
+  delete progress[topicId].testTotal;
+  delete progress[topicId].practiceHash;
+  delete progress[topicId].practiceSubmitted;
+  saveProgress(progress);
+}
+
+function setRetakeButtonsVisible(visible) {
+  [els.resetTestBtn, els.resetTestBtnBottom].forEach((button) => {
+    if (button) button.hidden = !visible;
+  });
+}
+
+function setPracticeCheckButtonsEnabled(enabled) {
+  [els.checkTestBtn, els.checkTestBtnBottom].forEach((button) => {
+    if (button) button.disabled = !enabled;
+  });
 }
 
 function getTopicProgress(topicId) {
@@ -145,6 +204,8 @@ function getTopicProgress(topicId) {
     const questions = test ? (test.questions || []) : [];
     if (questions.length && practiceContentHash(questions) !== tp.practiceHash) {
       const { testScore, testTotal, practiceHash, practiceSubmitted, ...rest } = tp;
+      progress[topicId] = rest;
+      saveProgress(progress);
       return rest;
     }
   }
@@ -158,17 +219,52 @@ function isExercisePassed(exerciseId) {
 
 function getTopicLabStats(topicId) {
   const topicExercises = exercises.filter((ex) => ex.topic_id === topicId);
-  const nonCapstone = topicExercises.filter((ex) => ex.difficulty !== 'Advanced');
-  const passed = topicExercises.filter((ex) => ex.difficulty !== 'Advanced' && isExercisePassed(ex.id)).length;
-  return { passed, total: topicExercises.length, required: nonCapstone.length };
+  const coreLabs = topicExercises.filter((ex) => ex.difficulty !== "Advanced");
+  const capstones = topicExercises.filter((ex) => ex.difficulty === "Advanced");
+  const corePassed = coreLabs.filter((ex) => isExercisePassed(ex.id)).length;
+  const capstonePassed = capstones.filter((ex) => isExercisePassed(ex.id)).length;
+  return {
+    corePassed,
+    coreTotal: coreLabs.length,
+    capstonePassed,
+    capstoneTotal: capstones.length,
+    passed: corePassed,
+    total: topicExercises.length,
+    required: coreLabs.length,
+  };
 }
 
 function getTopicReadiness(topicId) {
   const labs = getTopicLabStats(topicId);
   const tp = getTopicProgress(topicId);
   const testPct = tp.testTotal ? tp.testScore / tp.testTotal : null;
-  const isReady = testPct !== null && testPct >= 0.8 && labs.passed >= labs.required;
-  return { ...labs, testScore: tp.testScore, testTotal: tp.testTotal, testPct, isReady };
+  const testPassed = testPct !== null && testPct >= 0.8;
+  const coreDone = labs.coreTotal === 0 || labs.corePassed >= labs.coreTotal;
+  const capstoneDone = labs.capstoneTotal === 0 || labs.capstonePassed >= labs.capstoneTotal;
+  const isReady = testPassed && coreDone;
+  const coreRatio = labs.coreTotal ? labs.corePassed / labs.coreTotal : 1;
+  const hasCapstone = labs.capstoneTotal > 0;
+  const coreWeight = hasCapstone ? 0.6 : 0.7;
+  const practiceWeight = hasCapstone ? 0.25 : 0.3;
+  const capstoneWeight = hasCapstone ? 0.15 : 0;
+  const practiceRatio = testPct !== null ? testPct : 0;
+  const progressPct = Math.round((
+    (coreRatio * coreWeight) +
+    (practiceRatio * practiceWeight) +
+    (hasCapstone && capstoneDone ? capstoneWeight : 0)
+  ) * 100);
+  return {
+    ...labs,
+    testScore: tp.testScore,
+    testTotal: tp.testTotal,
+    testPct,
+    testPassed,
+    coreDone,
+    capstoneDone,
+    hasCapstone,
+    isReady,
+    progressPct,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +319,69 @@ async function postJsonWithTimeout(url, payload, timeoutMs = 0) {
       }
     }
     return data;
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      throw new Error(`timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function postAiStreamWithTimeout(payload, callbacks = {}, timeoutMs = 0) {
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  let streamedAnswer = "";
+  try {
+    const response = await fetch("/api/ai-coach-stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller ? controller.signal : undefined,
+    });
+    if (!response.ok || !response.body) {
+      const fallback = await postJsonWithTimeout("/api/ai-coach", payload, timeoutMs);
+      callbacks.onFallback?.(fallback);
+      return fallback;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const event = JSON.parse(trimmed);
+        if (event.type === "chunk") {
+          streamedAnswer += event.text || "";
+          callbacks.onChunk?.(streamedAnswer, event.text || "");
+        } else if (event.type === "done") {
+          const result = {
+            ok: event.ok !== false,
+            answer: event.text || event.answer || streamedAnswer,
+            error: event.error || "",
+            tokens_in: event.tokens_in || 0,
+            tokens_out: event.tokens_out || 0,
+            elapsed_sec: event.elapsed_sec || 0,
+            tok_per_sec: event.tok_per_sec || 0,
+            streamed: streamedAnswer.length > 0,
+          };
+          callbacks.onDone?.(result);
+          return result;
+        }
+      }
+    }
+
+    const result = { ok: true, answer: streamedAnswer, streamed: streamedAnswer.length > 0 };
+    callbacks.onDone?.(result);
+    return result;
   } catch (error) {
     if (error && error.name === "AbortError") {
       throw new Error(`timed out after ${Math.round(timeoutMs / 1000)}s`);
@@ -339,19 +498,16 @@ function renderTopicList() {
       const r = getTopicReadiness(topic.id);
       let badge = "";
       if (r.isReady) {
-        const capstoneEx = exercises.find(ex => ex.topic_id === topic.id && ex.difficulty === 'Advanced');
-        const capDone = !capstoneEx || isExercisePassed(capstoneEx.id);
-        badge = capDone
-          ? `<span class="progress-badge badge-ready">✓</span>`
-          : `<span class="progress-badge badge-pass" title="Core labs done — capstone pending">~</span>`;
-      } else if (r.passed > 0 || r.testScore !== undefined) {
+        badge = r.capstoneDone
+          ? `<span class="progress-badge badge-ready" title="Topic complete">Done</span>`
+          : `<span class="progress-badge badge-pass" title="Core labs and practice passed; capstone pending">Core ready</span>`;
+      } else if (r.corePassed > 0 || r.testScore !== undefined) {
         const parts = [];
-        if (r.passed > 0) parts.push(`${r.passed}/${r.total}`);
-        if (r.testScore !== undefined) parts.push(`${Math.round(r.testPct * 100)}%`);
-        const cls = r.testPct !== null && r.testPct >= 0.8 ? "badge-pass" : "badge-partial";
-        badge = `<span class="progress-badge ${cls}">${parts.join(" · ")}</span>`;
+        if (r.corePassed > 0) parts.push(`Core ${r.corePassed}/${r.coreTotal}`);
+        if (r.testScore !== undefined) parts.push(`Practice ${Math.round(r.testPct * 100)}%`);
+        badge = `<span class="progress-badge badge-partial">${parts.join(" · ")}</span>`;
       } else if (topicProgress.visited) {
-        badge = `<span class="progress-badge badge-visited">●</span>`;
+        badge = `<span class="progress-badge badge-visited">Started</span>`;
       }
 
       button.innerHTML = `<span>${topic.track}</span>${escapeHtml(topic.title)}${badge}`;
@@ -375,9 +531,10 @@ function selectTopic(topicId) {
   askAiLessonBtn.className = "ask-ai-lesson-btn";
   askAiLessonBtn.textContent = "Ask AI about this lesson";
   askAiLessonBtn.addEventListener("click", () => {
-    els.coachInput.value = `Explain the "${topic.title}" lesson to me with a simple real-world analogy and a code example.`;
-    setActiveTopicSection("labsSection");
-    els.coachInput.focus();
+    askFloatingAi(
+      `Explain the "${topic.title}" lesson to me with a simple real-world analogy and a code example.`,
+      { includeTopicContext: true }
+    );
   });
   els.lessonSections.appendChild(askAiLessonBtn);
   els.syntax.textContent = topic.syntax;
@@ -394,7 +551,6 @@ function selectTopic(topicId) {
   renderPracticeTest(topicId);
   setActiveTopicSection("overviewSection");
   markTopicVisited(topicId);
-  renderReadinessBar(topicId);
   // On narrow screens, collapse the topic list so the workspace is immediately visible
   if (window.innerWidth <= 1020) _collapseTopicList();
 }
@@ -415,7 +571,7 @@ function _lessonTipCard() {
       <span class="lesson-tip-icon">ⓘ</span>
       <span class="lesson-tip-text">
         <strong>▶ Try it</strong> — hover any code block to run it in a popup without leaving this page &nbsp;·&nbsp;
-        <strong>Ask AI</strong> — select any text on the page, then click the floating button to ask the coach
+        <strong>Ask AI</strong> — select any text on the page, then click the floating button for a simpler explanation
       </span>
       <button type="button" class="lesson-tip-dismiss" aria-label="Dismiss tip">✕</button>
     </div>`;
@@ -516,8 +672,12 @@ function renderPracticeTest(topicId) {
     els.testResult.textContent = tp.testTotal
       ? `Score: ${tp.testScore}/${tp.testTotal} (submitted)`
       : "You have already submitted this test.";
+    setRetakeButtonsVisible(true);
+    setPracticeCheckButtonsEnabled(false);
   } else {
     els.testResult.textContent = "Choose an answer, then check your result.";
+    setRetakeButtonsVisible(false);
+    setPracticeCheckButtonsEnabled(true);
   }
 }
 
@@ -526,10 +686,10 @@ function checkPracticeTest() {
   const questions = test ? test.questions : [];
   if (!questions.length) return;
 
-  // Block re-submission after first attempt
+  // Block accidental double-submit; learners can use Retake Test to start over.
   const tp = getTopicProgress(selectedTopicId);
   if (tp.practiceSubmitted) {
-    els.testResult.textContent = "You have already submitted this test. Your first-attempt score counts toward readiness.";
+    els.testResult.textContent = "You have already submitted this attempt. Use Retake Test to try again.";
     return;
   }
 
@@ -579,9 +739,19 @@ function checkPracticeTest() {
   document.querySelectorAll('.answer-options input[type="radio"]').forEach(r => { r.disabled = true; });
 
   els.testResult.textContent = `Score: ${score}/${questions.length}`;
+  setRetakeButtonsVisible(true);
+  setPracticeCheckButtonsEnabled(false);
   markTestScore(selectedTopicId, score, questions.length, questions);
   renderTopicList();
-  renderReadinessBar(selectedTopicId);
+}
+
+function resetPracticeTest() {
+  if (!selectedTopicId) return;
+  resetPracticeProgress(selectedTopicId);
+  renderPracticeTest(selectedTopicId);
+  renderTopicList();
+  setPracticeCheckButtonsEnabled(true);
+  els.testResult.textContent = "Practice test reset. Choose answers and check again.";
 }
 
 function selectExercise(exerciseId) {
@@ -597,6 +767,10 @@ function selectExercise(exerciseId) {
   els.editor.value = draft || selectedExercise.starter;
 
   els.testOutput.textContent = "No test run yet. Press Run Tests or Ctrl+Enter.";
+  // Invalidate any in-flight AI Coach stream so a late response for the
+  // previous exercise cannot be written into this exercise's transcript.
+  coachStreamGen++;
+  _stopTypingTimer("coach");
   coachMessages = [
     {
       role: "assistant",
@@ -605,7 +779,8 @@ function selectExercise(exerciseId) {
   ];
   renderCoachMessages();
   els.coachInput.value = "";
-  els.coachStatus.textContent = "Provider ready";
+  setCoachStatus("Provider ready");
+  setAskAiStatus("Provider ready");
   lastRunResult = null;
   solutionRevealed = false;
   failedAttempts = 0;
@@ -642,7 +817,6 @@ async function runCode() {
 
     if (result.ok) {
       markExercisePassed(selectedExercise.id);
-      renderReadinessBar(selectedTopicId);
       renderTopicList();
       // Update only the checkmark on this option — avoids selectExercise() resetting testOutput
       const option = els.exerciseSelect.querySelector(`option[value="${selectedExercise.id}"]`);
@@ -664,11 +838,66 @@ async function runCode() {
 // AI Coach
 // ---------------------------------------------------------------------------
 
-async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
+function setCoachStatus(text) {
+  if (els.coachStatus) els.coachStatus.textContent = text;
+}
+
+function setAskAiStatus(text) {
+  if (els.askAiStatus) els.askAiStatus.textContent = text;
+  if (els.askAiLauncherStatus) els.askAiLauncherStatus.textContent = text;
+}
+
+function openAskAiPanel({ focusInput = false } = {}) {
+  if (!els.askAiPanel || !els.askAiLauncher) return;
+  els.askAiPanel.hidden = false;
+  els.askAiDock?.classList.add("is-open");
+  els.askAiLauncher.setAttribute("aria-expanded", "true");
+  if (focusInput) {
+    requestAnimationFrame(() => {
+      els.askAiInput.focus();
+      els.askAiInput.selectionStart = els.askAiInput.selectionEnd = els.askAiInput.value.length;
+    });
+  }
+}
+
+function closeAskAiPanel() {
+  if (!els.askAiPanel || !els.askAiLauncher) return;
+  els.askAiPanel.hidden = true;
+  els.askAiDock?.classList.remove("is-open");
+  els.askAiLauncher.setAttribute("aria-expanded", "false");
+  els.askAiLauncher.focus();
+}
+
+function startNewAskAiChat() {
+  // Invalidate any in-flight Ask AI stream so a late response for the
+  // previous chat cannot be written into the new chat's transcript.
+  askAiStreamGen++;
+  _stopTypingTimer("askAi");
+  askAiMessages = [{ role: "assistant", text: ASK_AI_WELCOME_MESSAGE }];
+  if (els.askAiInput) els.askAiInput.value = "";
+  setAskAiStatus("New chat ready");
+  renderAskAiMessages();
+  openAskAiPanel({ focusInput: true });
+}
+
+function isLocalAiProvider(provider = els.provider.value) {
+  return LOCAL_AI_PROVIDERS.has(provider);
+}
+
+function _localProviderWarmupHint() {
+  return isLocalAiProvider()
+    ? " Local models sometimes need one warm-up request after launch; if this was the first question, try once more."
+    : "";
+}
+
+async function askLabCoach(questionOverride = "", { skipAutoRun = false, mode = "" } = {}) {
+  const generation = ++coachStreamGen;
   const question = questionOverride || els.coachInput.value.trim() || "Please review my current code and test result. Explain what I should learn next.";
+  const requestMode = mode || (questionOverride ? "lab" : "chat");
+  const coachHistory = coachMessages.filter((message) => message.text !== "thinking").slice(-8);
   appendCoachMessage("user", question);
   els.coachInput.value = "";
-  els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no model selected"}`;
+  setCoachStatus(`${els.provider.value} / ${els.model.value || "no model selected"}`);
   els.aiBtn.disabled = true;
   els.explainBtn.disabled = true;
 
@@ -683,9 +912,10 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
     els.testOutput.innerHTML = formatResult(runResult);
   }
 
+  let streamIndex = null;
   try {
     appendCoachMessage("assistant", "thinking");
-    const result = await postJsonWithTimeout("/api/ai-coach", {
+    const payload = {
       provider: els.provider.value,
       model: els.model.value,
       endpoint: els.endpoint.value,
@@ -695,9 +925,20 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
       code: selectedExercise ? els.editor.value : "",
       run_result: runResult || {},
       question,
-      mode: questionOverride ? "lab" : "chat",
-      chat_history: coachMessages.filter((message) => message.text !== "thinking").slice(-8),
+      mode: requestMode,
+      chat_history: coachHistory,
+    };
+    const result = await postAiStreamWithTimeout(payload, {
+      onChunk: (text) => {
+        if (generation !== coachStreamGen) return;
+        if (streamIndex === null) {
+          streamIndex = _beginStreamingAssistantMessage(coachMessages, "coach", renderCoachMessages);
+          setCoachStatus("Coach is typing...");
+        }
+        _updateStreamingAssistantMessage(coachMessages, streamIndex, text, null, true, renderCoachMessages);
+      },
     }, AI_REQUEST_TIMEOUT_MS);
+    if (generation !== coachStreamGen) return;
     const prefix = result.ok ? "" : `⚠ AI Coach unavailable (${result.error}). Built-in feedback:\n\n`;
     const stats = result.ok ? {
       model: els.model.value,
@@ -707,18 +948,113 @@ async function askAiCoach(questionOverride = "", { skipAutoRun = false } = {}) {
       elapsed_sec: result.elapsed_sec || 0,
       tok_per_sec: result.tok_per_sec || 0,
     } : null;
-    replaceLastThinkingMessage(`${prefix}${result.answer}`, stats);
-    els.coachStatus.textContent = result.ok ? "Coach response received" : "Fallback feedback shown";
-    saveAiSettings();
+    if (streamIndex !== null) {
+      _updateStreamingAssistantMessage(
+        coachMessages,
+        streamIndex,
+        `${prefix}${result.answer || result.error || "No response."}`,
+        stats,
+        false,
+        renderCoachMessages
+      );
+    } else {
+      replaceLastThinkingMessage(`${prefix}${result.answer || result.error || "No response."}`, stats);
+    }
+    setCoachStatus(result.ok ? "Coach response received" : "Fallback feedback shown");
   } catch (error) {
+    if (generation !== coachStreamGen) return;
     const message = String(error).includes("timed out")
-      ? "AI Coach request timed out. Check provider endpoint/model and try again."
+      ? `AI Coach request timed out. Check provider endpoint/model and try again.${_localProviderWarmupHint()}`
       : `Could not reach the AI coach route: ${error}`;
-    replaceLastThinkingMessage(message);
-    els.coachStatus.textContent = "Coach unavailable";
+    if (streamIndex !== null) {
+      _updateStreamingAssistantMessage(coachMessages, streamIndex, message, null, false, renderCoachMessages);
+    } else {
+      replaceLastThinkingMessage(message);
+    }
+    setCoachStatus("Coach unavailable");
   } finally {
     els.aiBtn.disabled = false;
     els.explainBtn.disabled = false;
+  }
+}
+
+async function askFloatingAi(questionOverride = "", { includeTopicContext = false, includeHistory = !includeTopicContext } = {}) {
+  const generation = ++askAiStreamGen;
+  const question = questionOverride || els.askAiInput.value.trim() || "Help me understand what I am looking at on this page.";
+  const contextKind = includeTopicContext ? "contextual" : "freeform";
+  const askAiHistory = includeHistory
+    ? askAiMessages
+      .filter((message) => message.text !== "thinking" && message.contextKind !== "contextual")
+      .slice(-8)
+    : [];
+  openAskAiPanel();
+  appendAskAiMessage("user", question, { contextKind });
+  els.askAiInput.value = "";
+  setAskAiStatus(`${els.provider.value} / ${els.model.value || "no model selected"}`);
+  els.askAiSendBtn.disabled = true;
+
+  let streamIndex = null;
+  try {
+    appendAskAiMessage("assistant", "thinking", { contextKind });
+    const payload = {
+      provider: els.provider.value,
+      model: els.model.value,
+      endpoint: els.endpoint.value,
+      api_key: els.apiKey.value,
+      topic_id: includeTopicContext ? selectedTopicId : "",
+      exercise_id: "",
+      code: "",
+      run_result: {},
+      question,
+      mode: "chat",
+      chat_history: askAiHistory,
+    };
+    const result = await postAiStreamWithTimeout(payload, {
+      onChunk: (text) => {
+        if (generation !== askAiStreamGen) return;
+        if (streamIndex === null) {
+          streamIndex = _beginStreamingAssistantMessage(askAiMessages, "askAi", renderAskAiMessages, { contextKind });
+          setAskAiStatus("Ask AI is typing...");
+        }
+        _updateStreamingAssistantMessage(askAiMessages, streamIndex, text, null, true, renderAskAiMessages);
+      },
+    }, AI_REQUEST_TIMEOUT_MS);
+    if (generation !== askAiStreamGen) return;
+    const prefix = result.ok ? "" : `⚠ Ask AI unavailable (${result.error}).\n\n`;
+    const stats = result.ok ? {
+      model: els.model.value,
+      provider: els.provider.value,
+      tokens_in: result.tokens_in || 0,
+      tokens_out: result.tokens_out || 0,
+      elapsed_sec: result.elapsed_sec || 0,
+      tok_per_sec: result.tok_per_sec || 0,
+    } : null;
+    if (streamIndex !== null) {
+      _updateStreamingAssistantMessage(
+        askAiMessages,
+        streamIndex,
+        `${prefix}${result.answer || result.error || "No response."}`,
+        stats,
+        false,
+        renderAskAiMessages
+      );
+    } else {
+      replaceLastAskAiThinkingMessage(`${prefix}${result.answer || result.error || "No response."}`, stats);
+    }
+    setAskAiStatus(result.ok ? "Response received" : "Provider unavailable");
+  } catch (error) {
+    if (generation !== askAiStreamGen) return;
+    const message = String(error).includes("timed out")
+      ? `Ask AI request timed out. Check provider endpoint/model and try again.${_localProviderWarmupHint()}`
+      : `Could not reach the AI coach route: ${error}`;
+    if (streamIndex !== null) {
+      _updateStreamingAssistantMessage(askAiMessages, streamIndex, message, null, false, renderAskAiMessages);
+    } else {
+      replaceLastAskAiThinkingMessage(message);
+    }
+    setAskAiStatus("Unavailable");
+  } finally {
+    els.askAiSendBtn.disabled = false;
   }
 }
 
@@ -786,16 +1122,70 @@ function applyProviderDefaults() {
   const selected = defaults[els.provider.value];
   preferredModel = selected.model;
   els.endpoint.value = selected.endpoint;
+  updateAiSettingsMode();
+  clearAiSettingsStatus();
   loadModels();
 }
 
+function clearAiSettingsStatus() {
+  const statusEl = document.querySelector("#aiSettingsTestStatus");
+  if (!statusEl) return;
+  statusEl.hidden = true;
+  statusEl.textContent = "";
+  statusEl.className = "ai-settings-test-status";
+}
+
+function setAiSettingsStatus(kind, headline, detail = "") {
+  const statusEl = document.querySelector("#aiSettingsTestStatus");
+  if (!statusEl) return;
+  statusEl.hidden = false;
+  statusEl.className = `ai-settings-test-status ${kind || ""}`.trim();
+  statusEl.innerHTML = [
+    `<strong>${escapeHtml(headline)}</strong>`,
+    detail ? `<span>${escapeHtml(detail)}</span>` : "",
+  ].join("");
+  requestAnimationFrame(_reclampPanel);
+}
+
+function updateAiSettingsMode() {
+  const local = isLocalAiProvider();
+  if (els.model && els.modelSelect) {
+    els.model.hidden = local;
+    els.modelSelect.hidden = !local;
+  }
+  if (els.refreshModelsBtn) {
+    els.refreshModelsBtn.hidden = !local;
+    els.refreshModelsBtn.textContent = local ? "Show local models" : "Load model list";
+    els.refreshModelsBtn.title = local
+      ? "Show models installed in your local provider"
+      : "Load verified models from this provider";
+  }
+  if (els.modelHelpText) {
+    els.modelHelpText.textContent = local
+      ? "Use Show local models to list what is installed, choose a model, then test it."
+      : "Use the recommended default or type the model name your API account can use.";
+  }
+  if (els.apiKeyFieldLabel) {
+    els.apiKeyFieldLabel.hidden = local;
+  }
+  if (els.apiKeyHelpText) {
+    els.apiKeyHelpText.textContent = local
+      ? "Not needed for Ollama or LM Studio."
+      : "Stored in this browser only. Server-side environment keys take priority.";
+  }
+  const testBtn = document.querySelector("#aiSettingsTestBtn");
+  if (testBtn) {
+    testBtn.textContent = local ? "Test selected model" : "Verify provider";
+  }
+}
+
 async function loadModels(options = {}) {
-  const persistOnSuccess = options.persistOnSuccess !== false;
+  const persistOnSuccess = options.persistOnSuccess === true;
   const notify = options.notify !== false;
   // Suggestions shown before a hosted API key is configured or when refresh
   // fails. Prefer live /models responses whenever available.
   const fallback = FALLBACK_MODELS[els.provider.value] || [];
-  const isLocalProvider = ["ollama", "lmstudio"].includes(els.provider.value);
+  const isLocalProvider = isLocalAiProvider();
   setModelOptions(fallback, preferredModel || fallback[0]);
 
   try {
@@ -811,43 +1201,57 @@ async function loadModels(options = {}) {
       const error = result.error || "No local models were reported by the provider.";
       setModelOptions([], "");
       _updateSettingsBtnLabel();
-      els.coachStatus.textContent = `${els.provider.value} / no live model selected`;
+      setCoachStatus(`${els.provider.value} / no live model selected`);
+      setAskAiStatus(`${els.provider.value} / no live model selected`);
       if (notify) {
-        appendCoachMessage(
-          "assistant",
-          `Could not refresh models: ${error}\nNo local fallback models were shown because local providers must reflect installed models.`
-        );
+        setAiSettingsStatus("error", "No local models found", `${error} Open the provider and install or load a model first.`);
       }
       return { ok: false, error };
     }
     const liveSelected = models.includes(preferredModel) ? preferredModel : models[0];
     setModelOptions(models, liveSelected);
-    if (persistOnSuccess && result.ok && models.length) {
+    if (persistOnSuccess && result.ok && models.length && !result.suggestions_only) {
       saveAiSettings();
     }
     _updateSettingsBtnLabel();
     if (result.suggestions_only) {
-      els.coachStatus.textContent = `${els.provider.value} / suggested models — no API key set`;
+      setCoachStatus(`${els.provider.value} / suggested models — no API key set`);
+      setAskAiStatus(`${els.provider.value} / suggested models — no API key set`);
+      if (notify) {
+        setAiSettingsStatus("warn", "API key required", "Showing suggested model names only. Enter a key to verify this provider.");
+      }
     } else {
-      els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no live model selected"}`;
+      setCoachStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
+      setAskAiStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
+      if (notify) {
+        const count = result.models ? result.models.length : 0;
+        const headline = isLocalProvider
+          ? `${count} local model${count !== 1 ? "s" : ""} found`
+          : "Model list refreshed";
+        const detail = isLocalProvider
+          ? "Choose the model you want to use, then run Test selected model."
+          : "Choose or type the model your API account can use, then run Verify provider.";
+        setAiSettingsStatus("ok", headline, detail);
+      }
     }
     if (!result.ok && result.error && !result.suggestions_only) {
       const suffix = isLocalProvider
         ? "No local fallback models were shown because local providers must reflect installed models."
         : "Using fallback model list.";
-      if (notify) appendCoachMessage("assistant", `Could not refresh models: ${result.error}\n${suffix}`);
+      if (notify) setAiSettingsStatus("error", "Could not refresh models", `${result.error} ${suffix}`);
     } else if (result.suggestions_only && notify) {
-      appendCoachMessage("assistant", "No API key set — showing suggested model names only. Enter your key in AI Settings and click Save & Apply to verify.");
+      setAiSettingsStatus("warn", "API key required", "Showing suggested model names only. Enter your key and use Verify provider.");
     }
     return { ok: true, suggestionsOnly: !!result.suggestions_only };
   } catch (error) {
     setModelOptions(fallback, fallback[0]);
     _updateSettingsBtnLabel();
-    els.coachStatus.textContent = `${els.provider.value} / ${els.model.value || "no live model selected"}`;
+    setCoachStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
+    setAskAiStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
     const suffix = isLocalProvider
       ? "No local fallback models were shown because local providers must reflect installed models."
       : "Using fallback model list.";
-    if (notify) appendCoachMessage("assistant", `Could not refresh models: ${error}\n${suffix}`);
+    if (notify) setAiSettingsStatus("error", "Could not refresh models", `${error} ${suffix}`);
     return { ok: !isLocalProvider, error: String(error) };
   } finally {
     els.refreshModelsBtn.disabled = false;
@@ -859,11 +1263,23 @@ function setModelOptions(models, selectedModel) {
   document.querySelector("#modelSuggestions").innerHTML = uniqueModels
     .map((m) => `<option value="${escapeHtml(m)}">`)
     .join("");
+  if (els.modelSelect) {
+    els.modelSelect.innerHTML = uniqueModels
+      .map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`)
+      .join("");
+  }
   if (uniqueModels.length > 0) {
     els.model.value = uniqueModels.includes(selectedModel) ? selectedModel : uniqueModels[0];
+    if (els.modelSelect) els.modelSelect.value = els.model.value;
   } else if (selectedModel != null) {
     // Preserve a non-null selectedModel even when the list is empty (e.g. no-key state)
     els.model.value = selectedModel;
+    if (els.modelSelect) els.modelSelect.innerHTML = "";
+  } else {
+    // No models and no preferred model — clear rather than keep a stale value
+    // left over from a previously selected provider.
+    els.model.value = "";
+    if (els.modelSelect) els.modelSelect.innerHTML = "";
   }
   preferredModel = els.model.value;
 }
@@ -1275,8 +1691,6 @@ function openCodePopup(code) {
 function closeCodePopup() {
   els.codePopup.hidden = true;
   els.codePopup.classList.remove("maximized");
-  els.codePopupAiPanel.hidden = true;
-  els.codePopupAiBody.innerHTML = "";
   els.codePopupModal.style.transform = "";
   els.codePopupModal.style.top = "";
   els.codePopupModal.style.left = "";
@@ -1334,14 +1748,87 @@ function appendCoachMessage(role, text) {
   renderCoachMessages();
 }
 
-function replaceLastThinkingMessage(text, stats = null) {
-  const index = coachMessages.map((message) => message.text).lastIndexOf("thinking");
-  if (index >= 0) {
-    coachMessages[index] = { role: "assistant", text, stats };
-  } else {
-    coachMessages.push({ role: "assistant", text, stats });
+function appendAskAiMessage(role, text, meta = {}) {
+  askAiMessages.push({ role, text, ...meta });
+  renderAskAiMessages();
+}
+
+function _stopTypingTimer(kind) {
+  if (kind === "coach" && coachTypingTimer) {
+    clearInterval(coachTypingTimer);
+    coachTypingTimer = null;
   }
-  renderCoachMessages();
+  if (kind === "askAi" && askAiTypingTimer) {
+    clearInterval(askAiTypingTimer);
+    askAiTypingTimer = null;
+  }
+}
+
+function _animateAssistantMessage(messages, kind, text, stats, renderFn) {
+  _stopTypingTimer(kind);
+  const thinkingIndex = messages.map((message) => message.text).lastIndexOf("thinking");
+  const index = thinkingIndex >= 0 ? thinkingIndex : messages.length;
+  const existing = messages[index] || {};
+  messages[index] = { role: "assistant", text: "", stats: null, typing: true, contextKind: existing.contextKind };
+  renderFn();
+
+  let cursor = 0;
+  const timer = setInterval(() => {
+    cursor = Math.min(text.length, cursor + MESSAGE_TYPE_CHUNK_SIZE);
+    messages[index] = {
+      role: "assistant",
+      text: text.slice(0, cursor),
+      stats: cursor >= text.length ? stats : null,
+      typing: cursor < text.length,
+      contextKind: existing.contextKind,
+    };
+    renderFn();
+    if (cursor >= text.length) {
+      clearInterval(timer);
+      if (kind === "coach") coachTypingTimer = null;
+      if (kind === "askAi") askAiTypingTimer = null;
+    }
+  }, MESSAGE_TYPE_INTERVAL_MS);
+
+  if (kind === "coach") coachTypingTimer = timer;
+  if (kind === "askAi") askAiTypingTimer = timer;
+}
+
+function _beginStreamingAssistantMessage(messages, kind, renderFn, meta = {}) {
+  _stopTypingTimer(kind);
+  const thinkingIndex = messages.map((message) => message.text).lastIndexOf("thinking");
+  const index = thinkingIndex >= 0 ? thinkingIndex : messages.length;
+  const existing = messages[index] || {};
+  messages[index] = {
+    role: "assistant",
+    text: "",
+    stats: null,
+    typing: true,
+    contextKind: existing.contextKind,
+    ...meta,
+  };
+  renderFn();
+  return index;
+}
+
+function _updateStreamingAssistantMessage(messages, index, text, stats, typing, renderFn) {
+  const existing = messages[index] || {};
+  messages[index] = {
+    ...existing,
+    role: "assistant",
+    text,
+    stats: typing ? null : stats,
+    typing,
+  };
+  renderFn();
+}
+
+function replaceLastThinkingMessage(text, stats = null) {
+  _animateAssistantMessage(coachMessages, "coach", text, stats, renderCoachMessages);
+}
+
+function replaceLastAskAiThinkingMessage(text, stats = null) {
+  _animateAssistantMessage(askAiMessages, "askAi", text, stats, renderAskAiMessages);
 }
 
 function _renderMessageStats(stats) {
@@ -1369,9 +1856,10 @@ function renderCoachMessages() {
           `;
         }
         const content = message.role === "assistant" ? renderMarkdown(message.text) : escapeHtml(message.text);
-        const statsHtml = message.role === "assistant" ? _renderMessageStats(message.stats) : "";
+        const typingClass = message.typing ? " is-typing" : "";
+        const statsHtml = message.role === "assistant" && !message.typing ? _renderMessageStats(message.stats) : "";
         return `
-          <div class="coach-message ${message.role}">
+          <div class="coach-message ${message.role}${typingClass}">
             <strong>${message.role === "user" ? "You" : "Coach"}</strong>
             <div class="message-content">${content}</div>
             ${statsHtml}
@@ -1381,6 +1869,34 @@ function renderCoachMessages() {
     )
     .join("");
   requestAnimationFrame(() => { els.aiOutput.scrollTop = els.aiOutput.scrollHeight; });
+}
+
+function renderAskAiMessages() {
+  els.askAiOutput.innerHTML = askAiMessages
+    .map(
+      (message) => {
+        if (message.text === "thinking") {
+          return `
+            <div class="coach-message assistant thinking">
+              <strong>Ask AI</strong>
+              <div class="thinking-dots"><span></span><span></span><span></span></div>
+            </div>
+          `;
+        }
+        const content = message.role === "assistant" ? renderMarkdown(message.text) : escapeHtml(message.text);
+        const typingClass = message.typing ? " is-typing" : "";
+        const statsHtml = message.role === "assistant" && !message.typing ? _renderMessageStats(message.stats) : "";
+        return `
+          <div class="coach-message ${message.role}${typingClass}">
+            <strong>${message.role === "user" ? "You" : "Ask AI"}</strong>
+            <div class="message-content">${content}</div>
+            ${statsHtml}
+          </div>
+        `;
+      }
+    )
+    .join("");
+  requestAnimationFrame(() => { els.askAiOutput.scrollTop = els.askAiOutput.scrollHeight; });
 }
 
 // ---------------------------------------------------------------------------
@@ -1396,8 +1912,8 @@ els.coachInput.addEventListener("input", function () {
 els.search.addEventListener("input", renderTopicList);
 els.exerciseSelect.addEventListener("change", (event) => selectExercise(event.target.value));
 els.runBtn.addEventListener("click", runCode);
-els.aiBtn.addEventListener("click", () => askAiCoach());
-els.explainBtn.addEventListener("click", () => askAiCoach("Explain my current code and test result. Give me one small next step, not the full answer unless it already passes."));
+els.aiBtn.addEventListener("click", () => askLabCoach());
+els.explainBtn.addEventListener("click", () => askLabCoach("Explain my current code and test result. Give me one small next step, not the full answer unless it already passes."));
 els.resetBtn.addEventListener("click", () => {
   if (selectedExercise) {
     clearDraft(selectedExercise.id);
@@ -1412,6 +1928,21 @@ els.hintBtn.addEventListener("click", () => {
 
 if (els.solutionBtn) {
   els.solutionBtn.addEventListener("click", toggleSolution);
+}
+
+if (els.askAiLauncher) {
+  els.askAiLauncher.addEventListener("click", () => {
+    if (els.askAiPanel.hidden) openAskAiPanel({ focusInput: true });
+    else closeAskAiPanel();
+  });
+}
+
+if (els.askAiClose) {
+  els.askAiClose.addEventListener("click", closeAskAiPanel);
+}
+
+if (els.askAiNewChat) {
+  els.askAiNewChat.addEventListener("click", startNewAskAiChat);
 }
 
 // Code editor: Tab indent + Ctrl+Enter to run + auto-save
@@ -1430,8 +1961,8 @@ els.editor.addEventListener("keydown", (event) => {
   if ((event.key === "s" || event.key === "S") && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
     if (selectedExercise) saveDraft(selectedExercise.id, els.editor.value);
-    els.coachStatus.textContent = "Draft saved";
-    setTimeout(() => { els.coachStatus.textContent = "Provider ready"; }, 1500);
+    setCoachStatus("Draft saved");
+    setTimeout(() => { setCoachStatus("Provider ready"); }, 1500);
   }
 });
 
@@ -1447,27 +1978,66 @@ els.editor.addEventListener("input", () => {
 els.provider.addEventListener("change", () => {
   applyProviderDefaults();
   _updateSettingsBtnLabel();
-  const s = document.querySelector("#aiSettingsTestStatus");
-  if (s) { s.hidden = true; s.textContent = ""; }
 });
 els.model.addEventListener("change", () => {
   preferredModel = els.model.value;
-  saveAiSettings();
+  if (els.modelSelect && els.modelSelect.value !== els.model.value) {
+    els.modelSelect.value = els.model.value;
+  }
+  clearAiSettingsStatus();
+  updateAiSettingsMode();
+  setCoachStatus("AI settings changed — click Save & Apply");
+  setAskAiStatus("AI settings changed — click Save & Apply");
   _updateSettingsBtnLabel();
 });
-els.endpoint.addEventListener("change", () => { els.coachStatus.textContent = "AI settings changed — click Save & Apply"; });
-els.apiKey.addEventListener("change", () => { els.coachStatus.textContent = "AI settings changed — click Save & Apply"; });
-els.refreshModelsBtn.addEventListener("click", loadModels);
+if (els.modelSelect) {
+  els.modelSelect.addEventListener("change", () => {
+    els.model.value = els.modelSelect.value;
+    preferredModel = els.model.value;
+    clearAiSettingsStatus();
+    setCoachStatus("AI settings changed — click Save & Apply");
+    setAskAiStatus("AI settings changed — click Save & Apply");
+    _updateSettingsBtnLabel();
+  });
+}
+els.endpoint.addEventListener("change", () => {
+  setCoachStatus("AI settings changed — click Save & Apply");
+  setAskAiStatus("AI settings changed — click Save & Apply");
+});
+els.apiKey.addEventListener("change", () => {
+  setCoachStatus("AI settings changed — click Save & Apply");
+  setAskAiStatus("AI settings changed — click Save & Apply");
+});
+els.refreshModelsBtn.addEventListener("click", () => loadModels({ notify: true }));
 document.querySelectorAll(".mode-button").forEach((button) => {
   button.addEventListener("click", () => setActiveTopicSection(button.dataset.section));
 });
-els.checkTestBtn.addEventListener("click", checkPracticeTest);
+[els.checkTestBtn, els.checkTestBtnBottom].forEach((button) => {
+  if (button) button.addEventListener("click", checkPracticeTest);
+});
+[els.resetTestBtn, els.resetTestBtnBottom].forEach((button) => {
+  if (button) button.addEventListener("click", resetPracticeTest);
+});
 els.coachInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
-    askAiCoach();
+    askLabCoach();
   }
 });
+
+els.askAiInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    askFloatingAi();
+  }
+});
+
+els.askAiInput.addEventListener("input", function () {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 200) + "px";
+});
+
+els.askAiSendBtn.addEventListener("click", () => askFloatingAi());
 
 // Scratchpad toggle
 els.scratchToggle.addEventListener("click", () => {
@@ -1520,6 +2090,12 @@ els.vizOverlay.addEventListener("click", (e) => { if (e.target === els.vizOverla
 document.addEventListener("keydown", (e) => {
   if (els.vizOverlay.hidden) return;
   if (e.key === "Escape") {
+    if (els.askAiPanel && !els.askAiPanel.hidden) {
+      closeAskAiPanel();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
     closeViz();
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -1605,10 +2181,6 @@ els.codePopupVizBtn.addEventListener("click", () => openVisualizer(els.codePopup
 els.codePopupAiBtn.addEventListener("click", () => askInlinePopup(
   "Review this code. Explain what it does and whether there are any mistakes. If there are errors, explain exactly how to fix them."
 ));
-els.codePopupAiClose.addEventListener("click", () => {
-  els.codePopupAiPanel.hidden = true;
-  els.codePopupAiBody.innerHTML = "";
-});
 els.codePopupClearBtn.addEventListener("click", () => {
   els.codePopupEditor.value = "";
   els.codePopupOutput.textContent = "Ready.";
@@ -1627,46 +2199,6 @@ els.codePopupEditor.addEventListener("keydown", (e) => {
     runCodePopup();
   }
 });
-
-// ---------------------------------------------------------------------------
-// Readiness bar
-// ---------------------------------------------------------------------------
-
-function renderReadinessBar(topicId) {
-  if (!els.readinessBar) return;
-  const r = getTopicReadiness(topicId);
-
-  if (r.isReady) {
-    const capstone = exercises.find(ex => ex.topic_id === topicId && ex.difficulty === 'Advanced');
-    const capstoneDone = !capstone || isExercisePassed(capstone.id);
-    const readyLabel = capstoneDone ? '✓ Topic complete' : '✓ Core labs done';
-    const topicIdx = topics.findIndex((t) => t.id === topicId);
-    const nextTopic = topics[topicIdx + 1];
-    const nextBtn = nextTopic
-      ? `<button class="rbar-next" type="button" data-next="${nextTopic.id}">Next: ${escapeHtml(nextTopic.title)} →</button>`
-      : "";
-    els.readinessBar.className = "readiness-bar rbar-ready";
-    els.readinessBar.innerHTML = `<span>${readyLabel} — Labs: ${r.passed}/${r.total} · Test: ${Math.round(r.testPct * 100)}%</span>${nextBtn}`;
-    els.readinessBar.hidden = false;
-  } else if (r.passed > 0 || r.testScore !== undefined) {
-    const parts = [];
-    if (r.total > 0) parts.push(`Labs: ${r.passed}/${r.total}`);
-    if (r.testScore !== undefined) parts.push(`Test: ${Math.round(r.testPct * 100)}%`);
-    els.readinessBar.className = "readiness-bar rbar-progress";
-    els.readinessBar.innerHTML = `<span>${parts.join(" · ")}</span>`;
-    els.readinessBar.hidden = false;
-  } else {
-    els.readinessBar.hidden = true;
-  }
-}
-
-// Next-topic button in readiness bar (event delegation)
-if (els.readinessBar) {
-  els.readinessBar.addEventListener("click", (e) => {
-    const btn = e.target.closest(".rbar-next");
-    if (btn && btn.dataset.next) selectTopic(btn.dataset.next);
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Mobile topic list toggle
@@ -1765,39 +2297,66 @@ _aiSettingsBtn.addEventListener("click", (e) => {
   }
 });
 
-document.querySelector("#aiSettingsTestBtn").addEventListener("click", async () => {
+async function testAiProviderConnection() {
   const testBtn = document.querySelector("#aiSettingsTestBtn");
-  const statusEl = document.querySelector("#aiSettingsTestStatus");
-  testBtn.textContent = "Testing…";
+  const local = isLocalAiProvider();
+  const originalText = local ? "Test selected model" : "Verify provider";
+  if (!els.model.value.trim()) {
+    setAiSettingsStatus(
+      "warn",
+      "Choose a model first",
+      local ? "Click Show local models, then choose one from the Model dropdown." : "Type the model name you want this provider to use."
+    );
+    return;
+  }
+
+  testBtn.textContent = local ? "Testing model..." : "Verifying...";
   testBtn.disabled = true;
-  statusEl.hidden = false;
-  statusEl.className = "ai-settings-test-status";
-  statusEl.textContent = "Connecting…";
+  setAiSettingsStatus(
+    "",
+    local ? "Testing selected model..." : "Verifying provider...",
+    local ? "Sending a short prompt to the selected local model." : "Sending a short prompt to the configured model."
+  );
   try {
-    const result = await postJsonWithTimeout("/api/ai-models", {
+    const result = await postJsonWithTimeout("/api/ai-coach", {
       provider: els.provider.value,
+      model: els.model.value,
       endpoint: els.endpoint.value,
       api_key: els.apiKey.value,
-    }, 10000);
+      topic_id: "",
+      exercise_id: "",
+      code: "",
+      run_result: {},
+      question: "Reply with one short sentence confirming you are ready to help a Python learner.",
+      mode: "chat",
+      chat_history: [],
+    }, AI_REQUEST_TIMEOUT_MS);
     if (!result.ok) {
-      statusEl.className = "ai-settings-test-status error";
-      statusEl.textContent = `✗ ${result.error || "Could not connect to endpoint"}`;
-    } else if (result.suggestions_only) {
-      statusEl.className = "ai-settings-test-status warn";
-      statusEl.textContent = "⚠ No API key — suggested models only, connection not verified";
+      setAiSettingsStatus(
+        "error",
+        local ? "Model did not reply" : "Provider not verified",
+        `${result.error || "Could not complete a test reply."}${local ? _localProviderWarmupHint() : ""}`
+      );
     } else {
-      const count = result.models ? result.models.length : 0;
-      statusEl.className = "ai-settings-test-status ok";
-      statusEl.textContent = `✓ Connected — ${count} model${count !== 1 ? "s" : ""} available`;
+      setAiSettingsStatus(
+        "ok",
+        local ? "Selected model replied" : "Provider verified",
+        local ? "This local model is ready for AI Coach and Ask AI." : "This provider is ready for AI Coach and Ask AI."
+      );
+      saveAiSettings();
     }
   } catch (err) {
-    statusEl.className = "ai-settings-test-status error";
-    statusEl.textContent = `✗ ${err.message || "Connection failed"}`;
+    const message = String(err).includes("timed out")
+      ? `Request timed out.${local ? _localProviderWarmupHint() : ""}`
+      : (err.message || "Connection failed");
+    setAiSettingsStatus("error", local ? "Model test failed" : "Provider check failed", message);
   }
-  testBtn.textContent = "Test Connection";
+  testBtn.textContent = originalText;
   testBtn.disabled = false;
   requestAnimationFrame(_reclampPanel);
-});
+}
+
+document.querySelector("#aiSettingsTestBtn").addEventListener("click", testAiProviderConnection);
 
 document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () => {
   const saveBtn = document.querySelector("#aiSettingsSaveBtn");
@@ -1807,13 +2366,15 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
   if (!refresh.ok) {
     saveBtn.textContent = "Save failed";
     saveBtn.disabled = false;
-    els.coachStatus.textContent = `Settings not saved — ${refresh.error || "model refresh failed"}`;
+    setCoachStatus(`Settings not saved — ${refresh.error || "model refresh failed"}`);
+    setAskAiStatus(`Settings not saved — ${refresh.error || "model refresh failed"}`);
     return;
   }
   if (refresh.suggestionsOnly) {
     saveBtn.textContent = "API key required";
     saveBtn.disabled = false;
-    els.coachStatus.textContent = "Enter an API key to save this provider.";
+    setCoachStatus("Enter an API key to save this provider.");
+    setAskAiStatus("Enter an API key to save this provider.");
     setTimeout(() => { saveBtn.textContent = "Save & Apply"; }, 2000);
     return;
   }
@@ -1838,6 +2399,7 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!els.vizOverlay.hidden) return; // viz overlay handles its own Escape
+  if (els.askAiPanel && !els.askAiPanel.hidden) { closeAskAiPanel(); return; }
   if (!els.codePopup.hidden) { closeCodePopup(); return; }
   if (!_aiSettingsPanel.hidden) { _aiSettingsPanel.hidden = true; _aiSettingsBtn.focus(); }
 });
@@ -1846,28 +2408,6 @@ document.addEventListener("keydown", (e) => {
 // Inline AI — Try It popup and Visualizer
 // ---------------------------------------------------------------------------
 
-async function _callInlineAi(question) {
-  if (!els.provider.value) return "Connect an AI provider in Settings to use inline AI.";
-  try {
-    const data = await postJsonWithTimeout("/api/ai-coach", {
-      provider: els.provider.value,
-      model: els.model.value,
-      endpoint: els.endpoint.value,
-      api_key: els.apiKey.value,
-      topic_id: selectedTopicId,
-      question,
-      mode: "chat",
-      chat_history: [],
-    }, AI_REQUEST_TIMEOUT_MS);
-    return data.ok ? (data.answer || "No response.") : (data.error || data.answer || "No response.");
-  } catch (e) {
-    if (String(e).includes("timed out")) {
-      return "AI request timed out. Check local model/API connection and try again.";
-    }
-    return `Could not reach AI: ${e}`;
-  }
-}
-
 async function askInlinePopup(question) {
   const code = els.codePopupEditor.value.trim();
   const output = els.codePopupOutput.textContent;
@@ -1875,9 +2415,7 @@ async function askInlinePopup(question) {
   let full = question;
   if (code) full += `\n\nCode:\n\`\`\`python\n${code}\n\`\`\``;
   if (hasOutput) full += `\n\nOutput:\n${output.slice(0, 800)}`;
-  els.codePopupAiPanel.hidden = false;
-  els.codePopupAiBody.innerHTML = "<em>AI thinking…</em>";
-  els.codePopupAiBody.innerHTML = renderMarkdown(await _callInlineAi(full));
+  await askFloatingAi(full, { includeTopicContext: true });
 }
 
 async function askInlineViz(question) {
@@ -1895,9 +2433,8 @@ async function askInlineViz(question) {
     const varsStr = Object.entries(step.vars || {}).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(", ") || "none";
     ctx += `\n\nCurrently on line ${step.line}: \`${lineCode}\`\nVariables: ${varsStr}`;
   }
-  els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> <em>thinking…</em>`;
-  const answer = await _callInlineAi(question + ctx);
-  els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> ${renderMarkdown(answer)}`;
+  els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> I sent this step's context to Ask AI.`;
+  await askFloatingAi(question + ctx, { includeTopicContext: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -1913,7 +2450,7 @@ function _ensurePopover() {
   _selectionPopover.className = "selection-popover";
   _selectionPopover.type = "button";
   _selectionPopover.textContent = "Ask AI";
-  _selectionPopover.setAttribute("aria-label", "Ask AI coach about the selected text");
+  _selectionPopover.setAttribute("aria-label", "Ask AI about the selected text");
   document.body.appendChild(_selectionPopover);
 
   _selectionPopover.addEventListener("mousedown", (e) => e.preventDefault());
@@ -1928,25 +2465,16 @@ function _ensurePopover() {
     const displayText = text.length > 300 ? text.slice(0, 300) + "…" : text;
     const question = `Explain this: "${displayText}"`;
 
-    // Inline: answer inside Try It popup without leaving it
-    if (!els.codePopup.hidden) {
-      askInlinePopup(question);
-      return;
-    }
-    // Inline: answer inside the Visualizer without leaving it
+    // Send selected text to the floating Ask AI messenger without moving the learner.
     if (!els.vizOverlay.hidden) {
       askInlineViz(question);
       return;
     }
-    // Default: navigate to Coach tab
-    setActiveTopicSection("labsSection");
-    setTimeout(() => {
-      els.coachInput.value = question;
-      els.coachInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      els.coachInput.focus();
-      // Move cursor to end so user can edit or append context before sending
-      els.coachInput.selectionStart = els.coachInput.selectionEnd = els.coachInput.value.length;
-    }, 60);
+    if (!els.codePopup.hidden) {
+      askInlinePopup(question);
+      return;
+    }
+    askFloatingAi(question, { includeTopicContext: true });
   });
 
   return _selectionPopover;
@@ -2006,6 +2534,8 @@ document.addEventListener("scroll", _hideSelectionPopover, { passive: true, capt
 document.documentElement.classList.remove("dark");
 localStorage.setItem("pySkillLabTheme", "light");
 loadAiSettings();
+updateAiSettingsMode();
 loadModels();
 _updateSettingsBtnLabel();
+renderAskAiMessages();
 boot();

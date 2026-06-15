@@ -106,6 +106,55 @@ def test_lmstudio_chat_uses_chat_completions_when_base_endpoint_is_configured(mo
     assert result["text"] == "ok"
 
 
+def test_ollama_stream_yields_chunks_and_done(monkeypatch):
+    def fake_stream(url, headers, payload):
+        assert url == "http://127.0.0.1:11434/api/chat"
+        assert payload["stream"] is True
+        yield json.dumps({"message": {"content": "Hel"}, "done": False})
+        yield json.dumps({"message": {"content": "lo"}, "done": False})
+        yield json.dumps({
+            "done": True,
+            "prompt_eval_count": 12,
+            "eval_count": 2,
+            "eval_duration": 1_000_000_000,
+        })
+
+    monkeypatch.setattr(ai_coach, "_post_stream_lines", fake_stream)
+
+    events = list(ai_coach.stream_ollama("http://127.0.0.1:11434", "local-model", "hi"))
+
+    assert events[0] == {"type": "chunk", "text": "Hel"}
+    assert events[1] == {"type": "chunk", "text": "lo"}
+    assert events[-1]["type"] == "done"
+    assert events[-1]["ok"] is True
+    assert events[-1]["text"] == "Hello"
+    assert events[-1]["tokens_in"] == 12
+    assert events[-1]["tokens_out"] == 2
+
+
+def test_openai_compatible_stream_yields_delta_chunks(monkeypatch):
+    def fake_stream(url, headers, payload):
+        assert url == "http://127.0.0.1:1234/v1/chat/completions"
+        assert payload["stream"] is True
+        yield 'data: {"choices":[{"delta":{"content":"Py"}}]}'
+        yield 'data: {"choices":[{"delta":{"content":"thon"}}]}'
+        yield "data: [DONE]"
+
+    monkeypatch.setattr(ai_coach, "_post_stream_lines", fake_stream)
+
+    events = list(ai_coach.stream_openai_compatible(
+        "http://127.0.0.1:1234/v1/chat/completions",
+        "lm-studio",
+        "loaded-model",
+        "hi",
+    ))
+
+    assert [event["text"] for event in events if event["type"] == "chunk"] == ["Py", "thon"]
+    assert events[-1]["type"] == "done"
+    assert events[-1]["ok"] is True
+    assert events[-1]["text"] == "Python"
+
+
 def test_ollama_chat_requires_live_selected_model():
     result = ai_coach.ask_ai_coach(
         {
@@ -120,6 +169,17 @@ def test_ollama_chat_requires_live_selected_model():
 
     assert result["ok"] is False
     assert "Choose an installed Ollama model" in result["error"]
+
+
+def test_local_provider_timeout_message_mentions_warmup():
+    message = ai_coach.friendly_provider_error(
+        "ollama",
+        "http://127.0.0.1:11434",
+        RuntimeError("timed out after 45s"),
+    )
+
+    assert "did not respond before the timeout" in message
+    assert "warm-up request" in message
 
 
 def test_hosted_provider_no_key_returns_suggestions_only():
@@ -254,3 +314,72 @@ def test_ai_models_endpoint_rate_limit_returns_429(monkeypatch):
     assert payload["ok"] is False
     assert payload["models"] == []
     assert "Rate limit exceeded" in payload["error"]
+
+
+def test_ai_coach_rate_limit_response_has_ui_fields(monkeypatch):
+    monkeypatch.setattr(app, "check_rate_limit", lambda _ip, **kw: False)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+    host, port = server.server_address
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        req = urllib.request.Request(
+            f"http://{host}:{port}/api/ai-coach",
+            data=json.dumps({"provider": "ollama", "question": "hi"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=5) as response:
+                payload = json.load(response)
+                status = response.status
+        except HTTPError as exc:
+            status = exc.code
+            payload = json.loads(exc.read().decode("utf-8"))
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    assert status == 429
+    assert payload["ok"] is False
+    assert "Rate limit exceeded" in payload["error"]
+    assert payload["answer"] == payload["error"]
+    assert payload["reply"] == payload["error"]
+
+
+def test_ai_coach_stream_endpoint_returns_ndjson(monkeypatch):
+    monkeypatch.setattr(app, "check_rate_limit", lambda _ip, **kw: True)
+
+    def fake_stream(payload, topics, exercises):
+        assert payload["question"] == "hi"
+        yield {"type": "chunk", "text": "Hel"}
+        yield {"type": "chunk", "text": "lo"}
+        yield {"type": "done", "ok": True, "text": "Hello", "tokens_out": 2}
+
+    monkeypatch.setattr(app, "stream_ai_coach", fake_stream)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+    host, port = server.server_address
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        req = urllib.request.Request(
+            f"http://{host}:{port}/api/ai-coach-stream",
+            data=json.dumps({"provider": "ollama", "question": "hi"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            body = response.read().decode("utf-8")
+            content_type = response.headers["Content-Type"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    assert content_type == "application/x-ndjson; charset=utf-8"
+    lines = [json.loads(line) for line in body.strip().splitlines()]
+    assert lines[0] == {"type": "chunk", "text": "Hel"}
+    assert lines[1] == {"type": "chunk", "text": "lo"}
+    assert lines[2]["type"] == "done"
+    assert lines[2]["text"] == "Hello"

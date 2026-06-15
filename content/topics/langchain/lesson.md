@@ -204,7 +204,7 @@ Save this as `chain_demo.py`:
 ```python
 from langchain.chat_models import init_chat_model
 
-model = init_chat_model('openai:gpt-5.5')
+model = init_chat_model('openai:gpt-4o-mini')
 reply = model.invoke('Give one practical rule for writing reliable prompts.')
 print(reply.content)
 ```

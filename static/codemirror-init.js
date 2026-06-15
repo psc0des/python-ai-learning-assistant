@@ -2,7 +2,7 @@
  * CodeMirror 6 initializer for Python Skill Lab.
  *
  * Loaded as an ES module (<script type="module">), so it runs after app.js.
- * If CDN imports fail, the plain textarea still works.
+ * If the local vendor bundle fails to load, the plain textarea still works.
  *
  * Bridge design:
  * - textarea.value getter reads from CodeMirror doc

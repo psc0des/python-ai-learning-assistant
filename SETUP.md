@@ -156,7 +156,7 @@ stale generated data.
 Optional AI timeout tuning (useful for slower/faster local models):
 
 ```powershell
-$env:PY_SKILL_LAB_AI_TIMEOUT_SECONDS="25"
+$env:PY_SKILL_LAB_AI_TIMEOUT_SECONDS="45"
 $env:PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS="8"
 python app.py
 ```
@@ -189,7 +189,7 @@ loader before starting `python app.py`.
 | `PY_SKILL_LAB_PORT` | `8765` | Local server port. |
 | `PY_SKILL_LAB_OPEN_BROWSER` | `1` | Opens the browser automatically when the server starts. |
 | `PY_SKILL_LAB_STRICT_CONTENT` | `0` | Fails startup when content validation has warnings. |
-| `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` | `25` | Timeout for AI coach calls. |
+| `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` | `45` | Timeout for AI coach calls. Local models may need one warm-up request after launch. |
 | `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` | `8` | Timeout for model-list refresh calls. |
 | `PY_SKILL_LAB_OPENAI_KEY` | blank | Optional server-side OpenAI key. |
 | `PY_SKILL_LAB_ANTHROPIC_KEY` | blank | Optional server-side Anthropic key. |
@@ -218,7 +218,7 @@ Endpoint: http://127.0.0.1:11434
 Model: choose from the dropdown
 ```
 
-Model names are read from your local Ollama installation. Use the dropdown after clicking refresh; the app should not show local models that are not actually installed.
+Model names are read from your local Ollama installation. Click **Show local models**, choose one of the installed models from the Model dropdown, then click **Test selected model** to confirm that the selected model can answer. The app should not show local models that are not actually installed.
 
 ### LM Studio
 
@@ -231,7 +231,7 @@ Provider: LM Studio
 Endpoint: http://127.0.0.1:1234
 ```
 
-The app derives LM Studio's `/v1/models` and `/v1/chat/completions` routes from that base URL.
+The app derives LM Studio's `/v1/models` and `/v1/chat/completions` routes from that base URL. Click **Show local models**, choose a loaded model from the Model dropdown, then click **Test selected model**. If LM Studio is reachable but no models appear, load a model in LM Studio first.
 
 ### OpenAI
 
@@ -300,9 +300,9 @@ API key: your Azure AI Foundry API key
 Model: type the deployed model name (e.g. gpt-4o, Phi-4-mini-instruct)
 ```
 
-Click **↻** after saving to load the model list from your Foundry project. The model field is a free-text input — type the exact deployed model name if the refresh does not list it.
+The model field is a free-text input. Type the exact deployed model name if the UI does not list it.
 
-When a hosted provider key is configured, click **Save & Apply** — the model field will populate with verified models fetched from the provider. If no API key is entered, the button shows "API key required" and nothing is saved.
+When a hosted provider key is configured, click **Verify provider** to send a short test prompt to the configured model. Then click **Save & Apply**. If no API key is entered, the button shows "API key required" and nothing is saved.
 
 ### Server-side API key environment variables
 
@@ -317,7 +317,9 @@ Instead of entering keys in the UI, you can set them as environment variables be
 | Groq Cloud | `PY_SKILL_LAB_GROQ_KEY` |
 | Azure AI Foundry | `PY_SKILL_LAB_AZURE_FOUNDRY_KEY` |
 
-When a server-side key is set, the model list refresh will connect to the provider directly and the UI will show verified models rather than suggestions.
+When a server-side key is set, **Verify provider** can connect to the provider directly. Hosted provider model names are treated as configured API choices; local Ollama/LM Studio model discovery stays separate under **Show local models**.
+
+Custom endpoints are trusted destinations. If you change a hosted provider endpoint, Python Skill Lab sends the configured API key to that endpoint. Only use provider URLs or local servers you control, and do not expose this app as a shared/public service.
 
 ## Local Deployment
 
@@ -380,21 +382,26 @@ AI narration is **not** automatic. The learner clicks "Ask AI" in the visualizer
 
 ### AI Coach
 
-The AI Coach is conversational and can review the current topic, code, and latest local test result. Selecting any text on the page shows a floating Ask AI button — where it goes depends on context:
+AI help has two separate surfaces so the learner always knows what kind of help they are asking for:
 
-- **Try It popup open**: answer appears inline inside the popup (below the output), with the editor code and output automatically attached. The "🤖 Ask AI" toolbar button sends a full code review without selecting anything.
-- **Visualizer open**: answer appears inline in the AI note area, with the current step line, variables, and any error automatically attached. The "🤖 Ask AI" button in the controls row sends a step or error explanation.
-- **Anywhere else**: navigates to the Labs → AI Coach tab and pre-fills the chat input.
+- **AI Coach in Labs**: embedded beside the code editor. Send is freeform lab chat; Explain Code includes the current exercise code and latest test result.
+- **Ask AI messenger**: floating quick-help chat for selected text, lesson Ask AI, Try It code/output, Visualizer step/error context, and independent questions.
+- **Try It popup open**: Ask AI opens the messenger with popup code and output automatically attached.
+- **Visualizer open**: Ask AI opens the messenger with the current step line, variables, and any error automatically attached; the visualizer note stays deterministic.
 
-The coach operates in two modes. When the learner types a freeform question in the chat input (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. Tests are also **not** auto-run in this mode. When a preset button such as "Explain my code" is clicked (`mode: "lab"`), the full context is sent, tests are auto-run if no prior result exists, and the AI gives a structured review of the exercise and test results.
+The lab coach operates in two modes. When the learner types a freeform question in the lab coach (`mode: "chat"`), only topic and lesson context is sent — exercise code and test results are excluded so the AI focuses on the question asked. Tests are also **not** auto-run in this mode. When a preset button such as "Explain Code" is clicked (`mode: "lab"`), the full context is sent, tests are auto-run if no prior result exists, and the AI gives a structured review of the exercise and test results. The floating Ask AI messenger always uses chat mode and never auto-runs tests. Freeform Ask AI chat does not inject the current topic; lesson, selection, Try It, and Visualizer actions opt into topic/page context explicitly.
+
+Closing the floating Ask AI messenger only hides it. Use **New chat** in the Ask AI header to clear that messenger's conversation history, especially after changing models or switching from a contextual question to a general one.
+
+AI responses stream into both the Labs coach and floating Ask AI when the selected provider supports streaming. Ollama, LM Studio, OpenAI-compatible providers, Grok, Groq, and Azure AI Foundry use the streaming route. Providers without a streaming adapter still fall back to a messenger-style reveal so learners never get a sudden full-answer dump.
 
 Each AI reply shows a small stats line below the response: model name, output tokens, input tokens, tok/s, and elapsed time. This is useful for comparing local Ollama speed against cloud providers.
 
 If a provider is unavailable or slow, the app surfaces explicit fallback states:
 
-- AI Coach chat: `AI Coach unavailable (...)` + built-in feedback
-- Try It inline AI: transport/timeout error text in the popup panel
-- Visualizer Ask AI: transport/timeout error text appears in the visualizer note area only after the learner clicks Ask AI
+- Lab Explain Code: `AI Coach unavailable (...)` + built-in feedback in the embedded lab coach
+- Freeform, selected-text, Try It, and Visualizer Ask AI: transport/timeout messages appear in the floating Ask AI messenger
+- Local Ollama/LM Studio timeouts include a warm-up hint because the first request after launch can be slower than later requests
 
 ## Theme Behavior
 

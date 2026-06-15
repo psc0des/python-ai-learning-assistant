@@ -106,6 +106,30 @@ def test_topic_json_run_blocks_execute_cleanly():
     )
 
 
+def test_no_fictional_model_names_in_content():
+    """Lesson content must reference real, callable model IDs, not placeholders."""
+    content_dir = Path(__file__).parent.parent / "content" / "topics"
+    offenders = []
+    for path in sorted(content_dir.glob("*/topic.json")) + sorted(content_dir.glob("*/lesson.md")):
+        text = path.read_text(encoding="utf-8")
+        if "gpt-5.5" in text:
+            offenders.append(str(path))
+    assert not offenders, f"Fictional model 'gpt-5.5' referenced in: {offenders}"
+
+
+def test_langgraph_resume_examples_use_correct_api():
+    """LangGraph persistence/human-in-the-loop examples must use the real resume API."""
+    content_dir = Path(__file__).parent.parent / "content" / "topics" / "langgraph"
+    for path in (content_dir / "topic.json", content_dir / "lesson.md"):
+        text = path.read_text(encoding="utf-8")
+        assert "from langgraph.types import interrupt, Command" in text, path
+        assert "graph.invoke(None, config=config)" in text, path
+        assert "Command(resume={'approve': True})" in text, path
+        # Old, incorrect resume calls must not remain.
+        assert "{'approved': True}, config=config" not in text, path
+        assert "graph.invoke({'approve': True}, config)" not in text, path
+
+
 def test_code_fence_regex_does_not_eat_code():
     """The renderLessonMarkdown regex must stop info-string at first newline."""
     code_block_re = re.compile(r"```([^\n`]*)\n([\s\S]*?)```")

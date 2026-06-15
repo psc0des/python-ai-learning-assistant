@@ -55,9 +55,10 @@ python -B -m pytest tests -q -p no:cacheprovider
 - 21 topics: Python basics, functions, data structures, OOP, errors/testing, async, LLM API calls, structured LLM outputs, basic AI evaluation, basic AI app architecture, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 122 labs total, including Advanced capstones for the 17 capstone topics
 - Topic flow: overview → lesson (with inline concept diagrams) → hands-on labs → practice test
 - **Capstone labs** — one advanced multi-function project per major track (Python Core, Backend, AI Apps, DevOps, Engineering Habits) that integrates concepts from across the track
-- **Learner readiness signals** — sidebar badges show lab progress and test scores; a readiness bar shows "Core labs done" when all non-capstone labs and the practice test (≥80%) are complete, and "Topic complete" once the capstone is also passed, with a direct link to the next topic
+- **Learner readiness signals** — sidebar badges show lab progress, the latest submitted practice-test score, and whether a topic is started, core-ready, or complete
 - **Execution Visualizer** — step through your own code line by line, watching variables change; draggable overlay, available in every editor; beginner-friendly error explanations for both runtime and syntax errors
-- Practice exercises with local test runner and context-aware AI coaching — inline inside the Try It popup and Visualizer, or via the full AI Coach chat; supports 8 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq Cloud, Azure AI Foundry)
+- Practice exercises with local test runner, an embedded AI Coach for lab code/test feedback, and a floating Ask AI messenger for lesson text, Try It examples, selected text, and Visualizer steps; streaming replies are used where providers support them; supports 8 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq Cloud, Azure AI Foundry)
+- AI Settings separates local model discovery from connection testing: Ollama/LM Studio use **Show local models** plus **Test selected model**, while hosted APIs use **Verify provider** for the configured key/model.
 
 ## Content System
 
@@ -79,7 +80,7 @@ The code runner executes snippets locally with a short timeout. Treat it as a pr
 
 AI request timeout defaults are intentionally short so the learning UI does not appear frozen if a provider is down:
 
-- `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` (default `25`) for AI coach calls
+- `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` (default `45`) for AI coach calls; local models may need one warm-up request after launch
 - `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` (default `8`) for model list refresh
 
 UI theme note: dark mode has been removed for now. The app uses a single warm light theme to avoid inconsistent contrast and readability issues.

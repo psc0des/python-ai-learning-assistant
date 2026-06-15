@@ -225,7 +225,7 @@ from openai import OpenAI
 
 client = OpenAI()
 response = client.responses.create(
-    model='gpt-5.5',
+    model='gpt-4o-mini',
     input='Explain Python functions in one sentence for a beginner.',
 )
 
