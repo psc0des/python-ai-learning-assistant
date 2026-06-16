@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 AI_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_TIMEOUT_SECONDS", "45"))
 AI_MODEL_LIST_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS", "8"))
 
+_USER_AGENT = "python-skill-lab/1.0"
+
 # Environment variable names for server-side API keys (preferred over client-sent)
 ENV_OPENAI_API_KEY = "PY_SKILL_LAB_OPENAI_KEY"
 ENV_ANTHROPIC_API_KEY = "PY_SKILL_LAB_ANTHROPIC_KEY"
@@ -56,7 +58,7 @@ FALLBACK_MODELS: dict[str, list[str]] = {
 def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any]:
     """POST JSON to a URL and parse the JSON response."""
     body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    request = urllib.request.Request(url, data=body, headers={"User-Agent": _USER_AGENT, **headers}, method="POST")
     try:
         with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
@@ -75,7 +77,7 @@ def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dic
 def _post_stream_lines(url: str, headers: dict[str, str], payload: dict[str, Any]):
     """POST JSON and yield provider streaming response lines."""
     body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    request = urllib.request.Request(url, data=body, headers={"User-Agent": _USER_AGENT, **headers}, method="POST")
     try:
         with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
             for raw_line in response:
@@ -96,7 +98,7 @@ def _post_stream_lines(url: str, headers: dict[str, str], payload: dict[str, Any
 
 def get_json(url: str, headers: dict[str, str]) -> dict[str, Any]:
     """GET JSON from a URL and parse the response."""
-    request = urllib.request.Request(url, headers=headers, method="GET")
+    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, **headers}, method="GET")
     try:
         with urllib.request.urlopen(request, timeout=AI_MODEL_LIST_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))

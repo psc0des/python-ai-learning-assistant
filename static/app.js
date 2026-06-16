@@ -1112,11 +1112,11 @@ function applyProviderDefaults() {
   const defaults = {
     ollama:         { model: "",                          endpoint: "http://127.0.0.1:11434" },
     lmstudio:       { model: "",                          endpoint: "http://127.0.0.1:1234" },
-    openai:         { model: FALLBACK_MODELS.openai[0],    endpoint: "https://api.openai.com/v1/chat/completions" },
-    anthropic:      { model: FALLBACK_MODELS.anthropic[0], endpoint: "https://api.anthropic.com/v1/messages" },
-    google:         { model: FALLBACK_MODELS.google[0],    endpoint: "https://generativelanguage.googleapis.com/v1beta" },
-    grok:           { model: FALLBACK_MODELS.grok[0],      endpoint: "https://api.x.ai/v1/chat/completions" },
-    groq:           { model: FALLBACK_MODELS.groq[0],      endpoint: "https://api.groq.com/openai/v1/chat/completions" },
+    openai:         { model: "",  endpoint: "https://api.openai.com/v1/chat/completions" },
+    anthropic:      { model: "",  endpoint: "https://api.anthropic.com/v1/messages" },
+    google:         { model: "",  endpoint: "https://generativelanguage.googleapis.com/v1beta" },
+    grok:           { model: "",  endpoint: "https://api.x.ai/v1/chat/completions" },
+    groq:           { model: "",  endpoint: "https://api.groq.com/openai/v1/chat/completions" },
     "azure-foundry": { model: "",                          endpoint: "" },
   };
   const selected = defaults[els.provider.value];
@@ -1186,7 +1186,10 @@ async function loadModels(options = {}) {
   // fails. Prefer live /models responses whenever available.
   const fallback = FALLBACK_MODELS[els.provider.value] || [];
   const isLocalProvider = isLocalAiProvider();
-  setModelOptions(fallback, preferredModel || fallback[0]);
+  // Always read the current field value first — the change event may not have fired
+  // if the user typed a model name and then immediately clicked a button without blurring.
+  preferredModel = els.model.value.trim() || preferredModel;
+  setModelOptions(fallback, isLocalProvider ? (preferredModel || fallback[0]) : preferredModel);
 
   try {
     els.refreshModelsBtn.disabled = true;
@@ -1208,7 +1211,11 @@ async function loadModels(options = {}) {
       }
       return { ok: false, error };
     }
-    const liveSelected = models.includes(preferredModel) ? preferredModel : models[0];
+    // For local providers, auto-select the first available model.
+    // For API providers, keep the user's typed model even if it isn't in the returned list.
+    const liveSelected = models.includes(preferredModel)
+      ? preferredModel
+      : isLocalProvider ? models[0] : (preferredModel || models[0]);
     setModelOptions(models, liveSelected);
     if (persistOnSuccess && result.ok && models.length && !result.suggestions_only) {
       saveAiSettings();
@@ -1244,7 +1251,7 @@ async function loadModels(options = {}) {
     }
     return { ok: true, suggestionsOnly: !!result.suggestions_only };
   } catch (error) {
-    setModelOptions(fallback, fallback[0]);
+    setModelOptions(fallback, isLocalProvider ? (preferredModel || fallback[0]) : preferredModel);
     _updateSettingsBtnLabel();
     setCoachStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
     setAskAiStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
