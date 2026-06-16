@@ -573,6 +573,62 @@ def call_google(endpoint: str, api_key: str, model: str, prompt: str,
     return _make_result(text, tokens_in, tokens_out, elapsed)
 
 
+def stream_google(
+    endpoint: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    temperature: float = 0.2,
+    top_p: float = 0.9,
+    top_k: int = 40,
+):
+    """Yield standard stream events from the Google AI Studio SSE streaming API."""
+    base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+    model_id = model.replace("models/", "")
+    url = f"{base}/models/{model_id}:streamGenerateContent?key={api_key}&alt=sse"
+    t0 = time.time()
+    text_parts: list[str] = []
+    tokens_in = 0
+    tokens_out = 0
+
+    for line in _post_stream_lines(
+        url,
+        {"Content-Type": "application/json"},
+        {
+            "system_instruction": {"parts": [{"text": SYSTEM_MESSAGE}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "topP": top_p,
+                "topK": top_k,
+                "maxOutputTokens": 2048,
+            },
+        },
+    ):
+        if not line.startswith("data:"):
+            continue
+        data_text = line[len("data:"):].strip()
+        try:
+            data = json.loads(data_text)
+        except json.JSONDecodeError:
+            continue
+        candidates = data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            chunk = "".join(p.get("text", "") for p in parts)
+            if chunk:
+                text_parts.append(chunk)
+                yield {"type": "chunk", "text": chunk}
+        usage = data.get("usageMetadata") or {}
+        if usage:
+            tokens_in = int(usage.get("promptTokenCount") or tokens_in or 0)
+            tokens_out = int(usage.get("candidatesTokenCount") or tokens_out or 0)
+
+    elapsed = time.time() - t0
+    result = _make_result("".join(text_parts).strip(), tokens_in, tokens_out, elapsed)
+    yield {"type": "done", "ok": True, **result}
+
+
 # ---------------------------------------------------------------------------
 # Main AI coach entry point
 # ---------------------------------------------------------------------------
@@ -796,6 +852,15 @@ def stream_ai_coach(
                 api_key or "lm-studio",
                 model,
                 prompt, temperature, top_p,
+            )
+        elif provider == "google":
+            if not api_key:
+                raise ValueError("Google API key is required. Get one free at aistudio.google.com or set PY_SKILL_LAB_GOOGLE_KEY env var.")
+            yield from stream_google(
+                endpoint or "https://generativelanguage.googleapis.com/v1beta",
+                api_key,
+                model or FALLBACK_MODELS["google"][0],
+                prompt, temperature, top_p, top_k,
             )
         elif provider in {"openai", "grok", "groq", "azure-foundry"}:
             if provider == "openai":
