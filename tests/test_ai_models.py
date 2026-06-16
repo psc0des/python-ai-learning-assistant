@@ -107,7 +107,7 @@ def test_lmstudio_chat_uses_chat_completions_when_base_endpoint_is_configured(mo
 
 
 def test_ollama_stream_yields_chunks_and_done(monkeypatch):
-    def fake_stream(url, headers, payload):
+    def fake_stream(url, headers, payload, timeout=None):
         assert url == "http://127.0.0.1:11434/api/chat"
         assert payload["stream"] is True
         yield json.dumps({"message": {"content": "Hel"}, "done": False})
@@ -123,17 +123,18 @@ def test_ollama_stream_yields_chunks_and_done(monkeypatch):
 
     events = list(ai_coach.stream_ollama("http://127.0.0.1:11434", "local-model", "hi"))
 
-    assert events[0] == {"type": "chunk", "text": "Hel"}
-    assert events[1] == {"type": "chunk", "text": "lo"}
-    assert events[-1]["type"] == "done"
-    assert events[-1]["ok"] is True
-    assert events[-1]["text"] == "Hello"
-    assert events[-1]["tokens_in"] == 12
-    assert events[-1]["tokens_out"] == 2
+    chunk_texts = [e["text"] for e in events if e["type"] == "chunk"]
+    assert "".join(chunk_texts) == "Hello"  # assembled text correct regardless of buffer boundaries
+    done = events[-1]
+    assert done["type"] == "done"
+    assert done["ok"] is True
+    assert done["text"] == "Hello"
+    assert done["tokens_in"] == 12
+    assert done["tokens_out"] == 2
 
 
 def test_openai_compatible_stream_yields_delta_chunks(monkeypatch):
-    def fake_stream(url, headers, payload):
+    def fake_stream(url, headers, payload, timeout=None):
         assert url == "http://127.0.0.1:1234/v1/chat/completions"
         assert payload["stream"] is True
         yield 'data: {"choices":[{"delta":{"content":"Py"}}]}'

@@ -27,6 +27,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 AI_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_TIMEOUT_SECONDS", "45"))
+AI_LOCAL_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_LOCAL_TIMEOUT_SECONDS", "120"))
 AI_MODEL_LIST_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS", "8"))
 
 _USER_AGENT = "python-skill-lab/1.0"
@@ -55,6 +56,47 @@ FALLBACK_MODELS: dict[str, list[str]] = {
 # HTTP helpers
 # ---------------------------------------------------------------------------
 
+class _ThinkFilter:
+    """Suppress <think>...</think> blocks produced by reasoning models (qwen3, deepseek-r1, etc.)."""
+
+    def __init__(self) -> None:
+        self._buf = ""
+        self._in_think = False
+
+    def feed(self, chunk: str) -> str:
+        """Return the visible (non-thinking) portion of chunk."""
+        self._buf += chunk
+        visible: list[str] = []
+        while True:
+            if not self._in_think:
+                idx = self._buf.find("<think>")
+                if idx == -1:
+                    safe_end = max(0, len(self._buf) - len("<think>") + 1)
+                    visible.append(self._buf[:safe_end])
+                    self._buf = self._buf[safe_end:]
+                    break
+                visible.append(self._buf[:idx])
+                self._buf = self._buf[idx + len("<think>"):]
+                self._in_think = True
+            else:
+                idx = self._buf.find("</think>")
+                if idx == -1:
+                    break
+                self._buf = self._buf[idx + len("</think>"):]
+                self._in_think = False
+        return "".join(visible)
+
+    def flush(self) -> str:
+        """Return any remaining non-think content and reset."""
+        if self._in_think:
+            self._buf = ""
+            self._in_think = False
+            return ""
+        result = self._buf
+        self._buf = ""
+        return result
+
+
 def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any]:
     """POST JSON to a URL and parse the JSON response."""
     body = json.dumps(payload).encode("utf-8")
@@ -74,12 +116,14 @@ def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dic
         raise
 
 
-def _post_stream_lines(url: str, headers: dict[str, str], payload: dict[str, Any]):
+def _post_stream_lines(url: str, headers: dict[str, str], payload: dict[str, Any],
+                       timeout: int | None = None):
     """POST JSON and yield provider streaming response lines."""
+    effective_timeout = AI_TIMEOUT_SECONDS if timeout is None else timeout
     body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(url, data=body, headers={"User-Agent": _USER_AGENT, **headers}, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(request, timeout=effective_timeout) as response:
             for raw_line in response:
                 line = raw_line.decode("utf-8", errors="replace").strip()
                 if line:
@@ -352,7 +396,9 @@ def call_ollama(base_url: str, model: str, prompt: str,
         },
     )
     elapsed = time.time() - t0
-    text = data.get("message", {}).get("content", "").strip() or "No response text returned."
+    raw = data.get("message", {}).get("content", "")
+    tf = _ThinkFilter()
+    text = (tf.feed(raw) + tf.flush()).strip() or "No response text returned."
     tokens_out = int(data.get("eval_count") or 0)
     tokens_in = int(data.get("prompt_eval_count") or 0)
     eval_ns = data.get("eval_duration") or 0
@@ -375,6 +421,7 @@ def stream_ollama(
     tokens_in = 0
     tokens_out = 0
     gen_sec: float | None = None
+    think = _ThinkFilter()
 
     for line in _post_stream_lines(
         url,
@@ -392,17 +439,25 @@ def stream_ollama(
                 "top_k": top_k,
             },
         },
+        timeout=AI_LOCAL_TIMEOUT_SECONDS,
     ):
         data = json.loads(line)
-        chunk = data.get("message", {}).get("content", "")
-        if chunk:
-            text_parts.append(chunk)
-            yield {"type": "chunk", "text": chunk}
+        raw_chunk = data.get("message", {}).get("content", "")
+        if raw_chunk:
+            visible = think.feed(raw_chunk)
+            if visible:
+                text_parts.append(visible)
+                yield {"type": "chunk", "text": visible}
         if data.get("done"):
             tokens_out = int(data.get("eval_count") or 0)
             tokens_in = int(data.get("prompt_eval_count") or 0)
             eval_ns = data.get("eval_duration") or 0
             gen_sec = eval_ns / 1e9 if eval_ns and tokens_out else None
+
+    remaining = think.flush()
+    if remaining:
+        text_parts.append(remaining)
+        yield {"type": "chunk", "text": remaining}
 
     elapsed = time.time() - t0
     result = _make_result("".join(text_parts).strip(), tokens_in, tokens_out, elapsed, gen_sec)
@@ -447,12 +502,15 @@ def stream_openai_compatible(
     prompt: str,
     temperature: float = 0.2,
     top_p: float = 0.9,
+    timeout: int | None = None,
+    filter_thinking: bool = False,
 ):
     """Yield standard stream events from an OpenAI-compatible chat endpoint."""
     t0 = time.time()
     text_parts: list[str] = []
     tokens_in = 0
     tokens_out = 0
+    think = _ThinkFilter() if filter_thinking else None
 
     for line in _post_stream_lines(
         url,
@@ -470,6 +528,7 @@ def stream_openai_compatible(
             "temperature": temperature,
             "top_p": top_p,
         },
+        timeout=timeout,
     ):
         if not line.startswith("data:"):
             continue
@@ -484,10 +543,18 @@ def stream_openai_compatible(
         choices = data.get("choices") or []
         if choices:
             delta = choices[0].get("delta") or {}
-            chunk = delta.get("content") or ""
-            if chunk:
-                text_parts.append(chunk)
-                yield {"type": "chunk", "text": chunk}
+            raw_chunk = delta.get("content") or ""
+            if raw_chunk:
+                chunk = think.feed(raw_chunk) if think else raw_chunk
+                if chunk:
+                    text_parts.append(chunk)
+                    yield {"type": "chunk", "text": chunk}
+
+    if think:
+        remaining = think.flush()
+        if remaining:
+            text_parts.append(remaining)
+            yield {"type": "chunk", "text": remaining}
 
     elapsed = time.time() - t0
     result = _make_result("".join(text_parts).strip(), tokens_in, tokens_out, elapsed)
@@ -757,12 +824,31 @@ def ask_ai_coach(
         elif provider == "google":
             if not api_key:
                 raise ValueError("Google API key is required. Get one free at aistudio.google.com or set PY_SKILL_LAB_GOOGLE_KEY env var.")
-            call_result = call_google(
+            # Use the streaming endpoint internally so the socket timeout resets as
+            # thinking tokens arrive (gemini-2.5 models think before answering).
+            g_parts: list[str] = []
+            g_tok_in = g_tok_out = 0
+            g_elapsed = g_tps = 0.0
+            for _ev in stream_google(
                 endpoint or "https://generativelanguage.googleapis.com/v1beta",
                 api_key,
                 model or FALLBACK_MODELS["google"][0],
                 prompt, temperature, top_p, top_k,
-            )
+            ):
+                if _ev["type"] == "chunk":
+                    g_parts.append(_ev["text"])
+                elif _ev["type"] == "done":
+                    g_tok_in = _ev.get("tokens_in", 0)
+                    g_tok_out = _ev.get("tokens_out", 0)
+                    g_elapsed = _ev.get("elapsed_sec", 0.0)
+                    g_tps = _ev.get("tok_per_sec", 0.0)
+            call_result = {
+                "text": "".join(g_parts).strip() or "No response text returned.",
+                "tokens_in": g_tok_in,
+                "tokens_out": g_tok_out,
+                "elapsed_sec": g_elapsed,
+                "tok_per_sec": g_tps,
+            }
         elif provider == "grok":
             if not api_key:
                 raise ValueError("Grok API key is required. Get one at console.x.ai or set PY_SKILL_LAB_GROK_KEY env var.")
@@ -852,6 +938,8 @@ def stream_ai_coach(
                 api_key or "lm-studio",
                 model,
                 prompt, temperature, top_p,
+                timeout=AI_LOCAL_TIMEOUT_SECONDS,
+                filter_thinking=True,
             )
         elif provider == "google":
             if not api_key:
