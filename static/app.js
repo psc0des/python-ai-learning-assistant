@@ -1186,10 +1186,12 @@ async function loadModels(options = {}) {
   // fails. Prefer live /models responses whenever available.
   const fallback = FALLBACK_MODELS[els.provider.value] || [];
   const isLocalProvider = isLocalAiProvider();
-  // Always read the current field value first — the change event may not have fired
-  // if the user typed a model name and then immediately clicked a button without blurring.
-  preferredModel = els.model.value.trim() || preferredModel;
-  setModelOptions(fallback, isLocalProvider ? (preferredModel || fallback[0]) : preferredModel);
+  // Capture once as a local const before any setModelOptions call.
+  // setModelOptions writes back to preferredModel (module-level), so using a local const
+  // means the post-fetch liveSelected calculation always sees the value from this moment.
+  const currentModel = els.model.value.trim() || preferredModel;
+  preferredModel = currentModel;
+  setModelOptions(fallback, isLocalProvider ? (currentModel || fallback[0]) : currentModel);
 
   try {
     els.refreshModelsBtn.disabled = true;
@@ -1213,9 +1215,9 @@ async function loadModels(options = {}) {
     }
     // For local providers, auto-select the first available model.
     // For API providers, keep the user's typed model even if it isn't in the returned list.
-    const liveSelected = models.includes(preferredModel)
-      ? preferredModel
-      : isLocalProvider ? models[0] : (preferredModel || models[0]);
+    const liveSelected = models.includes(currentModel)
+      ? currentModel
+      : isLocalProvider ? models[0] : currentModel;
     setModelOptions(models, liveSelected);
     if (persistOnSuccess && result.ok && models.length && !result.suggestions_only) {
       saveAiSettings();
@@ -1251,7 +1253,7 @@ async function loadModels(options = {}) {
     }
     return { ok: true, suggestionsOnly: !!result.suggestions_only };
   } catch (error) {
-    setModelOptions(fallback, isLocalProvider ? (preferredModel || fallback[0]) : preferredModel);
+    setModelOptions(fallback, isLocalProvider ? (currentModel || fallback[0]) : currentModel);
     _updateSettingsBtnLabel();
     setCoachStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
     setAskAiStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
@@ -1276,7 +1278,9 @@ function setModelOptions(models, selectedModel) {
       .join("");
   }
   if (uniqueModels.length > 0) {
-    els.model.value = uniqueModels.includes(selectedModel) ? selectedModel : uniqueModels[0];
+    // In-list → use it. Non-empty but not in list → keep it (user typed it).
+    // Empty → auto-select first (local providers; first-time API provider setup).
+    els.model.value = uniqueModels.includes(selectedModel) ? selectedModel : (selectedModel || uniqueModels[0]);
     if (els.modelSelect) els.modelSelect.value = els.model.value;
   } else if (selectedModel != null) {
     // Preserve a non-null selectedModel even when the list is empty (e.g. no-key state)
