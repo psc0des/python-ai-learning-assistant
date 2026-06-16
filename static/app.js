@@ -1171,7 +1171,7 @@ function updateAiSettingsMode() {
   if (els.apiKeyHelpText) {
     els.apiKeyHelpText.textContent = local
       ? "Not needed for Ollama or LM Studio."
-      : "Stored in this browser only. Server-side environment keys take priority.";
+      : "Saved to .env on disk when you use Save & Apply or Verify provider.";
   }
   const testBtn = document.querySelector("#aiSettingsTestBtn");
   if (testBtn) {
@@ -1213,11 +1213,12 @@ async function loadModels(options = {}) {
       }
       return { ok: false, error };
     }
-    // For local providers, auto-select the first available model.
-    // For API providers, keep the user's typed model even if it isn't in the returned list.
-    const liveSelected = models.includes(currentModel)
-      ? currentModel
-      : isLocalProvider ? models[0] : currentModel;
+    // Re-read the field NOW — the user may have typed while the fetch was in flight.
+    // Using currentModel (captured at call-start) would overwrite anything typed during the await.
+    const fieldNow = els.model.value.trim();
+    const liveSelected = models.includes(fieldNow)
+      ? fieldNow
+      : isLocalProvider ? models[0] : (fieldNow || models[0]);
     setModelOptions(models, liveSelected);
     if (persistOnSuccess && result.ok && models.length && !result.suggestions_only) {
       saveAiSettings();
@@ -1253,7 +1254,8 @@ async function loadModels(options = {}) {
     }
     return { ok: true, suggestionsOnly: !!result.suggestions_only };
   } catch (error) {
-    setModelOptions(fallback, isLocalProvider ? (currentModel || fallback[0]) : currentModel);
+    const catchFieldNow = els.model.value.trim();
+    setModelOptions(fallback, isLocalProvider ? (catchFieldNow || fallback[0]) : (catchFieldNow || fallback[0]));
     _updateSettingsBtnLabel();
     setCoachStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);
     setAskAiStatus(`${els.provider.value} / ${els.model.value || "no live model selected"}`);

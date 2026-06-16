@@ -54,6 +54,19 @@ def _load_dotenv(path: Path) -> None:
                 os.environ[key] = val
 
 
+def _ensure_dotenv(path: Path) -> None:
+    """Create .env from .env.example on first run so the file always exists for auto-writing."""
+    if path.exists():
+        return
+    example = path.parent / ".env.example"
+    if example.exists():
+        path.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+        logger.info("Created .env from .env.example (first run)")
+    else:
+        path.write_text("# Python Skill Lab local configuration\n", encoding="utf-8")
+        logger.info("Created empty .env (first run)")
+
+
 def _update_dotenv(path: Path, updates: dict[str, str]) -> None:
     """Write or update key=value pairs in .env, then sync immediately into os.environ."""
     lines: list[str] = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
@@ -402,6 +415,7 @@ class Handler(SimpleHTTPRequestHandler):
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    _ensure_dotenv(_ENV_PATH)
     _load_dotenv(_ENV_PATH)
     validate_on_startup()
 
