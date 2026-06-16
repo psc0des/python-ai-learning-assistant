@@ -1080,7 +1080,7 @@ function loadAiSettings() {
   try {
     const settings = JSON.parse(saved);
     if (settings.provider) els.provider.value = settings.provider;
-    if (settings.model) preferredModel = settings.model;
+    if (settings.model) { preferredModel = settings.model; els.model.value = settings.model; }
     if (settings.endpoint) els.endpoint.value = settings.endpoint;
     // Sanitize: if old builds stored api_key, re-save without it
     if (settings.api_key !== undefined) {
@@ -2382,22 +2382,31 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
   const saveBtn = document.querySelector("#aiSettingsSaveBtn");
   saveBtn.textContent = "Checking…";
   saveBtn.disabled = true;
-  const refresh = await loadModels({ persistOnSuccess: false });
-  if (!refresh.ok) {
-    saveBtn.textContent = "Save failed";
-    saveBtn.disabled = false;
-    setCoachStatus(`Settings not saved — ${refresh.error || "model refresh failed"}`);
-    setAskAiStatus(`Settings not saved — ${refresh.error || "model refresh failed"}`);
-    return;
+
+  if (isLocalAiProvider()) {
+    // Local providers: must discover installed models before saving.
+    const refresh = await loadModels({ persistOnSuccess: false });
+    if (!refresh.ok) {
+      saveBtn.textContent = "Save failed";
+      saveBtn.disabled = false;
+      setCoachStatus(`Settings not saved — ${refresh.error || "model refresh failed"}`);
+      setAskAiStatus(`Settings not saved — ${refresh.error || "model refresh failed"}`);
+      return;
+    }
+  } else {
+    // API providers: the user types the model name — never call loadModels here.
+    // loadModels does an async fetch that can overwrite the field before saveAiSettings runs.
+    // Verify provider is the right tool for validation; Save just persists the current values.
+    const model = els.model.value.trim();
+    if (!model) {
+      setAiSettingsStatus("warn", "Model required", "Type the model name your API account can use, then save.");
+      saveBtn.textContent = "Save & Apply";
+      saveBtn.disabled = false;
+      return;
+    }
+    preferredModel = model;
   }
-  if (refresh.suggestionsOnly) {
-    saveBtn.textContent = "API key required";
-    saveBtn.disabled = false;
-    setCoachStatus("Enter an API key to save this provider.");
-    setAskAiStatus("Enter an API key to save this provider.");
-    setTimeout(() => { saveBtn.textContent = "Save & Apply"; }, 2000);
-    return;
-  }
+
   saveAiSettings();
   const apiKey = els.apiKey.value.trim();
   if (apiKey && !isLocalAiProvider()) {
@@ -2408,6 +2417,10 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
       }, 5000);
     } catch { /* non-fatal — key is already in localStorage */ }
   }
+  const provider = els.provider.value;
+  const model = els.model.value;
+  setCoachStatus(`${provider} / ${model || "no model selected"}`);
+  setAskAiStatus(`${provider} / ${model || "no model selected"}`);
   saveBtn.textContent = "✓ Saved";
   setTimeout(() => {
     _aiSettingsPanel.hidden = true;
