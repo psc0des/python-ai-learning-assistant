@@ -31,7 +31,66 @@ from runner import run_user_code, trace_user_code
 
 ROOT = Path(__file__).parent.resolve()
 STATIC_DIR = ROOT / "static"
+_ENV_PATH = ROOT / ".env"
 HOST = "127.0.0.1"
+
+# ---------------------------------------------------------------------------
+# .env loader / updater (stdlib only, no python-dotenv needed)
+# ---------------------------------------------------------------------------
+
+def _load_dotenv(path: Path) -> None:
+    """Load .env into os.environ at startup, skipping keys already set by the shell."""
+    if not path.exists():
+        return
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
+
+
+def _update_dotenv(path: Path, updates: dict[str, str]) -> None:
+    """Write or update key=value pairs in .env, then sync immediately into os.environ."""
+    lines: list[str] = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    written: set[str] = set()
+    out: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key = stripped.partition("=")[0].strip()
+            if key in updates:
+                out.append(f"{key}={updates[key]}")
+                written.add(key)
+                continue
+        out.append(line)
+    for key, val in updates.items():
+        if key not in written:
+            out.append(f"{key}={val}")
+    text = "\n".join(out)
+    if not text.endswith("\n"):
+        text += "\n"
+    path.write_text(text, encoding="utf-8")
+    for key, val in updates.items():
+        if val:
+            os.environ[key] = val
+        elif key in os.environ:
+            del os.environ[key]
+
+
+_PROVIDER_ENV_KEY: dict[str, str] = {
+    "openai":        "PY_SKILL_LAB_OPENAI_KEY",
+    "anthropic":     "PY_SKILL_LAB_ANTHROPIC_KEY",
+    "google":        "PY_SKILL_LAB_GOOGLE_KEY",
+    "grok":          "PY_SKILL_LAB_GROK_KEY",
+    "groq":          "PY_SKILL_LAB_GROQ_KEY",
+    "azure-foundry": "PY_SKILL_LAB_AZURE_FOUNDRY_KEY",
+}
+
 PORT = int(os.environ.get("PY_SKILL_LAB_PORT", os.environ.get("PY_INTERVIEW_PORT", "8765")))
 STRICT_CONTENT_MODE = os.environ.get("PY_SKILL_LAB_STRICT_CONTENT", "0") == "1"
 
@@ -173,7 +232,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:
-        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-coach-stream", "/api/ai-models"}
+        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-coach-stream", "/api/ai-models", "/api/save-ai-key"}
         if self.path not in allowed_endpoints:
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
@@ -277,6 +336,16 @@ class Handler(SimpleHTTPRequestHandler):
             elif self.path == "/api/ai-coach-stream":
                 self.send_ndjson_stream(stream_ai_coach(payload, TOPICS, EXERCISES))
                 return
+            elif self.path == "/api/save-ai-key":
+                provider = str(payload.get("provider", "")).lower()
+                api_key = str(payload.get("api_key", "")).strip()
+                env_key = _PROVIDER_ENV_KEY.get(provider)
+                if not env_key:
+                    result = {"ok": False, "error": f"No env key mapping for provider '{provider}'."}
+                else:
+                    _update_dotenv(_ENV_PATH, {env_key: api_key})
+                    logger.info("Saved %s to .env", env_key)
+                    result = {"ok": True, "env_key": env_key}
             else:
                 result = ask_ai_coach(payload, TOPICS, EXERCISES)
 
@@ -333,6 +402,7 @@ class Handler(SimpleHTTPRequestHandler):
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    _load_dotenv(_ENV_PATH)
     validate_on_startup()
 
     server = ThreadingHTTPServer((HOST, PORT), Handler)

@@ -2351,6 +2351,15 @@ async function testAiProviderConnection() {
         local ? "This local model is ready for AI Coach and Ask AI." : "This provider is ready for AI Coach and Ask AI."
       );
       saveAiSettings();
+      const apiKey = els.apiKey.value.trim();
+      if (apiKey && !local) {
+        try {
+          await postJsonWithTimeout("/api/save-ai-key", {
+            provider: els.provider.value,
+            api_key: apiKey,
+          }, 5000);
+        } catch { /* non-fatal */ }
+      }
     }
   } catch (err) {
     const message = String(err).includes("timed out")
@@ -2386,6 +2395,15 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
     return;
   }
   saveAiSettings();
+  const apiKey = els.apiKey.value.trim();
+  if (apiKey && !isLocalAiProvider()) {
+    try {
+      await postJsonWithTimeout("/api/save-ai-key", {
+        provider: els.provider.value,
+        api_key: apiKey,
+      }, 5000);
+    } catch { /* non-fatal — key is already in localStorage */ }
+  }
   saveBtn.textContent = "✓ Saved";
   setTimeout(() => {
     _aiSettingsPanel.hidden = true;
