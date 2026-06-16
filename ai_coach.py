@@ -628,11 +628,13 @@ def call_google(endpoint: str, api_key: str, model: str, prompt: str,
                 "topP": top_p,
                 "topK": top_k,
                 "maxOutputTokens": 2048,
+                "thinkingConfig": {"thinkingBudget": 0},
             },
         },
     )
     elapsed = time.time() - t0
-    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    raw_parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    parts = [p for p in raw_parts if not p.get("thought")]
     text = "".join(p.get("text", "") for p in parts).strip() or "No response text returned."
     usage = data.get("usageMetadata") or {}
     tokens_in = int(usage.get("promptTokenCount") or 0)
@@ -669,6 +671,7 @@ def stream_google(
                 "topP": top_p,
                 "topK": top_k,
                 "maxOutputTokens": 2048,
+                "thinkingConfig": {"thinkingBudget": 0},
             },
         },
     ):
@@ -681,8 +684,8 @@ def stream_google(
             continue
         candidates = data.get("candidates", [])
         if candidates:
-            parts = candidates[0].get("content", {}).get("parts", [])
-            chunk = "".join(p.get("text", "") for p in parts)
+            raw_parts = candidates[0].get("content", {}).get("parts", [])
+            chunk = "".join(p.get("text", "") for p in raw_parts if not p.get("thought"))
             if chunk:
                 text_parts.append(chunk)
                 yield {"type": "chunk", "text": chunk}
