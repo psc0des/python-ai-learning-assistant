@@ -1122,6 +1122,7 @@ function applyProviderDefaults() {
   const selected = defaults[els.provider.value];
   preferredModel = selected.model;
   els.endpoint.value = selected.endpoint;
+  els.apiKey.value = "";
   updateAiSettingsMode();
   clearAiSettingsStatus();
   loadModels();
