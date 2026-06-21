@@ -33,6 +33,29 @@ class TestBuildTestCode:
 
 
 class TestNonSerializableReturn:
+    def test_syntax_error_shows_clean_learner_message(self):
+        # Regression: a syntax error must show a beginner-friendly message, never
+        # the runner's internal wrapper traceback (<string>, exec(), line 36).
+        exercises = [{"id": "se", "tests": [{"call": "f()", "expected": 1, "label": "x"}]}]
+        result = run_user_code({"code": "def f(:\n  pass", "exercise_id": "se"}, exercises)
+        stderr = result["stderr"]
+        assert "syntax error" in stderr.lower()
+        assert "line 1" in stderr
+        assert "<string>" not in stderr
+        assert "exec(" not in stderr
+        assert result["ok"] is False
+
+    def test_top_level_runtime_error_hides_wrapper_frames(self):
+        # A module-level runtime error should reference the learner's code, not
+        # the runner's wrapper frames.
+        exercises = [{"id": "rt", "tests": [{"call": "f()", "expected": 1, "label": "x"}]}]
+        result = run_user_code({"code": "x = 1 / 0", "exercise_id": "rt"}, exercises)
+        stderr = result["stderr"]
+        assert "ZeroDivisionError" in stderr
+        assert "<your code>" in stderr
+        assert "<string>" not in stderr
+        assert result["ok"] is False
+
     def test_set_return_does_not_crash_harness(self):
         # Regression for P1.1: a non-JSON-serializable return value must degrade
         # to a readable repr and a failed test, never crash the result harness.

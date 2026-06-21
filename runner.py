@@ -231,6 +231,7 @@ import builtins as _bi
 import contextlib
 import io
 import json
+import sys
 import traceback
 
 _BLOCKED = frozenset({{'eval', 'exec', 'compile', 'breakpoint', 'open', 'input', 'globals', 'locals', 'vars', 'getattr', 'setattr', 'delattr'}})
@@ -260,10 +261,23 @@ def _norm(value):
         return {{key: _norm(val) for key, val in value.items()}}
     return value
 
+def _run_user_code():
+    # Compile with a learner-facing filename so syntax errors and tracebacks
+    # point at the learner's own line, never the runner's wrapper script.
+    code_obj = compile({user_code!r}, "<your code>", "exec")
+    exec(code_obj, USER_GLOBALS)
+
 try:
-    exec({user_code!r}, USER_GLOBALS)
-except Exception:
-    traceback.print_exc()
+    _run_user_code()
+except SyntaxError as _exc:
+    _where = (" on line " + str(_exc.lineno)) if _exc.lineno else ""
+    print("Your code has a syntax error" + _where + ": " + str(_exc.msg), file=sys.stderr)
+except Exception as _exc:
+    # Show only the learner's frames, not the runner's internal wrapper frames.
+    _frames = [fr for fr in traceback.extract_tb(sys.exc_info()[2]) if fr.filename == "<your code>"]
+    if _frames:
+        traceback.print_list(_frames, file=sys.stderr)
+    print(type(_exc).__name__ + ": " + str(_exc), file=sys.stderr)
 
 results = []
 for test in TESTS:

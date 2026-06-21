@@ -124,6 +124,8 @@ Two normalizations in the runner are intentional and must not be removed:
 - `_safe(value)` — converts non-JSON-serializable values to `repr` strings rather than crashing
 - `_norm(value)` — recursively converts tuples to lists so beginner code returning `(1, 2)` matches `expected=[1, 2]`
 
+Learner code is compiled with the filename `<your code>` and module-level failures are reported cleanly: a `SyntaxError` becomes "Your code has a syntax error on line N: …", and other top-level exceptions print only the learner's own traceback frames — never the runner's wrapper frames (`<string>`, `exec(...)`). Do not revert to a bare `traceback.print_exc()`, which leaked the wrapper script's internals to beginners. Tests: `tests/test_runner.py`.
+
 ## Content Rules
 
 ### practice.json schema
