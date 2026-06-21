@@ -142,6 +142,16 @@ Each question object uses `"answer"` (not `"correct_index"`) for the zero-based 
 runtime fallback to legacy Python content modules; broken structured content
 must fail fast and be fixed in `content/`.
 
+### List fields must be JSON arrays
+
+`real_world`, `must_know`, `common_traps`, `interview`, and `docs` in `topic.json`
+**must be JSON arrays**, never a single string — the UI renders them through
+`renderList()`/`.map()`, and a string crashes the entire topic render. `len()`
+checks pass on strings, so type is enforced explicitly by
+`tests/test_content_integrity.py::TestTopicFields::test_list_fields_are_lists`.
+`renderList()` also coerces non-arrays defensively, but content must still be
+correct. `must_know` and `interview` need ≥3 items (see quality bar).
+
 ### Section sync (enforced by test)
 
 `topic.json` `lesson_sections` titles and `lesson.md` `##` headings **must match exactly** — same count, same order, same title text. `tests/test_content_drift.py` enforces this and will fail the suite if they drift. Whenever you edit one, update the other.
@@ -230,6 +240,7 @@ Critical CSS invariants:
 - AI is optional and not configured out of the box (the default provider is local Ollama, which a first-time learner usually has not installed). The unconfigured paths must stay actionable, not dead ends: `ai_coach.NO_LOCAL_MODEL_HINT` and the local "connection refused" branch of `friendly_provider_error` both point the learner to ⚙ AI Settings and the no-install hosted route (paste an API key). `maybeShowAiOnboarding()` shows one dismissible first-run banner (`.ai-onboard-nudge`, reusing `.review-nudge` styling) when `isAiConfigured()` is false, gated by the `pySkillLabAiOnboarded` localStorage flag so it never nags. Tests: `tests/test_ai_onboarding.py`.
 - `boot()` is wrapped in try/catch: a curriculum load failure calls `showBootError()` to render a plain-language `.boot-error` panel instead of leaving a blank workspace. Do not remove this guard.
 - Chat responses (Coach + Ask AI) render through `renderMarkdown()`, a block-level parser: code fences, ATX headings (`#`–`######` → `.md-h`), unordered/ordered lists, and paragraphs that **join soft-wrapped lines with a space** (`_renderTextBlock` / `_inlineMarkdown`). Do not revert to the old `\n`→`<br>` substitution — small local models emit many newlines and that produced the "disoriented" one-fragment-per-line transcript. `stripThinkTags()` runs first as defense-in-depth so reasoning-model `<think>…</think>` (closed or unclosed) can never reach the transcript. Server-side, `_ThinkFilter` must be applied on **every** reasoning-capable path, not just LM Studio: hosted streaming (`stream_openai_compatible` is called with `filter_thinking=True` for openai/grok/groq/azure-foundry) and the non-streaming `call_openai_compatible` both strip `<think>` — needed because hosted reasoning models like Groq `qwen3-32b` emit it inline in content. Tests: `tests/test_chat_rendering.py`, `tests/test_ai_models.py`.
+- Lesson bodies render through `renderLessonMarkdown()` (separate from chat — it adds Try-it buttons on runnable code fences). It also parses bullet/numbered lists into `<ul>/<ol>` (`.lesson-list`); without that, `- item` lines collapse into one run-on paragraph. Lesson bodies use list markers but not ATX headings (sections carry their own titles).
 - The floating Ask AI panel has minimize/maximize/close window controls (`#askAiMinimize`, `#askAiMaximize`, `#askAiClose`). Minimize and close both collapse to the launcher bubble keeping the conversation; `toggleAskAiMaximize()` toggles `.ask-ai-panel.maximized` (wider/taller for long answers). `startNewAskAiChat()` resets to the welcome message and signals a clear fresh start ("New chat started", scroll to top) — keep the `askAiMessages = [{ role: "assistant", text: ASK_AI_WELCOME_MESSAGE }]` reset line intact for the stream-generation guard.
 
 ## Vendor Bundle Rules

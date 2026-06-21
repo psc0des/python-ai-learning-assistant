@@ -7,19 +7,19 @@
   "mental_model": "Think of it like a kitchen: the customer places an order (user input), the chef (LLM client) prepares it using available ingredients (tools and retrieved context), and the server delivers the plate (output handler). Each role is separate and swappable — you can change the chef without rebuilding the kitchen.",
   "syntax": "payload = {**config, 'messages': history}\nreply = response['choices'][0]['message']['content']",
   "example": "app = SimpleAIApp('gpt-4o-mini', system_prompt='You are helpful.')\napp.add_message('user', 'What is 2 + 2?')\npayload = app.build_request()  # ready to POST to the API",
-  "must_know": "Keep config, history, and the client call in separate layers. Config changes rarely; messages change every turn; the client is the one network boundary. Mixing them makes each hard to test in isolation.",
+  "must_know": ["Keep config, conversation history, and the client API call in separate layers — each changes at a different rate.", "Config changes rarely, messages change every turn, and the client is the one network boundary.", "Mixing these concerns into one blob makes each part hard to test in isolation."],
   "common_traps": [
     "Hardcoding model name and temperature inside the request builder — makes switching models a search-and-replace",
     "Not appending the assistant reply to history — the model forgets the previous turn on the next call",
     "Returning raw response dicts to the UI instead of extracting the content string first",
     "No fallback when the API call fails — unhandled exceptions crash the whole app instead of showing a graceful error"
   ],
-  "interview": "Describe the request-response loop: build payload from config + history, POST to the API, extract choices[0].message.content, append to history. Know where RAG and tool dispatch each fit in that loop.",
+  "interview": ["Describe the request-response loop: build the payload from config + history, POST to the API, extract choices[0].message.content, then append the reply to history.", "Explain why the assistant reply must be appended to history — without it the model forgets the previous turn.", "Know where RAG retrieval and tool dispatch each fit inside that loop."],
   "docs": [
     {"label": "OpenAI Chat Completions API", "url": "https://platform.openai.com/docs/api-reference/chat"},
     {"label": "OpenAI Conversation State guide", "url": "https://platform.openai.com/docs/guides/conversation-state"}
   ],
-  "real_world": "Every production AI chatbot, coding assistant, and search tool uses this three-layer pattern. The layers might be microservices or just three functions in one file — the separation is the same either way.",
+  "real_world": ["Every production AI chatbot, coding assistant, and search tool uses this three-layer pattern. The layers might be microservices or just three functions in one file — the separation is the same either way."],
   "outcome": "You can build a config dict, manage conversation history, parse a response, add error handling, and assemble a SimpleAIApp class that wraps the complete loop.",
   "lesson_path": "content/topics/ai-app-architecture/lesson.md",
   "quality_status": "reference",

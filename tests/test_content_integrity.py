@@ -52,6 +52,16 @@ class TestTopicFields:
             f"Topic '{topic['id']}' should have at least 1 real-world implementation note"
         )
 
+    def test_list_fields_are_lists(self, topic):
+        # These render through renderList()/.map() in the UI. A field authored as
+        # a string (not a list) crashes the whole topic render — len() checks miss
+        # it because len() also works on strings. Enforce the actual type here.
+        for field in ("must_know", "interview", "docs", "real_world", "common_traps"):
+            if field in topic:
+                assert isinstance(topic[field], list), (
+                    f"Topic '{topic['id']}' field '{field}' must be a list, got {type(topic[field]).__name__}"
+                )
+
 
 class TestPracticeTests:
     """Verify practice test content quality."""

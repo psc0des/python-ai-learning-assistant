@@ -387,6 +387,17 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   color: var(--ink-secondary);
 }
 
+.lesson-list {
+  margin: 4px 0 10px;
+  padding-left: 38px;
+  line-height: 1.7;
+  color: var(--ink-secondary);
+}
+
+.lesson-list li {
+  margin: 3px 0;
+}
+
 .section-body {
   padding: 4px 0 6px;
 }

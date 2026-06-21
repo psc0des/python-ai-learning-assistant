@@ -616,7 +616,7 @@ function selectTopic(topicId) {
   els.realWorld.innerHTML = renderList(topic.real_world || []);
   els.mustKnow.innerHTML = renderList(topic.must_know || []);
   els.commonTraps.innerHTML = renderList(topic.common_traps || []);
-  els.interview.innerHTML = topic.interview.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  els.interview.innerHTML = renderList(topic.interview || []);
   els.docs.innerHTML = (topic.docs || [])
     .map((doc) => `<li><a href="${escapeHtml(doc.url)}" target="_blank" rel="noreferrer">${escapeHtml(doc.label)}</a></li>`)
     .join("");
@@ -635,6 +635,9 @@ function buildLearningOutcome(topic) {
 }
 
 function renderList(items) {
+  // Coerce non-arrays (e.g. a content field authored as a string) so a single
+  // malformed field can never crash the whole topic render.
+  if (!Array.isArray(items)) items = items ? [items] : [];
   return items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
 }
 
@@ -1609,8 +1612,41 @@ function renderLessonMarkdown(text) {
         : `<span class="lesson-code-note">Illustration only</span>`;
       html += `<div class="lesson-code-wrap"><pre class="lesson-code"><code>${escapeHtml(seg.content)}</code></pre>${codeAction}</div>`;
     } else {
-      const paras = seg.content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-      for (const para of paras) html += `<p>${inlineMarkdown(para)}</p>`;
+      // Block-level prose: paragraphs plus bullet/numbered lists. Without list
+      // handling, `- item` lines collapse into one run-on paragraph.
+      const lines = seg.content.split('\n');
+      let paraLines = [];
+      let i = 0;
+      const flushPara = () => {
+        if (paraLines.length) { html += `<p>${inlineMarkdown(paraLines.join(' ').trim())}</p>`; paraLines = []; }
+      };
+      while (i < lines.length) {
+        const t = lines[i].trim();
+        if (!t) { flushPara(); i++; continue; }
+        if (/^[-*+]\s+/.test(t)) {
+          flushPara();
+          html += '<ul class="lesson-list">';
+          while (i < lines.length && /^[-*+]\s+/.test(lines[i].trim())) {
+            html += `<li>${inlineMarkdown(lines[i].trim().replace(/^[-*+]\s+/, ''))}</li>`;
+            i++;
+          }
+          html += '</ul>';
+          continue;
+        }
+        if (/^\d+\.\s+/.test(t)) {
+          flushPara();
+          html += '<ol class="lesson-list">';
+          while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+            html += `<li>${inlineMarkdown(lines[i].trim().replace(/^\d+\.\s+/, ''))}</li>`;
+            i++;
+          }
+          html += '</ol>';
+          continue;
+        }
+        paraLines.push(t);
+        i++;
+      }
+      flushPara();
     }
   }
   return html || `<p>${escapeHtml(text)}</p>`;

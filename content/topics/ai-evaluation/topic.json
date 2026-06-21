@@ -7,19 +7,19 @@
   "mental_model": "Think of evaluation like a QA inspector on a production line: each item gets checked against a spec. In AI, each test case is one (input, expected output) pair, your evaluator is the inspector, and the score is the pass rate across the whole batch.",
   "syntax": "score = sum(1 for p, e in zip(preds, labels) if evaluator(p, e)) / len(labels)",
   "example": "exact_match('Paris', 'Paris')   # True\nexact_match('paris', 'Paris')   # False — case sensitive\ncontains_check('The capital is Paris', ['Paris', 'capital'])  # True",
-  "must_know": "Normalize before comparing. Strip whitespace and lowercase unless case matters. A test that fails only because of a trailing newline is a false negative, not a real failure.",
+  "must_know": ["Normalize text before comparing expected and actual outputs.", "Strip whitespace and lowercase unless case actually matters for the answer.", "A test that fails only because of a trailing newline is a false negative, not a real failure."],
   "common_traps": [
     "Comparing raw LLM output without stripping — trailing newlines cause false failures",
     "Using exact match for prose answers that can be paraphrased — contains checks are more forgiving",
     "Not saving eval results — you cannot spot regressions if you do not track scores over time",
     "Treating a high pass rate on one test set as proof the model is generally good — test sets go stale"
   ],
-  "interview": "Know the difference between exact match, contains/keyword overlap, and semantic similarity (embedding cosine). For a first eval, exact match on structured outputs (JSON fields, labels) and contains-check on prose are the practical starting points.",
+  "interview": ["Know the difference between exact match, contains/keyword overlap, and semantic similarity (embedding cosine).", "For structured outputs like JSON fields or labels, exact match is the practical starting point.", "For prose answers that can be paraphrased, a contains/keyword check is more forgiving than exact match."],
   "docs": [
     {"label": "OpenAI Evals", "url": "https://platform.openai.com/docs/guides/evals"},
     {"label": "Python built-in functions", "url": "https://docs.python.org/3/library/functions.html"}
   ],
-  "real_world": "Every serious AI product runs automated evals before deploying a prompt or model change. Even a 50-question test set that checks for key phrases in the answer catches most regressions in minutes.",
+  "real_world": ["Every serious AI product runs automated evals before deploying a prompt or model change. Even a 50-question test set that checks for key phrases in the answer catches most regressions in minutes."],
   "outcome": "You can write a simple evaluator, score a batch of test cases, normalize outputs before comparing, and build a repeatable eval harness as a class.",
   "lesson_path": "content/topics/ai-evaluation/lesson.md",
   "quality_status": "reference",
