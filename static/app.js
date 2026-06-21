@@ -724,14 +724,14 @@ function renderPracticeTest(topicId) {
           (option, optionIndex) => `
             <label class="answer-option">
               <input type="radio" name="question-${questionIndex}" value="${optionIndex}" />
-              <span>${escapeHtml(option)}</span>
+              <span>${_inlineMarkdown(option)}</span>
             </label>
           `
         )
         .join("");
       return `
         <article class="question-card" data-question-index="${questionIndex}">
-          <h4>${questionIndex + 1}. ${escapeHtml(question.question)}</h4>
+          <h4>${questionIndex + 1}. ${_inlineMarkdown(question.question)}</h4>
           <div class="answer-options">${options}</div>
           <p class="answer-explanation"></p>
         </article>

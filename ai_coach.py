@@ -518,7 +518,11 @@ def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
         timeout=timeout,
     )
     elapsed = time.time() - t0
-    text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip() or "No response text returned."
+    raw_text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    # Strip <think>...</think> from hosted reasoning models (e.g. Groq qwen3) so
+    # raw chain-of-thought never reaches the learner on the non-streaming path.
+    tf = _ThinkFilter()
+    text = (tf.feed(raw_text) + tf.flush()).strip() or "No response text returned."
     usage = data.get("usage") or {}
     tokens_in = int(usage.get("prompt_tokens") or 0)
     tokens_out = int(usage.get("completion_tokens") or 0)
@@ -1053,6 +1057,7 @@ def stream_ai_coach(
                 temperature,
                 top_p,
                 timeout=timeout,
+                filter_thinking=True,
                 max_tokens=max_tokens,
             )
         else:

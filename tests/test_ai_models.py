@@ -158,6 +158,40 @@ def test_openai_compatible_stream_yields_delta_chunks(monkeypatch):
     assert events[-1]["text"] == "Python"
 
 
+def test_hosted_stream_filters_reasoning_think_tags(monkeypatch):
+    # Hosted reasoning models (e.g. Groq qwen3-32b) emit <think>...</think> inline
+    # in content. The hosted streaming path must strip it, not just LM Studio.
+    def fake_stream(url, headers, payload, timeout=None):
+        for piece in ["<think>secret ", "chain of thought</think>", "The ", "real answer."]:
+            yield 'data: {"choices":[{"delta":{"content":"%s"}}]}' % piece
+        yield "data: [DONE]"
+
+    monkeypatch.setattr(ai_coach, "_post_stream_lines", fake_stream)
+
+    events = list(ai_coach.stream_ai_coach(
+        {"provider": "groq", "api_key": "k", "model": "qwen/qwen3-32b", "question": "hi", "mode": "chat"},
+        topics=[],
+        exercises=[],
+    ))
+    chunks = "".join(e["text"] for e in events if e.get("type") == "chunk")
+    assert "<think>" not in chunks
+    assert "secret" not in chunks and "chain of thought" not in chunks
+    assert "The real answer." in chunks
+
+
+def test_hosted_nonstream_strips_think_tags(monkeypatch):
+    def fake_post(url, headers, payload, timeout=None):
+        return {
+            "choices": [{"message": {"content": "<think>hidden reasoning</think>Visible answer."}}],
+            "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+        }
+
+    monkeypatch.setattr(ai_coach, "post_json", fake_post)
+
+    result = ai_coach.call_openai_compatible("http://x/v1/chat/completions", "k", "m", "hi")
+    assert result["text"] == "Visible answer."
+
+
 def test_provider_test_request_caps_google_output_and_timeout(monkeypatch):
     requested = {}
 
