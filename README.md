@@ -59,6 +59,7 @@ python -B -m pytest tests -q -p no:cacheprovider
 - **Execution Visualizer** — step through your own code line by line, watching variables change; draggable overlay, available in every editor; beginner-friendly error explanations for both runtime and syntax errors
 - Practice exercises with local test runner, an embedded AI Coach for lab code/test feedback, and a floating Ask AI messenger for lesson text, Try It examples, selected text, and Visualizer steps; streaming replies are used where providers support them; supports 8 providers (Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok, Groq Cloud, Azure AI Foundry)
 - AI Settings separates local model discovery from connection testing: Ollama/LM Studio use **Show local models** plus **Test selected model**, while hosted APIs use **Verify provider** for the configured key/model.
+- The AI Coach is optional and needs a one-time setup. On first run, a dismissible banner points to ⚙ AI Settings; the easiest path is a hosted provider (OpenAI, Anthropic, Google, or Groq) with an API key — no local install. When AI is not configured, the app shows plain-language guidance instead of a cryptic error.
 
 ## Content System
 
@@ -81,7 +82,9 @@ The code runner executes snippets locally with a short timeout. Treat it as a pr
 AI request timeout defaults are intentionally short so the learning UI does not appear frozen if a provider is down:
 
 - `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` (default `45`) for AI coach calls; local models may need one warm-up request after launch
+- `PY_SKILL_LAB_AI_PROVIDER_TEST_TIMEOUT_SECONDS` (default `20`) for hosted Verify Provider health checks
 - `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` (default `8`) for model list refresh
+- `PY_SKILL_LAB_AI_PROVIDER`, `PY_SKILL_LAB_AI_MODEL`, and `PY_SKILL_LAB_AI_ENDPOINT` store the last selected provider settings; API keys stay server-side and are never echoed back into the browser
 
 UI theme note: dark mode has been removed for now. The app uses a single warm light theme to avoid inconsistent contrast and readability issues.
 

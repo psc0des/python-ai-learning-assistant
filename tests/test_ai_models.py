@@ -25,7 +25,9 @@ def test_ollama_model_listing_does_not_invent_fallbacks_when_down(monkeypatch):
     assert result["ok"] is False
     assert result["models"] == []
     assert "Could not reach Ollama" in result["error"]
-    assert "Is it running?" in result["error"]
+    assert "installed and running" in result["error"]
+    # Beginners with no local AI must be pointed to the no-install hosted path.
+    assert "AI Settings" in result["error"]
 
 
 def test_ollama_model_listing_returns_only_installed_models(monkeypatch):
@@ -89,7 +91,7 @@ def test_lmstudio_chat_endpoint_lists_models_from_v1_models(monkeypatch):
 def test_lmstudio_chat_uses_chat_completions_when_base_endpoint_is_configured(monkeypatch):
     requested = {}
 
-    def fake_post(url, headers, payload):
+    def fake_post(url, headers, payload, timeout=None):
         requested["url"] = url
         return {"choices": [{"message": {"content": "ok"}}], "usage": {}}
 
@@ -156,6 +158,48 @@ def test_openai_compatible_stream_yields_delta_chunks(monkeypatch):
     assert events[-1]["text"] == "Python"
 
 
+def test_provider_test_request_caps_google_output_and_timeout(monkeypatch):
+    requested = {}
+
+    def fake_stream_google(
+        endpoint,
+        api_key,
+        model,
+        prompt,
+        temperature=0.2,
+        top_p=0.9,
+        top_k=40,
+        max_tokens=2048,
+        timeout=None,
+    ):
+        requested["max_tokens"] = max_tokens
+        requested["prompt"] = prompt
+        requested["timeout"] = timeout
+        yield {"type": "chunk", "text": "Ready."}
+        yield {"type": "done", "ok": True, "tokens_in": 3, "tokens_out": 1, "elapsed_sec": 0.1, "tok_per_sec": 10}
+
+    monkeypatch.setattr(ai_coach, "stream_google", fake_stream_google)
+
+    result = ai_coach.ask_ai_coach(
+        {
+            "provider": "google",
+            "api_key": "test-key",
+            "model": "gemini-test",
+            "question": "Reply exactly: Ready.",
+            "mode": "chat",
+            "purpose": "provider_test",
+        },
+        topics=[],
+        exercises=[],
+    )
+
+    assert result["ok"] is True
+    assert result["answer"] == "Ready."
+    assert requested["max_tokens"] == 64
+    assert requested["timeout"] == ai_coach.AI_PROVIDER_TEST_TIMEOUT_SECONDS
+    assert "Reply exactly: Ready." in requested["prompt"]
+
+
 def test_ollama_chat_requires_live_selected_model():
     result = ai_coach.ask_ai_coach(
         {
@@ -169,7 +213,10 @@ def test_ollama_chat_requires_live_selected_model():
     )
 
     assert result["ok"] is False
-    assert "Choose an installed Ollama model" in result["error"]
+    # No-model error must stay actionable for a beginner with nothing installed.
+    assert "Ollama" in result["error"]
+    assert "AI Settings" in result["error"]
+    assert "API key" in result["error"]
 
 
 def test_local_provider_timeout_message_mentions_warmup():
@@ -183,7 +230,16 @@ def test_local_provider_timeout_message_mentions_warmup():
     assert "warm-up request" in message
 
 
-def test_hosted_provider_no_key_returns_suggestions_only():
+def test_hosted_provider_no_key_returns_suggestions_only(monkeypatch):
+    for env_key in (
+        ai_coach.ENV_OPENAI_API_KEY,
+        ai_coach.ENV_ANTHROPIC_API_KEY,
+        ai_coach.ENV_GOOGLE_API_KEY,
+        ai_coach.ENV_GROK_API_KEY,
+        ai_coach.ENV_GROQ_API_KEY,
+    ):
+        monkeypatch.delenv(env_key, raising=False)
+
     for provider in ("openai", "anthropic", "google", "grok", "groq"):
         result = ai_coach.list_ai_models({"provider": provider, "api_key": ""})
         assert result["ok"] is False, f"{provider}: expected ok=False when no key"
@@ -192,7 +248,9 @@ def test_hosted_provider_no_key_returns_suggestions_only():
         assert "API key" in result["error"], f"{provider}: expected key-related error message"
 
 
-def test_azure_foundry_no_key_returns_suggestions_only():
+def test_azure_foundry_no_key_returns_suggestions_only(monkeypatch):
+    monkeypatch.delenv(ai_coach.ENV_AZURE_FOUNDRY_API_KEY, raising=False)
+
     result = ai_coach.list_ai_models({
         "provider": "azure-foundry",
         "api_key": "",
@@ -246,7 +304,7 @@ def test_azure_foundry_model_listing_trailing_slash_endpoint(monkeypatch):
 def test_azure_foundry_chat_uses_openai_compatible_path(monkeypatch):
     requested = {}
 
-    def fake_post(url, headers, payload):
+    def fake_post(url, headers, payload, timeout=None):
         requested["url"] = url
         return {"choices": [{"message": {"content": "hello"}}], "usage": {}}
 
@@ -283,7 +341,10 @@ def test_lmstudio_chat_requires_live_selected_model():
     )
 
     assert result["ok"] is False
-    assert "Choose a loaded LM Studio model" in result["error"]
+    # No-model error must stay actionable for a beginner with nothing installed.
+    assert "LM Studio" in result["error"]
+    assert "AI Settings" in result["error"]
+    assert "API key" in result["error"]
 
 
 def test_ai_models_endpoint_rate_limit_returns_429(monkeypatch):

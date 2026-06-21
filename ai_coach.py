@@ -28,9 +28,23 @@ logger = logging.getLogger(__name__)
 
 AI_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_TIMEOUT_SECONDS", "45"))
 AI_LOCAL_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_LOCAL_TIMEOUT_SECONDS", "120"))
+AI_PROVIDER_TEST_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_PROVIDER_TEST_TIMEOUT_SECONDS", "20"))
 AI_MODEL_LIST_TIMEOUT_SECONDS = int(os.environ.get("PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS", "8"))
 
 _USER_AGENT = "python-skill-lab/1.0"
+
+# Beginner-facing guidance shown when AI is not set up yet. The default provider
+# is a local one (Ollama), which a first-time learner usually has not installed,
+# so every "not configured" error must point to the no-install hosted path too.
+_HOSTED_ALTERNATIVE_HINT = (
+    "If you do not have a local AI installed, open the ⚙ AI Settings panel, switch Provider "
+    "to a hosted option (OpenAI, Anthropic, Google, or Groq), and paste an API key — that "
+    "needs no local install."
+)
+NO_LOCAL_MODEL_HINT = (
+    "No local AI model is selected. If you have {label} running, click “Show local models” "
+    "in ⚙ AI Settings and pick one. " + _HOSTED_ALTERNATIVE_HINT
+)
 
 # Environment variable names for server-side API keys (preferred over client-sent)
 ENV_OPENAI_API_KEY = "PY_SKILL_LAB_OPENAI_KEY"
@@ -97,22 +111,28 @@ class _ThinkFilter:
         return result
 
 
-def post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any]:
+def post_json(
+    url: str,
+    headers: dict[str, str],
+    payload: dict[str, Any],
+    timeout: int | None = None,
+) -> dict[str, Any]:
     """POST JSON to a URL and parse the JSON response."""
+    effective_timeout = AI_TIMEOUT_SECONDS if timeout is None else timeout
     body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(url, data=body, headers={"User-Agent": _USER_AGENT, **headers}, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=AI_TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(request, timeout=effective_timeout) as response:
             return json.loads(response.read().decode("utf-8"))
     except TimeoutError as exc:
-        raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+        raise RuntimeError(f"timed out after {effective_timeout}s") from exc
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", "")
         if isinstance(reason, TimeoutError):
-            raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+            raise RuntimeError(f"timed out after {effective_timeout}s") from exc
         raise
 
 
@@ -129,14 +149,14 @@ def _post_stream_lines(url: str, headers: dict[str, str], payload: dict[str, Any
                 if line:
                     yield line
     except TimeoutError as exc:
-        raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+        raise RuntimeError(f"timed out after {effective_timeout}s") from exc
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"AI provider returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", "")
         if isinstance(reason, TimeoutError):
-            raise RuntimeError(f"timed out after {AI_TIMEOUT_SECONDS}s") from exc
+            raise RuntimeError(f"timed out after {effective_timeout}s") from exc
         raise
 
 
@@ -183,13 +203,20 @@ def friendly_provider_error(provider: str, endpoint: str, exc: Exception) -> str
     lower = text.lower()
 
     if "timed out" in lower:
-        warmup = ""
         if provider in {"ollama", "lmstudio"}:
             warmup = " Local models may need one warm-up request after launch; try once more after the model finishes loading."
-        return f"{provider_label} did not respond before the timeout. Check that the provider is running and the endpoint is correct.{warmup}"
+            return f"{provider_label} did not respond before the timeout. Check that the provider is running and the endpoint is correct.{warmup}"
+        return (
+            f"{provider_label} did not respond before the timeout. Check the API key, model name, endpoint, "
+            "network access, and provider status. If you are using a preview model, try a stable fast model your "
+            "account can access or increase PY_SKILL_LAB_AI_TIMEOUT_SECONDS."
+        )
     if "connection refused" in lower or "winerror 10061" in lower:
         if provider in {"ollama", "lmstudio"}:
-            return f"Could not reach {provider_label} at {endpoint_text}. Is it running?"
+            return (
+                f"Could not reach {provider_label} at {endpoint_text}. Is it installed and running? "
+                + _HOSTED_ALTERNATIVE_HINT
+            )
         return f"Could not reach {provider_label} at {endpoint_text}. Check that the endpoint is correct."
     return text
 
@@ -374,7 +401,8 @@ def _make_result(text: str, tokens_in: int, tokens_out: int,
 
 
 def call_ollama(base_url: str, model: str, prompt: str,
-                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> dict[str, Any]:
+                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40,
+                timeout: int | None = None) -> dict[str, Any]:
     """Call the Ollama local API."""
     url = base_url.rstrip("/") + "/api/chat"
     t0 = time.time()
@@ -394,6 +422,7 @@ def call_ollama(base_url: str, model: str, prompt: str,
                 "top_k": top_k,
             },
         },
+        timeout=timeout,
     )
     elapsed = time.time() - t0
     raw = data.get("message", {}).get("content", "")
@@ -465,7 +494,9 @@ def stream_ollama(
 
 
 def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
-                           temperature: float = 0.2, top_p: float = 0.9) -> dict[str, Any]:
+                           temperature: float = 0.2, top_p: float = 0.9,
+                           max_tokens: int = 1500,
+                           timeout: int | None = None) -> dict[str, Any]:
     """Call an OpenAI-compatible API (OpenAI, LM Studio, Grok, Groq, etc.)."""
     t0 = time.time()
     data = post_json(
@@ -482,7 +513,9 @@ def call_openai_compatible(url: str, api_key: str, model: str, prompt: str,
             ],
             "temperature": temperature,
             "top_p": top_p,
+            "max_tokens": max_tokens,
         },
+        timeout=timeout,
     )
     elapsed = time.time() - t0
     text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip() or "No response text returned."
@@ -504,6 +537,7 @@ def stream_openai_compatible(
     top_p: float = 0.9,
     timeout: int | None = None,
     filter_thinking: bool = False,
+    max_tokens: int = 1500,
 ):
     """Yield standard stream events from an OpenAI-compatible chat endpoint."""
     t0 = time.time()
@@ -527,6 +561,7 @@ def stream_openai_compatible(
             ],
             "temperature": temperature,
             "top_p": top_p,
+            "max_tokens": max_tokens,
         },
         timeout=timeout,
     ):
@@ -580,7 +615,9 @@ def openai_compatible_models_url(endpoint: str, default_base: str) -> str:
 
 
 def call_anthropic(url: str, api_key: str, model: str, prompt: str,
-                   temperature: float = 0.2, top_p: float = 0.9) -> dict[str, Any]:
+                   temperature: float = 0.2, top_p: float = 0.9,
+                   max_tokens: int = 1500,
+                   timeout: int | None = None) -> dict[str, Any]:
     """Call the Anthropic Messages API."""
     t0 = time.time()
     data = post_json(
@@ -592,12 +629,13 @@ def call_anthropic(url: str, api_key: str, model: str, prompt: str,
         },
         {
             "model": model,
-            "max_tokens": 1500,
+            "max_tokens": max_tokens,
             "temperature": temperature,
             "top_p": top_p,
             "system": SYSTEM_MESSAGE,
             "messages": [{"role": "user", "content": prompt}],
         },
+        timeout=timeout,
     )
     elapsed = time.time() - t0
     chunks = data.get("content", [])
@@ -611,7 +649,9 @@ def call_anthropic(url: str, api_key: str, model: str, prompt: str,
 
 
 def call_google(endpoint: str, api_key: str, model: str, prompt: str,
-                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40) -> dict[str, Any]:
+                temperature: float = 0.2, top_p: float = 0.9, top_k: int = 40,
+                max_tokens: int = 2048,
+                timeout: int | None = None) -> dict[str, Any]:
     """Call the Google AI Studio (Gemini) API."""
     base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
     model_id = model.replace("models/", "")
@@ -627,10 +667,11 @@ def call_google(endpoint: str, api_key: str, model: str, prompt: str,
                 "temperature": temperature,
                 "topP": top_p,
                 "topK": top_k,
-                "maxOutputTokens": 2048,
+                "maxOutputTokens": max_tokens,
                 "thinkingConfig": {"thinkingBudget": 0},
             },
         },
+        timeout=timeout,
     )
     elapsed = time.time() - t0
     raw_parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
@@ -650,6 +691,8 @@ def stream_google(
     temperature: float = 0.2,
     top_p: float = 0.9,
     top_k: int = 40,
+    max_tokens: int = 2048,
+    timeout: int | None = None,
 ):
     """Yield standard stream events from the Google AI Studio SSE streaming API."""
     base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
@@ -670,10 +713,11 @@ def stream_google(
                 "temperature": temperature,
                 "topP": top_p,
                 "topK": top_k,
-                "maxOutputTokens": 2048,
+                "maxOutputTokens": max_tokens,
                 "thinkingConfig": {"thinkingBudget": 0},
             },
         },
+        timeout=timeout,
     ):
         if not line.startswith("data:"):
             continue
@@ -720,22 +764,32 @@ def _prepare_ai_request(
     question = str(payload.get("question", "")).strip()
     chat_history = payload.get("chat_history", [])
     mode = str(payload.get("mode", "lab"))
+    purpose = str(payload.get("purpose", "")).strip()
     try:
         temperature = max(0.0, min(1.0, float(payload.get("temperature", 0.2))))
         top_p = max(0.0, min(1.0, float(payload.get("top_p", 0.9))))
         top_k = max(1, min(200, int(payload.get("top_k", 40))))
+        default_max_tokens = 64 if purpose == "provider_test" else 1500
+        max_tokens = max(1, min(4096, int(payload.get("max_tokens", default_max_tokens))))
     except (TypeError, ValueError) as exc:
         raise ValueError(
             "Check your AI settings: temperature and top_p must be numbers between 0 and 1; "
-            "top_k must be an integer."
+            "top_k and max_tokens must be integers."
         ) from exc
 
     topic = next((item for item in topics if item["id"] == topic_id), None)
     exercise = next((item for item in exercises if item["id"] == exercise_id), None)
     prompt = build_ai_prompt(topic, exercise, code, run_result, question, chat_history, mode)
+    request_timeout = None
+    if purpose == "provider_test":
+        if provider in {"ollama", "lmstudio"}:
+            request_timeout = AI_LOCAL_TIMEOUT_SECONDS
+        else:
+            request_timeout = AI_PROVIDER_TEST_TIMEOUT_SECONDS
 
     return {
         "provider": provider,
+        "purpose": purpose,
         "api_key": api_key,
         "model": model,
         "endpoint": endpoint,
@@ -746,6 +800,8 @@ def _prepare_ai_request(
         "temperature": temperature,
         "top_p": top_p,
         "top_k": top_k,
+        "max_tokens": max_tokens,
+        "timeout": request_timeout,
     }
 
 
@@ -790,21 +846,24 @@ def ask_ai_coach(
     temperature = request["temperature"]
     top_p = request["top_p"]
     top_k = request["top_k"]
+    max_tokens = request["max_tokens"]
+    timeout = request["timeout"]
 
     try:
         if provider == "ollama":
             if not model:
-                raise ValueError("Choose an installed Ollama model from the live model dropdown.")
+                raise ValueError(NO_LOCAL_MODEL_HINT.format(label="Ollama"))
             call_result = call_ollama(endpoint or "http://127.0.0.1:11434", model, prompt,
-                                      temperature, top_p, top_k)
+                                      temperature, top_p, top_k, timeout=timeout)
         elif provider == "lmstudio":
             if not model:
-                raise ValueError("Choose a loaded LM Studio model from the live model dropdown.")
+                raise ValueError(NO_LOCAL_MODEL_HINT.format(label="LM Studio"))
             call_result = call_openai_compatible(
                 openai_compatible_chat_url(endpoint, "http://127.0.0.1:1234"),
                 api_key or "lm-studio",
                 model,
-                prompt, temperature, top_p,
+                prompt, temperature, top_p, max_tokens,
+                timeout=timeout,
             )
         elif provider == "openai":
             if not api_key:
@@ -813,7 +872,8 @@ def ask_ai_coach(
                 endpoint or "https://api.openai.com/v1/chat/completions",
                 api_key,
                 model or FALLBACK_MODELS["openai"][0],
-                prompt, temperature, top_p,
+                prompt, temperature, top_p, max_tokens,
+                timeout=timeout,
             )
         elif provider == "anthropic":
             if not api_key:
@@ -822,7 +882,8 @@ def ask_ai_coach(
                 endpoint or "https://api.anthropic.com/v1/messages",
                 api_key,
                 model or FALLBACK_MODELS["anthropic"][0],
-                prompt, temperature, top_p,
+                prompt, temperature, top_p, max_tokens,
+                timeout=timeout,
             )
         elif provider == "google":
             if not api_key:
@@ -836,7 +897,8 @@ def ask_ai_coach(
                 endpoint or "https://generativelanguage.googleapis.com/v1beta",
                 api_key,
                 model or FALLBACK_MODELS["google"][0],
-                prompt, temperature, top_p, top_k,
+                prompt, temperature, top_p, top_k, max_tokens,
+                timeout=timeout,
             ):
                 if _ev["type"] == "chunk":
                     g_parts.append(_ev["text"])
@@ -859,7 +921,8 @@ def ask_ai_coach(
                 endpoint or "https://api.x.ai/v1/chat/completions",
                 api_key,
                 model or FALLBACK_MODELS["grok"][0],
-                prompt, temperature, top_p,
+                prompt, temperature, top_p, max_tokens,
+                timeout=timeout,
             )
         elif provider == "groq":
             if not api_key:
@@ -868,7 +931,8 @@ def ask_ai_coach(
                 endpoint or "https://api.groq.com/openai/v1/chat/completions",
                 api_key,
                 model or FALLBACK_MODELS["groq"][0],
-                prompt, temperature, top_p,
+                prompt, temperature, top_p, max_tokens,
+                timeout=timeout,
             )
         elif provider == "azure-foundry":
             if not api_key:
@@ -879,7 +943,8 @@ def ask_ai_coach(
                 openai_compatible_chat_url(endpoint, endpoint),
                 api_key,
                 model or "",
-                prompt, temperature, top_p,
+                prompt, temperature, top_p, max_tokens,
+                timeout=timeout,
             )
         else:
             raise ValueError(f"Unknown provider: {provider}")
@@ -926,16 +991,18 @@ def stream_ai_coach(
     temperature = request["temperature"]
     top_p = request["top_p"]
     top_k = request["top_k"]
+    max_tokens = request["max_tokens"]
+    timeout = request["timeout"]
 
     try:
         if provider == "ollama":
             if not model:
-                raise ValueError("Choose an installed Ollama model from the live model dropdown.")
+                raise ValueError(NO_LOCAL_MODEL_HINT.format(label="Ollama"))
             yield from stream_ollama(endpoint or "http://127.0.0.1:11434", model, prompt,
                                      temperature, top_p, top_k)
         elif provider == "lmstudio":
             if not model:
-                raise ValueError("Choose a loaded LM Studio model from the live model dropdown.")
+                raise ValueError(NO_LOCAL_MODEL_HINT.format(label="LM Studio"))
             yield from stream_openai_compatible(
                 openai_compatible_chat_url(endpoint, "http://127.0.0.1:1234"),
                 api_key or "lm-studio",
@@ -943,6 +1010,7 @@ def stream_ai_coach(
                 prompt, temperature, top_p,
                 timeout=AI_LOCAL_TIMEOUT_SECONDS,
                 filter_thinking=True,
+                max_tokens=max_tokens,
             )
         elif provider == "google":
             if not api_key:
@@ -951,7 +1019,8 @@ def stream_ai_coach(
                 endpoint or "https://generativelanguage.googleapis.com/v1beta",
                 api_key,
                 model or FALLBACK_MODELS["google"][0],
-                prompt, temperature, top_p, top_k,
+                prompt, temperature, top_p, top_k, max_tokens,
+                timeout=timeout,
             )
         elif provider in {"openai", "grok", "groq", "azure-foundry"}:
             if provider == "openai":
@@ -976,7 +1045,16 @@ def stream_ai_coach(
                     raise ValueError("Azure AI Foundry endpoint is required. Enter your project URL in AI Settings.")
                 url = openai_compatible_chat_url(endpoint, endpoint)
                 selected_model = model or ""
-            yield from stream_openai_compatible(url, api_key, selected_model, prompt, temperature, top_p)
+            yield from stream_openai_compatible(
+                url,
+                api_key,
+                selected_model,
+                prompt,
+                temperature,
+                top_p,
+                timeout=timeout,
+                max_tokens=max_tokens,
+            )
         else:
             result = ask_ai_coach(payload, topics, exercises)
             if result.get("answer"):

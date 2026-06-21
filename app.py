@@ -20,11 +20,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from ai_coach import ask_ai_coach, list_ai_models, stream_ai_coach
-from content_loader import load_content
-from models import validate_content_at_startup
-from runner import run_user_code, trace_user_code
-
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -103,6 +98,58 @@ _PROVIDER_ENV_KEY: dict[str, str] = {
     "groq":          "PY_SKILL_LAB_GROQ_KEY",
     "azure-foundry": "PY_SKILL_LAB_AZURE_FOUNDRY_KEY",
 }
+
+_AI_SETTING_ENV_KEYS = {
+    "provider": "PY_SKILL_LAB_AI_PROVIDER",
+    "model": "PY_SKILL_LAB_AI_MODEL",
+    "endpoint": "PY_SKILL_LAB_AI_ENDPOINT",
+}
+
+
+def _current_ai_settings() -> dict[str, Any]:
+    """Return non-secret AI settings loaded from the process environment."""
+    provider = os.environ.get(_AI_SETTING_ENV_KEYS["provider"], "").strip().lower()
+    env_key = _PROVIDER_ENV_KEY.get(provider, "")
+    return {
+        "ok": True,
+        "provider": provider,
+        "model": os.environ.get(_AI_SETTING_ENV_KEYS["model"], "").strip(),
+        "endpoint": os.environ.get(_AI_SETTING_ENV_KEYS["endpoint"], "").strip(),
+        "key_present": bool(env_key and os.environ.get(env_key, "").strip()),
+    }
+
+
+def _save_ai_settings(payload: dict[str, Any], include_blank_key: bool = False) -> dict[str, Any]:
+    """Persist non-secret provider settings and optionally the hosted provider key."""
+    provider = str(payload.get("provider", "")).strip().lower()
+    model = str(payload.get("model", "")).strip()
+    endpoint = str(payload.get("endpoint", "")).strip()
+    updates = {
+        _AI_SETTING_ENV_KEYS["provider"]: provider,
+        _AI_SETTING_ENV_KEYS["model"]: model,
+        _AI_SETTING_ENV_KEYS["endpoint"]: endpoint,
+    }
+
+    env_key = _PROVIDER_ENV_KEY.get(provider)
+    api_key = str(payload.get("api_key", "")).strip()
+    if env_key and (api_key or include_blank_key):
+        updates[env_key] = api_key
+
+    _update_dotenv(_ENV_PATH, updates)
+    logger.info("Saved AI settings for provider=%s model=%s endpoint=%s", provider, model, endpoint)
+    return {
+        "ok": True,
+        "env_key": env_key or "",
+        "key_present": bool(env_key and os.environ.get(env_key, "").strip()),
+    }
+
+
+_load_dotenv(_ENV_PATH)
+
+from ai_coach import ask_ai_coach, list_ai_models, stream_ai_coach
+from content_loader import load_content
+from models import validate_content_at_startup
+from runner import run_user_code, trace_user_code
 
 PORT = int(os.environ.get("PY_SKILL_LAB_PORT", os.environ.get("PY_INTERVIEW_PORT", "8765")))
 STRICT_CONTENT_MODE = os.environ.get("PY_SKILL_LAB_STRICT_CONTENT", "0") == "1"
@@ -222,7 +269,8 @@ class Handler(SimpleHTTPRequestHandler):
         return mtype
 
     def do_GET(self) -> None:
-        if self.path == "/api/curriculum":
+        request_path = urlparse(self.path).path
+        if request_path == "/api/curriculum":
             self.send_json({
                 "topics": TOPICS,
                 "exercises": EXERCISES,
@@ -231,8 +279,11 @@ class Handler(SimpleHTTPRequestHandler):
                 "loaded_at": CONTENT_LOADED_AT,
             })
             return
+        if request_path == "/api/ai-settings":
+            self.send_json(_current_ai_settings())
+            return
         # Serve index.html explicitly with no-cache so JS/HTML never go out of sync
-        if self.path in ("/", "/index.html") or self.path.startswith("/?"):
+        if request_path in ("/", "/index.html"):
             content = (STATIC_DIR / "index.html").read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -245,8 +296,17 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:
-        allowed_endpoints = {"/api/run", "/api/trace", "/api/ai-coach", "/api/ai-coach-stream", "/api/ai-models", "/api/save-ai-key"}
-        if self.path not in allowed_endpoints:
+        request_path = urlparse(self.path).path
+        allowed_endpoints = {
+            "/api/run",
+            "/api/trace",
+            "/api/ai-coach",
+            "/api/ai-coach-stream",
+            "/api/ai-models",
+            "/api/save-ai-key",
+            "/api/ai-settings",
+        }
+        if request_path not in allowed_endpoints:
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
 
@@ -261,7 +321,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         # Rate limiting on AI coach endpoint
-        if self.path in {"/api/ai-coach", "/api/ai-coach-stream"}:
+        if request_path in {"/api/ai-coach", "/api/ai-coach-stream"}:
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip, bucket="ai", max_requests=AI_RATE_LIMIT_MAX):
                 logger.warning("AI rate limit exceeded for IP: %s", client_ip)
@@ -273,7 +333,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return
 
         # Rate limiting on model-list endpoint (separate bucket — listing is cheaper than inference)
-        if self.path == "/api/ai-models":
+        if request_path == "/api/ai-models":
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip, bucket="models", max_requests=AI_MODELS_RATE_LIMIT_MAX):
                 logger.warning("Model-list rate limit exceeded for IP: %s", client_ip)
@@ -282,7 +342,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return
 
         # Rate limiting on the code-execution endpoints
-        if self.path in ("/api/run", "/api/trace"):
+        if request_path in ("/api/run", "/api/trace"):
             client_ip = self.client_address[0]
             if not check_rate_limit(client_ip, bucket="code", max_requests=RATE_LIMIT_MAX):
                 logger.warning("Rate limit exceeded for IP: %s", client_ip)
@@ -290,7 +350,7 @@ class Handler(SimpleHTTPRequestHandler):
                     f"Rate limit exceeded: max {RATE_LIMIT_MAX} code runs per "
                     f"{RATE_LIMIT_WINDOW}s. Wait a moment."
                 )
-                if self.path == "/api/trace":
+                if request_path == "/api/trace":
                     self.send_json(
                         {
                             "ok": False,
@@ -340,16 +400,18 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             payload = json.loads(self.rfile.read(length) or b"{}")
 
-            if self.path == "/api/run":
+            if request_path == "/api/run":
                 result = run_user_code(payload, EXERCISES)
-            elif self.path == "/api/trace":
+            elif request_path == "/api/trace":
                 result = trace_user_code(payload)
-            elif self.path == "/api/ai-models":
+            elif request_path == "/api/ai-models":
                 result = list_ai_models(payload)
-            elif self.path == "/api/ai-coach-stream":
+            elif request_path == "/api/ai-coach-stream":
                 self.send_ndjson_stream(stream_ai_coach(payload, TOPICS, EXERCISES))
                 return
-            elif self.path == "/api/save-ai-key":
+            elif request_path == "/api/ai-settings":
+                result = _save_ai_settings(payload)
+            elif request_path == "/api/save-ai-key":
                 provider = str(payload.get("provider", "")).lower()
                 api_key = str(payload.get("api_key", "")).strip()
                 env_key = _PROVIDER_ENV_KEY.get(provider)

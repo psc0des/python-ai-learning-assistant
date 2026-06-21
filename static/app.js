@@ -111,9 +111,11 @@ let askAiTypingTimer = null;
 let coachStreamGen = 0;
 let askAiStreamGen = 0;
 const LOCAL_AI_PROVIDERS = new Set(["ollama", "lmstudio"]);
+let aiSettingsKeyPresent = false;
 let solutionRevealed = false;
 let failedAttempts = 0;
 const AI_REQUEST_TIMEOUT_MS = 52000;
+const AI_PROVIDER_TEST_TIMEOUT_MS = 25000;
 // ---------------------------------------------------------------------------
 // Progress tracking (localStorage)
 // ---------------------------------------------------------------------------
@@ -397,23 +399,46 @@ async function postAiStreamWithTimeout(payload, callbacks = {}, timeoutMs = 0) {
 // ---------------------------------------------------------------------------
 
 async function boot() {
-  const response = await fetch("/api/curriculum");
-  const data = await response.json();
-  topics = data.topics;
-  exercises = data.exercises;
-  practiceTests = data.practice_tests || [];
+  try {
+    const response = await fetch("/api/curriculum");
+    if (!response.ok) throw new Error(`server responded ${response.status}`);
+    const data = await response.json();
+    topics = data.topics || [];
+    exercises = data.exercises || [];
+    practiceTests = data.practice_tests || [];
+    if (!topics.length) throw new Error("no topics were returned");
 
-  // Restore last visited topic ("continue where you left off")
-  const progress = loadProgress();
-  const lastTopicId = progress._lastTopicId;
-  const validLastTopic = lastTopicId && topics.find((t) => t.id === lastTopicId);
-  selectedTopicId = validLastTopic ? lastTopicId : topics[0].id;
+    // Restore last visited topic ("continue where you left off")
+    const progress = loadProgress();
+    const lastTopicId = progress._lastTopicId;
+    const validLastTopic = lastTopicId && topics.find((t) => t.id === lastTopicId);
+    selectedTopicId = validLastTopic ? lastTopicId : topics[0].id;
 
-  renderTopicList();
-  selectTopic(selectedTopicId);
+    renderTopicList();
+    selectTopic(selectedTopicId);
 
-  // Spaced repetition: nudge for topics not visited in 7+ days
-  checkSpacedRepetitionNudges(progress);
+    // Spaced repetition: nudge for topics not visited in 7+ days
+    checkSpacedRepetitionNudges(progress);
+  } catch (error) {
+    showBootError(error);
+  }
+}
+
+/** Replace the blank workspace with a clear, non-technical failure message. */
+function showBootError(error) {
+  const workspace = document.querySelector(".workspace");
+  if (!workspace) return;
+  const panel = document.createElement("div");
+  panel.className = "boot-error";
+  panel.setAttribute("role", "alert");
+  panel.innerHTML = `
+    <h2>The lessons could not load</h2>
+    <p>The app started but could not read its curriculum from the local server.</p>
+    <p>Make sure <code>python app.py</code> is still running, then reload this page. If it keeps
+    failing, restart the server from the project folder.</p>
+    <p class="boot-error-detail">Details: ${escapeHtml(String(error))}</p>
+  `;
+  workspace.prepend(panel);
 }
 
 /** Show one review nudge for any topic not practiced in 7+ days. */
@@ -448,6 +473,53 @@ function showReviewNudge(topic, days) {
   document.querySelector(".workspace").prepend(banner);
   // Auto-dismiss after 12 seconds
   setTimeout(() => banner.remove(), 12000);
+}
+
+/**
+ * True when the learner has set up an AI provider they can actually use.
+ * Hosted providers need a key (or a saved model); local providers need a
+ * chosen model. Used to decide whether to show first-run AI onboarding.
+ */
+function isAiConfigured() {
+  const model = (els.model.value || "").trim();
+  if (isLocalAiProvider()) return !!model;
+  return aiSettingsKeyPresent || !!model;
+}
+
+/**
+ * First-run nudge: a beginner with no AI configured otherwise meets a cryptic
+ * provider error on their first "Ask AI" click. Show one dismissible banner
+ * pointing at AI Settings, at most once until they configure AI or dismiss it.
+ */
+function maybeShowAiOnboarding() {
+  if (isAiConfigured()) return;
+  if (localStorage.getItem("pySkillLabAiOnboarded") === "1") return;
+  const workspace = document.querySelector(".workspace");
+  if (!workspace || workspace.querySelector(".ai-onboard-nudge")) return;
+
+  const banner = document.createElement("div");
+  banner.className = "review-nudge ai-onboard-nudge";
+  banner.setAttribute("role", "note");
+  banner.innerHTML = `
+    <span class="nudge-icon">🤖</span>
+    <span>The <strong>AI Coach</strong> is optional and needs a one-time setup. Easiest: pick a hosted
+    provider (OpenAI, Anthropic, Google, or Groq) and paste an API key — no install. You can also run
+    it fully offline with Ollama.</span>
+    <div class="nudge-actions">
+      <button type="button" id="aiOnboardOpenBtn" class="nudge-btn">Open AI Settings</button>
+      <button type="button" class="nudge-dismiss" aria-label="Dismiss" onclick="localStorage.setItem('pySkillLabAiOnboarded','1');this.closest('.ai-onboard-nudge').remove()">✕</button>
+    </div>
+  `;
+  workspace.prepend(banner);
+  const openBtn = banner.querySelector("#aiOnboardOpenBtn");
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      localStorage.setItem("pySkillLabAiOnboarded", "1");
+      banner.remove();
+      const settingsBtn = document.getElementById("aiSettingsBtn");
+      if (settingsBtn) settingsBtn.click();
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1073,6 +1145,31 @@ function saveAiSettings() {
   );
 }
 
+function currentAiSettingsPayload({ includeKey = false } = {}) {
+  const payload = {
+    provider: els.provider.value,
+    model: els.model.value,
+    endpoint: els.endpoint.value,
+  };
+  if (includeKey) {
+    payload.api_key = els.apiKey.value.trim();
+  }
+  return payload;
+}
+
+async function saveAiSettingsToServer({ includeKey = false, timeoutMs = 5000 } = {}) {
+  const result = await postJsonWithTimeout(
+    "/api/ai-settings",
+    currentAiSettingsPayload({ includeKey }),
+    timeoutMs
+  );
+  if (result.ok) {
+    aiSettingsKeyPresent = !!result.key_present;
+    updateAiSettingsMode();
+  }
+  return result;
+}
+
 function loadAiSettings() {
   // Try new key, fall back to old key for backwards compatibility
   const saved = localStorage.getItem("pySkillLabSettings") || localStorage.getItem("pyInterviewAiSettings");
@@ -1094,6 +1191,29 @@ function loadAiSettings() {
   } catch {
     localStorage.removeItem("pySkillLabSettings");
     localStorage.removeItem("pyInterviewAiSettings");
+  }
+}
+
+async function loadServerAiSettings() {
+  try {
+    const response = await fetch("/api/ai-settings", { cache: "no-store" });
+    const settings = await response.json();
+    if (!settings.ok) return false;
+    if (settings.provider) els.provider.value = settings.provider;
+    if (settings.model) {
+      preferredModel = settings.model;
+      els.model.value = settings.model;
+    }
+    if (settings.endpoint) els.endpoint.value = settings.endpoint;
+    aiSettingsKeyPresent = !!settings.key_present;
+    els.apiKey.value = "";
+    saveAiSettings();
+    updateAiSettingsMode();
+    _updateSettingsBtnLabel();
+    await loadModels({ notify: false });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -1121,8 +1241,14 @@ function applyProviderDefaults() {
   };
   const selected = defaults[els.provider.value];
   preferredModel = selected.model;
+  els.model.value = selected.model;
+  if (els.modelSelect) {
+    els.modelSelect.innerHTML = "";
+    els.modelSelect.value = "";
+  }
   els.endpoint.value = selected.endpoint;
   els.apiKey.value = "";
+  aiSettingsKeyPresent = false;
   updateAiSettingsMode();
   clearAiSettingsStatus();
   loadModels();
@@ -1172,7 +1298,16 @@ function updateAiSettingsMode() {
   if (els.apiKeyHelpText) {
     els.apiKeyHelpText.textContent = local
       ? "Not needed for Ollama or LM Studio."
-      : "Saved to .env on disk when you use Save & Apply or Verify provider.";
+      : aiSettingsKeyPresent
+        ? "Saved server-side key is available. Leave blank to keep it, or paste a new key to replace it."
+        : "Saved to .env on disk when you use Save & Apply or Verify provider.";
+  }
+  if (els.apiKey) {
+    els.apiKey.placeholder = local
+      ? ""
+      : aiSettingsKeyPresent
+        ? "Saved key will be used"
+        : "Paste API key for hosted providers";
   }
   const testBtn = document.querySelector("#aiSettingsTestBtn");
   if (testBtn) {
@@ -2019,6 +2154,8 @@ els.endpoint.addEventListener("change", () => {
   setAskAiStatus("AI settings changed — click Save & Apply");
 });
 els.apiKey.addEventListener("change", () => {
+  if (els.apiKey.value.trim()) aiSettingsKeyPresent = false;
+  updateAiSettingsMode();
   setCoachStatus("AI settings changed — click Save & Apply");
   setAskAiStatus("AI settings changed — click Save & Apply");
 });
@@ -2329,9 +2466,25 @@ async function testAiProviderConnection() {
   setAiSettingsStatus(
     "",
     local ? "Testing selected model..." : "Verifying provider...",
-    local ? "Sending a short prompt to the selected local model." : "Sending a short prompt to the configured model."
+    local
+      ? "Sending a short prompt to the selected local model. First local replies can take longer while the model loads."
+      : "Sending a tiny health-check prompt to the selected model. This should finish quickly."
   );
   try {
+    const apiKey = els.apiKey.value.trim();
+    const saveResult = await saveAiSettingsToServer({
+      includeKey: !!apiKey && !local,
+      timeoutMs: 5000,
+    });
+    if (!saveResult.ok) {
+      setAiSettingsStatus(
+        "error",
+        "Could not save AI settings",
+        saveResult.error || "The provider check was not run because settings could not be written to .env."
+      );
+      return;
+    }
+
     const result = await postJsonWithTimeout("/api/ai-coach", {
       provider: els.provider.value,
       model: els.model.value,
@@ -2341,10 +2494,12 @@ async function testAiProviderConnection() {
       exercise_id: "",
       code: "",
       run_result: {},
-      question: "Reply with one short sentence confirming you are ready to help a Python learner.",
+      question: "Reply exactly: Ready.",
       mode: "chat",
+      purpose: "provider_test",
+      max_tokens: 64,
       chat_history: [],
-    }, AI_REQUEST_TIMEOUT_MS);
+    }, local ? AI_REQUEST_TIMEOUT_MS : AI_PROVIDER_TEST_TIMEOUT_MS);
     if (!result.ok) {
       setAiSettingsStatus(
         "error",
@@ -2358,19 +2513,14 @@ async function testAiProviderConnection() {
         local ? "This local model is ready for AI Coach and Ask AI." : "This provider is ready for AI Coach and Ask AI."
       );
       saveAiSettings();
-      const apiKey = els.apiKey.value.trim();
-      if (apiKey && !local) {
-        try {
-          await postJsonWithTimeout("/api/save-ai-key", {
-            provider: els.provider.value,
-            api_key: apiKey,
-          }, 5000);
-        } catch { /* non-fatal */ }
-      }
     }
   } catch (err) {
     const message = String(err).includes("timed out")
-      ? `Request timed out.${local ? _localProviderWarmupHint() : ""}`
+      ? (
+          local
+            ? `Request timed out.${_localProviderWarmupHint()}`
+            : "Provider check timed out. Verify uses a tiny prompt; check the API key, model name, endpoint, network/provider status, or try a stable fast model your account can access."
+        )
       : (err.message || "Connection failed");
     setAiSettingsStatus("error", local ? "Model test failed" : "Provider check failed", message);
   }
@@ -2412,13 +2562,19 @@ document.querySelector("#aiSettingsSaveBtn").addEventListener("click", async () 
 
   saveAiSettings();
   const apiKey = els.apiKey.value.trim();
-  if (apiKey && !isLocalAiProvider()) {
-    try {
-      await postJsonWithTimeout("/api/save-ai-key", {
-        provider: els.provider.value,
-        api_key: apiKey,
-      }, 5000);
-    } catch { /* non-fatal — key is already in localStorage */ }
+  const serverSave = await saveAiSettingsToServer({
+    includeKey: !!apiKey && !isLocalAiProvider(),
+    timeoutMs: 5000,
+  });
+  if (!serverSave.ok) {
+    saveBtn.textContent = "Save failed";
+    saveBtn.disabled = false;
+    setAiSettingsStatus(
+      "error",
+      "Could not save AI settings",
+      serverSave.error || "The provider settings could not be written to .env."
+    );
+    return;
   }
   const provider = els.provider.value;
   const model = els.model.value;
@@ -2576,11 +2732,18 @@ document.addEventListener("scroll", _hideSelectionPopover, { passive: true, capt
 // Init
 // ---------------------------------------------------------------------------
 
+async function initAiSettings() {
+  loadAiSettings();
+  updateAiSettingsMode();
+  await loadModels({ notify: false });
+  _updateSettingsBtnLabel();
+  await loadServerAiSettings();
+  _updateSettingsBtnLabel();
+  maybeShowAiOnboarding();
+}
+
 document.documentElement.classList.remove("dark");
 localStorage.setItem("pySkillLabTheme", "light");
-loadAiSettings();
-updateAiSettingsMode();
-loadModels();
-_updateSettingsBtnLabel();
+initAiSettings();
 renderAskAiMessages();
 boot();

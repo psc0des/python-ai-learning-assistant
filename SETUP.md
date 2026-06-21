@@ -70,6 +70,14 @@ Python_Learning_Assistant/
   - Groq Cloud API key
   - Azure AI Foundry API key and endpoint
 
+The AI Coach is **optional** — every lesson, lab, practice test, and the
+execution visualizer work without it. It is not configured out of the box (the
+default provider is local Ollama). On first run the app shows a one-time,
+dismissible "Set up AI" banner; the quickest path for most learners is a hosted
+provider (OpenAI, Anthropic, Google, or Groq) with an API key, which needs no
+local install. If you try the coach before setting it up, the app explains what
+to do instead of failing silently.
+
 ## First-Time Vendor Setup
 
 The pre-built vendor files (`static/vendor/`) are committed to the repo — you do **not** need to rebuild them to run the app. Rebuild only when upgrading CodeMirror or font versions.
@@ -157,6 +165,7 @@ Optional AI timeout tuning (useful for slower/faster local models):
 
 ```powershell
 $env:PY_SKILL_LAB_AI_TIMEOUT_SECONDS="45"
+$env:PY_SKILL_LAB_AI_PROVIDER_TEST_TIMEOUT_SECONDS="20"
 $env:PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS="8"
 python app.py
 ```
@@ -180,9 +189,12 @@ http://127.0.0.1:9000
 
 ## Configuration
 
-All supported environment variables are listed in `.env.example`. The app does
-not auto-load `.env` files, so set variables in your shell or use your own env
-loader before starting `python app.py`.
+All supported environment variables are listed in `.env.example`. The app
+auto-loads `.env` at startup, and values already set in your shell take
+priority over the file. The AI Settings panel writes the selected provider,
+model, endpoint, and hosted provider API keys to `.env` when you click
+**Save & Apply** or **Verify provider**. Saved keys are used server-side after
+restart, but the browser never receives the secret value back.
 
 | Variable | Default | Purpose |
 |---|---:|---|
@@ -190,7 +202,12 @@ loader before starting `python app.py`.
 | `PY_SKILL_LAB_OPEN_BROWSER` | `1` | Opens the browser automatically when the server starts. |
 | `PY_SKILL_LAB_STRICT_CONTENT` | `0` | Fails startup when content validation has warnings. |
 | `PY_SKILL_LAB_AI_TIMEOUT_SECONDS` | `45` | Timeout for AI coach calls. Local models may need one warm-up request after launch. |
+| `PY_SKILL_LAB_AI_LOCAL_TIMEOUT_SECONDS` | `120` | Longer timeout for local streaming model calls. |
+| `PY_SKILL_LAB_AI_PROVIDER_TEST_TIMEOUT_SECONDS` | `20` | Short timeout for hosted Verify Provider health checks. |
 | `PY_SKILL_LAB_AI_MODELS_TIMEOUT_SECONDS` | `8` | Timeout for model-list refresh calls. |
+| `PY_SKILL_LAB_AI_PROVIDER` | blank | Last selected AI provider. |
+| `PY_SKILL_LAB_AI_MODEL` | blank | Last selected AI model. |
+| `PY_SKILL_LAB_AI_ENDPOINT` | blank | Last selected AI endpoint. |
 | `PY_SKILL_LAB_OPENAI_KEY` | blank | Optional server-side OpenAI key. |
 | `PY_SKILL_LAB_ANTHROPIC_KEY` | blank | Optional server-side Anthropic key. |
 | `PY_SKILL_LAB_GOOGLE_KEY` | blank | Optional server-side Google AI Studio key. |
@@ -302,7 +319,7 @@ Model: type the deployed model name (e.g. gpt-4o, Phi-4-mini-instruct)
 
 The model field is a free-text input. Type the exact deployed model name if the UI does not list it.
 
-When a hosted provider key is configured, click **Verify provider** to send a short test prompt to the configured model. Then click **Save & Apply**. If no API key is entered, the button shows "API key required" and nothing is saved.
+When a hosted provider key is configured, click **Verify provider** to send a tiny capped test prompt to the configured model. If you type a key in the UI, Verify first saves the provider/model/endpoint and key to `.env` so a stale saved key cannot override the new one. Then click **Save & Apply** to keep the provider/model selection. After restart, the API key field stays blank for safety; the helper text says when a saved server-side key is available.
 
 ### Server-side API key environment variables
 
@@ -402,6 +419,7 @@ If a provider is unavailable or slow, the app surfaces explicit fallback states:
 - Lab Explain Code: `AI Coach unavailable (...)` + built-in feedback in the embedded lab coach
 - Freeform, selected-text, Try It, and Visualizer Ask AI: transport/timeout messages appear in the floating Ask AI messenger
 - Local Ollama/LM Studio timeouts include a warm-up hint because the first request after launch can be slower than later requests
+- Hosted-provider timeouts ask the learner to check API key, model name, endpoint, network access, and provider status. Preview models can be slower than stable fast models, so provider verification uses a small `max_tokens` cap and a shorter health-check timeout.
 
 ## Theme Behavior
 

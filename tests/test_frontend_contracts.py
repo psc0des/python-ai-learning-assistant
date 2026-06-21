@@ -166,6 +166,39 @@ def test_ai_settings_provider_test_does_not_inject_topic_context():
 
     assert "topic_id: \"\"" in provider_test
     assert "topic_id: selectedTopicId" not in provider_test
+    assert "const apiKey = els.apiKey.value.trim();" in provider_test
+    assert "await saveAiSettingsToServer({" in provider_test
+    assert provider_test.index("await saveAiSettingsToServer({") < provider_test.index(
+        "await postJsonWithTimeout(\"/api/ai-coach\""
+    )
+    assert "question: \"Reply exactly: Ready.\"" in provider_test
+    assert "purpose: \"provider_test\"" in provider_test
+    assert "max_tokens: 64" in provider_test
+    assert "AI_PROVIDER_TEST_TIMEOUT_MS" in provider_test
+
+
+def test_ai_settings_uses_server_persistence_without_echoing_key():
+    app_js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+
+    assert "fetch(\"/api/ai-settings\", { cache: \"no-store\" })" in app_js
+    assert "await postJsonWithTimeout(\n    \"/api/ai-settings\"" in app_js
+    assert "aiSettingsKeyPresent = !!settings.key_present;" in app_js
+    assert "Saved server-side key is available. Leave blank to keep it" in app_js
+
+    server_load_start = app_js.index("async function loadServerAiSettings")
+    server_load_end = app_js.index("// Default/fallback model IDs", server_load_start)
+    assert "settings.api_key" not in app_js[server_load_start:server_load_end]
+
+
+def test_ai_settings_provider_switch_clears_stale_model_field():
+    app_js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+    defaults_start = app_js.index("function applyProviderDefaults")
+    defaults_end = app_js.index("function clearAiSettingsStatus", defaults_start)
+    defaults_block = app_js[defaults_start:defaults_end]
+
+    assert "preferredModel = selected.model;" in defaults_block
+    assert "els.model.value = selected.model;" in defaults_block
+    assert "els.modelSelect.innerHTML = \"\";" in defaults_block
 
 
 def test_ai_settings_are_draft_until_save_or_successful_provider_test():
@@ -185,6 +218,7 @@ def test_ai_settings_are_draft_until_save_or_successful_provider_test():
     assert "saveAiSettings()" not in model_select_change
 
     assert "saveAiSettings();" in app_js[app_js.index("async function testAiProviderConnection"):]
+    assert "saveAiSettingsToServer({" in app_js[app_js.index("document.querySelector(\"#aiSettingsSaveBtn\")"):]
 
 
 def test_practice_and_selection_routing_contracts():
