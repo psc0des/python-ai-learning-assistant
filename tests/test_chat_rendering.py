@@ -1,0 +1,77 @@
+"""Static contracts for chat markdown rendering and Ask AI window controls.
+
+These guard the fixes for the real user-reported issues:
+- chat responses rendered as disoriented one-fragment-per-line stacks
+- reasoning-model <think> blocks leaking into the transcript
+- missing minimize/maximize/close window controls
+- "New chat" not clearly starting fresh
+"""
+
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _app_js() -> str:
+    return (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+
+
+def _index_html() -> str:
+    return (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+
+
+def _styles() -> str:
+    return (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
+
+
+def test_chat_markdown_renderer_handles_blocks_not_raw_br():
+    app_js = _app_js()
+    # The old crude renderer turned every newline into <br>; that bug is gone.
+    assert "html.replace(/\\n/g, '<br>')" not in app_js
+    # Proper block-level rendering helpers exist.
+    assert "function _renderTextBlock" in app_js
+    assert "function _inlineMarkdown" in app_js
+    # Headings, unordered lists, ordered lists are handled.
+    assert 'md-h md-h${level}' in app_js
+    assert "<ul>" in app_js and "<ol>" in app_js
+    # Soft-wrapped lines are joined with a space (the disorientation fix).
+    assert 'paraLines.join(" ")' in app_js
+
+
+def test_chat_strips_reasoning_think_tags():
+    app_js = _app_js()
+    assert "function stripThinkTags" in app_js
+    # Strips both closed and unclosed <think> blocks.
+    assert "<think>[\\s\\S]*?<\\/think>" in app_js
+    assert "<think>[\\s\\S]*$" in app_js
+    # renderMarkdown runs the strip before rendering.
+    assert "const cleaned = stripThinkTags(text);" in app_js
+
+
+def test_ask_ai_has_min_max_close_window_controls():
+    index_html = _index_html()
+    assert 'id="askAiMinimize"' in index_html
+    assert 'id="askAiMaximize"' in index_html
+    assert 'id="askAiClose"' in index_html
+
+    app_js = _app_js()
+    assert "function toggleAskAiMaximize" in app_js
+    assert 'els.askAiMaximize.addEventListener("click", toggleAskAiMaximize)' in app_js
+    # Minimize collapses back to the bubble (same as close), keeping the chat.
+    assert 'els.askAiMinimize.addEventListener("click", closeAskAiPanel)' in app_js
+
+    styles = _styles()
+    assert ".ask-ai-win-btn" in styles
+    assert ".ask-ai-panel.maximized" in styles
+
+
+def test_new_chat_starts_fresh_clearly():
+    app_js = _app_js()
+    new_chat_start = app_js.index("function startNewAskAiChat")
+    new_chat_end = app_js.index("\n}", new_chat_start)
+    body = app_js[new_chat_start:new_chat_end]
+    # Still resets to the welcome message (cross-conversation guard relies on this).
+    assert "askAiMessages = [{ role: \"assistant\", text: ASK_AI_WELCOME_MESSAGE }]" in body
+    # Makes the reset obvious to the learner.
+    assert "New chat started" in body
+    assert "scrollTop = 0" in body

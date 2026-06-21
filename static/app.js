@@ -86,6 +86,8 @@ const els = {
   askAiDock: document.querySelector("#askAiDock"),
   askAiPanel: document.querySelector("#askAiPanel"),
   askAiClose: document.querySelector("#askAiClose"),
+  askAiMinimize: document.querySelector("#askAiMinimize"),
+  askAiMaximize: document.querySelector("#askAiMaximize"),
   askAiNewChat: document.querySelector("#askAiNewChat"),
   askAiLauncher: document.querySelector("#askAiLauncher"),
   askAiLauncherStatus: document.querySelector("#askAiLauncherStatus"),
@@ -940,6 +942,21 @@ function closeAskAiPanel() {
   els.askAiLauncher.focus();
 }
 
+/** Toggle the maximized (larger) size of the Ask AI panel. */
+function toggleAskAiMaximize() {
+  if (!els.askAiPanel) return;
+  const maxed = els.askAiPanel.classList.toggle("maximized");
+  if (els.askAiMaximize) {
+    els.askAiMaximize.setAttribute("aria-pressed", String(maxed));
+    els.askAiMaximize.title = maxed ? "Restore" : "Maximize";
+    els.askAiMaximize.setAttribute("aria-label", maxed ? "Restore Ask AI" : "Maximize Ask AI");
+  }
+  // Keep the latest message in view after the size change.
+  requestAnimationFrame(() => {
+    if (els.askAiOutput) els.askAiOutput.scrollTop = els.askAiOutput.scrollHeight;
+  });
+}
+
 function startNewAskAiChat() {
   // Invalidate any in-flight Ask AI stream so a late response for the
   // previous chat cannot be written into the new chat's transcript.
@@ -947,9 +964,13 @@ function startNewAskAiChat() {
   _stopTypingTimer("askAi");
   askAiMessages = [{ role: "assistant", text: ASK_AI_WELCOME_MESSAGE }];
   if (els.askAiInput) els.askAiInput.value = "";
-  setAskAiStatus("New chat ready");
+  setAskAiStatus("✨ New chat started");
   renderAskAiMessages();
   openAskAiPanel({ focusInput: true });
+  // Make the reset obvious: jump to the top of the fresh transcript, then settle
+  // the status line back to the provider state after a moment.
+  if (els.askAiOutput) requestAnimationFrame(() => { els.askAiOutput.scrollTop = 0; });
+  setTimeout(() => setAskAiStatus("Provider ready"), 2000);
 }
 
 function isLocalAiProvider(provider = els.provider.value) {
@@ -1596,18 +1617,128 @@ function renderLessonMarkdown(text) {
 }
 
 /** Simple markdown-like rendering for coach messages. */
+/**
+ * Strip reasoning-model thinking from chat text. The server already filters
+ * <think>...</think>, but this is defense-in-depth so raw reasoning can never
+ * leak into the transcript even if a provider/path slips one through.
+ */
+function stripThinkTags(text) {
+  return String(text || "")
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    // An unclosed <think> (reasoning still streaming, or no closing tag at all)
+    // — hide everything from the tag onward rather than showing the reasoning.
+    .replace(/<think>[\s\S]*$/i, "");
+}
+
+/** Inline markdown for one line/paragraph: `code`, **bold**, *italic*. */
+function _inlineMarkdown(raw) {
+  let result = "";
+  let remaining = raw;
+  while (remaining.length > 0) {
+    const btIdx = remaining.indexOf("`");
+    const boldIdx = remaining.indexOf("**");
+    let itIdx = -1;
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i] === "*" && remaining[i + 1] !== "*" && remaining[i - 1] !== "*") { itIdx = i; break; }
+    }
+    const cands = [[btIdx, "code"], [boldIdx, "bold"], [itIdx, "italic"]]
+      .filter((c) => c[0] !== -1)
+      .sort((a, b) => a[0] - b[0]);
+    if (!cands.length) { result += escapeHtml(remaining); break; }
+    const [nextIdx, nextType] = cands[0];
+    result += escapeHtml(remaining.slice(0, nextIdx));
+    remaining = remaining.slice(nextIdx);
+    if (nextType === "code") {
+      const end = remaining.indexOf("`", 1);
+      if (end !== -1) { result += `<code class="inline-code">${escapeHtml(remaining.slice(1, end))}</code>`; remaining = remaining.slice(end + 1); }
+      else { result += escapeHtml(remaining[0]); remaining = remaining.slice(1); }
+    } else if (nextType === "bold") {
+      const end = remaining.indexOf("**", 2);
+      if (end !== -1) { result += `<strong>${escapeHtml(remaining.slice(2, end))}</strong>`; remaining = remaining.slice(end + 2); }
+      else { result += escapeHtml(remaining.slice(0, 2)); remaining = remaining.slice(2); }
+    } else {
+      const end = remaining.indexOf("*", 1);
+      if (end !== -1) { result += `<em>${escapeHtml(remaining.slice(1, end))}</em>`; remaining = remaining.slice(end + 1); }
+      else { result += escapeHtml(remaining[0]); remaining = remaining.slice(1); }
+    }
+  }
+  return result;
+}
+
+/** Block-level markdown for chat: headings, lists, and paragraphs. */
+function _renderTextBlock(content) {
+  const lines = content.split("\n");
+  let html = "";
+  let paraLines = [];
+  let i = 0;
+  const flushPara = () => {
+    if (paraLines.length) {
+      // Join soft-wrapped lines with a space so prose does not become a stack
+      // of one-fragment-per-line — the core "disoriented chat" fix.
+      html += `<p>${_inlineMarkdown(paraLines.join(" ").trim())}</p>`;
+      paraLines = [];
+    }
+  };
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (!t) { flushPara(); i++; continue; }
+    const heading = /^(#{1,6})\s+(.*)$/.exec(t);
+    if (heading) {
+      flushPara();
+      const level = Math.min(6, heading[1].length);
+      html += `<div class="md-h md-h${level}">${_inlineMarkdown(heading[2].trim())}</div>`;
+      i++;
+      continue;
+    }
+    if (/^[-*+]\s+/.test(t)) {
+      flushPara();
+      html += "<ul>";
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i].trim())) {
+        html += `<li>${_inlineMarkdown(lines[i].trim().replace(/^[-*+]\s+/, ""))}</li>`;
+        i++;
+      }
+      html += "</ul>";
+      continue;
+    }
+    if (/^\d+\.\s+/.test(t)) {
+      flushPara();
+      html += "<ol>";
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+        html += `<li>${_inlineMarkdown(lines[i].trim().replace(/^\d+\.\s+/, ""))}</li>`;
+        i++;
+      }
+      html += "</ol>";
+      continue;
+    }
+    paraLines.push(t);
+    i++;
+  }
+  flushPara();
+  return html;
+}
+
+/** Markdown renderer for chat (Coach + Ask AI). Handles code fences, headings, lists, inline. */
 function renderMarkdown(text) {
-  let html = escapeHtml(text);
-  // Code blocks: ```...```
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="coach-code"><code>$2</code></pre>');
-  // Inline code: `...`
-  html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-  // Bold: **...**
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  // Italic: *...*
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-  // Line breaks
-  html = html.replace(/\n/g, '<br>');
+  const cleaned = stripThinkTags(text);
+  const segments = [];
+  const codeRe = /```([^\n`]*)\n([\s\S]*?)```/g;
+  let last = 0;
+  let m;
+  while ((m = codeRe.exec(cleaned)) !== null) {
+    if (m.index > last) segments.push({ type: "text", content: cleaned.slice(last, m.index) });
+    segments.push({ type: "code", content: m[2].replace(/\n$/, "") });
+    last = m.index + m[0].length;
+  }
+  if (last < cleaned.length) segments.push({ type: "text", content: cleaned.slice(last) });
+
+  let html = "";
+  for (const seg of segments) {
+    if (seg.type === "code") {
+      html += `<pre class="coach-code"><code>${escapeHtml(seg.content)}</code></pre>`;
+    } else {
+      html += _renderTextBlock(seg.content);
+    }
+  }
   return html;
 }
 
@@ -2088,6 +2219,15 @@ if (els.askAiLauncher) {
 
 if (els.askAiClose) {
   els.askAiClose.addEventListener("click", closeAskAiPanel);
+}
+
+if (els.askAiMinimize) {
+  // Minimize collapses the panel back to the chat bubble, keeping the conversation.
+  els.askAiMinimize.addEventListener("click", closeAskAiPanel);
+}
+
+if (els.askAiMaximize) {
+  els.askAiMaximize.addEventListener("click", toggleAskAiMaximize);
 }
 
 if (els.askAiNewChat) {

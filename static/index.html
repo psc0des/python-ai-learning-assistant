@@ -6,7 +6,7 @@
     <title>Python Skill Lab — Learn Python from Basics to AI</title>
     <meta name="description" content="A free, local Python learning app covering basics, data structures, OOP, FastAPI, async, LangChain, RAG, and more. Practice with guided labs, AI coaching, and progress tracking." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/styles.css?v=6" />
+    <link rel="stylesheet" href="/styles.css?v=7" />
     <link rel="stylesheet" href="/vendor/fonts.css?v=local-vendor" />
     <!-- CodeMirror 6: loaded as ES module from local vendor bundle, degrades to textarea if unavailable -->
     <script type="module" src="/codemirror-init.js?v=local-vendor"></script>
@@ -302,7 +302,9 @@
           </div>
           <div class="ask-ai-heading-actions">
             <button id="askAiNewChat" type="button" class="secondary ask-ai-new-chat">New chat</button>
-            <button id="askAiClose" type="button" class="ask-ai-close" aria-label="Close Ask AI">✕</button>
+            <button id="askAiMinimize" type="button" class="ask-ai-win-btn" aria-label="Minimize Ask AI" title="Minimize">&#8211;</button>
+            <button id="askAiMaximize" type="button" class="ask-ai-win-btn" aria-label="Maximize Ask AI" title="Maximize" aria-pressed="false">&#10530;</button>
+            <button id="askAiClose" type="button" class="ask-ai-close ask-ai-win-btn" aria-label="Close Ask AI" title="Close">&#10005;</button>
           </div>
         </div>
         <div class="ask-ai-status-row">
@@ -332,6 +334,6 @@
       </button>
     </div>
 
-    <script src="/app.js?v=10"></script>
+    <script src="/app.js?v=12"></script>
   </body>
 </html>
