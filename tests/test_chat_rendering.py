@@ -75,3 +75,19 @@ def test_new_chat_starts_fresh_clearly():
     # Makes the reset obvious to the learner.
     assert "New chat started" in body
     assert "scrollTop = 0" in body
+
+
+def test_lab_and_practice_text_renders_inline_code_not_literal_backticks():
+    # Lab prompts, hints, and practice questions/options/explanations contain
+    # backticked code references. They must render through _inlineMarkdown (which
+    # escapes HTML and renders `code`), not textContent which shows raw backticks.
+    app_js = _app_js()
+    assert "els.exercisePrompt.innerHTML = _inlineMarkdown(selectedExercise.prompt" in app_js
+    assert "els.exercisePrompt.textContent = selectedExercise.prompt" not in app_js
+    assert "els.testOutput.innerHTML = `💡 Hint: ${_inlineMarkdown(selectedExercise.hint" in app_js
+    # Practice explanations render inline code (innerHTML + _inlineMarkdown).
+    assert "explanationEl.innerHTML = `✓ Correct. ${_inlineMarkdown(question.explanation" in app_js
+    assert "explanationEl.textContent" not in app_js
+    # Practice question text and options use the inline renderer.
+    assert "${_inlineMarkdown(question.question)}" in app_js
+    assert "<span>${_inlineMarkdown(option)}</span>" in app_js

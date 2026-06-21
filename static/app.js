@@ -804,11 +804,13 @@ function checkPracticeTest() {
       lbl.classList.toggle('option-correct', idx === question.answer);
     });
     const explanationEl = card.querySelector(".answer-explanation");
+    // _inlineMarkdown escapes HTML and renders `code`/**bold**, so backticks in
+    // explanations show as inline code instead of literal backtick characters.
     if (correct) {
-      explanationEl.textContent = `✓ Correct. ${question.explanation}`;
+      explanationEl.innerHTML = `✓ Correct. ${_inlineMarkdown(question.explanation || "")}`;
     } else {
       const correctText = question.options[question.answer];
-      explanationEl.textContent = `✗ Correct answer: "${correctText}". ${question.explanation}`;
+      explanationEl.innerHTML = `✗ Correct answer: "${_inlineMarkdown(correctText)}". ${_inlineMarkdown(question.explanation || "")}`;
     }
   });
 
@@ -837,7 +839,9 @@ function selectExercise(exerciseId) {
 
   els.exerciseSelect.value = exerciseId;
   els.exerciseTitle.textContent = selectedExercise.title;
-  els.exercisePrompt.textContent = selectedExercise.prompt;
+  // _inlineMarkdown escapes HTML and renders `code` so backticks in the prompt
+  // show as inline code instead of literal backtick characters.
+  els.exercisePrompt.innerHTML = _inlineMarkdown(selectedExercise.prompt || "");
 
   // Load draft or starter code
   const draft = loadDraft(exerciseId);
@@ -2238,7 +2242,8 @@ els.resetBtn.addEventListener("click", () => {
 });
 els.hintBtn.addEventListener("click", () => {
   if (selectedExercise) {
-    els.testOutput.textContent = `💡 Hint: ${selectedExercise.hint}`;
+    // innerHTML + _inlineMarkdown so backticks in hints render as inline code.
+    els.testOutput.innerHTML = `💡 Hint: ${_inlineMarkdown(selectedExercise.hint || "")}`;
   }
 });
 
