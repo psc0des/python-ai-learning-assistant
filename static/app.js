@@ -1614,7 +1614,7 @@ function renderLessonMarkdown(text) {
       const codeAction = canRun
         ? `<button type="button" class="lesson-try-btn" data-code="${escapeHtml(seg.content)}" title="Load in scratchpad">&#9654; Try it</button>`
         : `<span class="lesson-code-note">Illustration only</span>`;
-      html += `<div class="lesson-code-wrap"><pre class="lesson-code"><code>${escapeHtml(seg.content)}</code></pre>${codeAction}</div>`;
+      html += `<div class="lesson-code-wrap"><pre class="lesson-code" tabindex="0"><code>${escapeHtml(seg.content)}</code></pre>${codeAction}</div>`;
     } else {
       // Block-level prose: paragraphs plus bullet/numbered lists. Without list
       // handling, `- item` lines collapse into one run-on paragraph.
@@ -1774,7 +1774,7 @@ function renderMarkdown(text) {
   let html = "";
   for (const seg of segments) {
     if (seg.type === "code") {
-      html += `<pre class="coach-code"><code>${escapeHtml(seg.content)}</code></pre>`;
+      html += `<pre class="coach-code" tabindex="0"><code>${escapeHtml(seg.content)}</code></pre>`;
     } else {
       html += _renderTextBlock(seg.content);
     }
@@ -1835,11 +1835,16 @@ let vizState = {
   notes: {},
 };
 
+let _vizReturnFocus = null;
+let _codePopupReturnFocus = null;
+
 function openVizOverlay(lines) {
   els.vizCode.innerHTML = lines
     .map((line, i) => `<span class="viz-ln" data-i="${i}">${escapeHtml(line) || " "}</span>`)
     .join("");
   els.vizOverlay.hidden = false;
+  // Move keyboard focus into the modal so keyboard/screen-reader users land inside it.
+  if (els.vizClose) requestAnimationFrame(() => els.vizClose.focus());
 }
 
 function visualizerBuiltInErrorNote(error) {
@@ -1859,6 +1864,8 @@ function visualizerBuiltInErrorNote(error) {
 async function openVisualizer(code, sourceBtn) {
   const cleaned = (code || "").replace(/\s+$/, "");
   if (!cleaned.trim()) return;
+  // Remember what to focus when the visualizer closes.
+  _vizReturnFocus = sourceBtn || document.activeElement;
   const label = sourceBtn ? sourceBtn.innerHTML : "";
   if (sourceBtn) {
     sourceBtn.disabled = true;
@@ -1993,6 +2000,9 @@ function closeViz() {
   els.vizModal.style.transform = "";
   els.vizModal.style.top = "";
   els.vizModal.style.left = "";
+  // Return focus to the control that opened the visualizer.
+  if (_vizReturnFocus && typeof _vizReturnFocus.focus === "function") _vizReturnFocus.focus();
+  _vizReturnFocus = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -2000,6 +2010,8 @@ function closeViz() {
 // ---------------------------------------------------------------------------
 
 function openCodePopup(code) {
+  // Capture the trigger (e.g. the Try-it button) so focus can return on close.
+  _codePopupReturnFocus = document.activeElement;
   els.codePopupEditor.value = code;
   els.codePopupOutput.textContent = "Ready.";
   els.codePopup.classList.remove("maximized");
@@ -2014,6 +2026,8 @@ function closeCodePopup() {
   els.codePopupModal.style.transform = "";
   els.codePopupModal.style.top = "";
   els.codePopupModal.style.left = "";
+  if (_codePopupReturnFocus && typeof _codePopupReturnFocus.focus === "function") _codePopupReturnFocus.focus();
+  _codePopupReturnFocus = null;
 }
 
 function toggleCodePopupMax() {

@@ -76,6 +76,9 @@ const baseExtensions = [
     ...historyKeymap,
   ]),
   EditorView.lineWrapping,
+  // Accessible name for the contenteditable region (role="textbox") so screen
+  // readers and a11y tools announce the code editor.
+  EditorView.contentAttributes.of({ "aria-label": "Code editor" }),
   EditorView.updateListener.of((update) => {
     if (!update.docChanged) return;
     const textarea = document.getElementById("editor");

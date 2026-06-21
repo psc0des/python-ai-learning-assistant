@@ -556,8 +556,8 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
   right: 8px;
   font-size: 10px;
   font-style: italic;
-  color: var(--text-muted);
-  opacity: 0.6;
+  /* Sits over the dark code block — use a light slate for readable contrast. */
+  color: #94a3b8;
   pointer-events: none;
   user-select: none;
 }
@@ -662,7 +662,7 @@ article h3, .interview-box h3, .study-note h3, .lesson-section-card h3 {
 .scratchpad-hint {
   font-size: 11px;
   font-family: var(--font-mono);
-  opacity: 0.45;
+  opacity: 0.7;
   flex: 1;
 }
 
