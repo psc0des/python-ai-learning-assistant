@@ -1,13 +1,13 @@
 # Python Skill Lab
 
-A local-first, beginner-focused learning app for Python, backend APIs, DevOps automation, and AI engineering. Runs entirely on `127.0.0.1` with no cloud dependencies required — fonts, editor, and all curriculum ship with the repo.
+A local-first, beginner-focused learning app for Python, backend APIs, DevOps automation, and AI engineering. Runs entirely on `127.0.0.1` with no cloud dependencies required — the editor and all curriculum ship with the repo; the UI uses system fonts.
 
 ## Stack
 
 - **Language:** Python 3.10+ (backend, runner, tests)
 - **Frontend:** Vanilla JS + CSS (no framework, no build step for the app itself)
 - **Code editor:** CodeMirror 6 — vendored as a pre-built ESM bundle at `static/vendor/codemirror-bundle.js` (rebuilt via `scripts/build.js` using esbuild + npm)
-- **Fonts:** Inter + JetBrains Mono — vendored as woff2 files at `static/vendor/fonts/` (downloaded via `scripts/vendor_fonts.py`)
+- **Fonts:** system fonts only — the warm-notebook theme uses `Georgia` (serif) and `Consolas`/system monospace via `--font-sans` / `--font-mono` in `styles.css`. No web fonts, nothing to vendor.
 - **HTTP server:** `http.server.ThreadingHTTPServer` (stdlib only — no Flask, no FastAPI)
 - **AI Coach:** OpenAI-compatible endpoints — Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), Groq Cloud, Azure AI Foundry
 - **Testing:** pytest (no third-party packages required to run the app)
@@ -32,9 +32,6 @@ python -B -m pytest tests/test_origin_validation.py tests/test_content_drift.py 
 cd scripts
 npm install
 node build.js
-
-# Refresh local fonts (only after font version changes)
-python scripts/vendor_fonts.py
 
 # Run with strict content validation (fails startup on any content warning)
 $env:PY_SKILL_LAB_STRICT_CONTENT="1"; python app.py
@@ -62,20 +59,17 @@ Python_Learning_Assistant/
         labs.json         List of coding lab objects
         practice.json     Practice test questions
   static/
-    index.html            App shell — loads from /vendor/fonts.css and /codemirror-init.js
+    index.html            App shell — loads /codemirror-init.js (system fonts, no web fonts)
     app.js                All UI logic — topic rendering, labs, AI coach, visualizer
     styles.css            Warm notebook visual design
     codemirror-init.js    CodeMirror 6 setup — imports from /vendor/codemirror-bundle.js only
     favicon.svg
     vendor/
       codemirror-bundle.js  Pre-built ESM bundle (committed — rebuilt via scripts/build.js)
-      fonts.css             @font-face declarations pointing to local woff2 files (committed)
-      fonts/                Inter + JetBrains Mono woff2 files (committed)
   scripts/
     build.js              esbuild script → static/vendor/codemirror-bundle.js
     codemirror-entry.js   Re-exports all CodeMirror symbols used by codemirror-init.js
     package.json          npm manifest (esbuild + CodeMirror packages)
-    vendor_fonts.py       Downloads font CSS + woff2 from Google Fonts into static/vendor/
   pyproject.toml          Ruff lint configuration
   .pre-commit-config.yaml Optional pre-commit hook configuration
   tests/
@@ -249,7 +243,7 @@ Critical CSS invariants:
 
 ## Vendor Bundle Rules
 
-The pre-built vendor files (`static/vendor/`) are committed to the repo so the app works offline without Node.js. Rebuild them only when upgrading CodeMirror or font versions, then commit the rebuilt files.
+The pre-built vendor files (`static/vendor/`) are committed to the repo so the app works offline without Node.js. Rebuild them only when upgrading CodeMirror, then commit the rebuilt files.
 
 `codemirror-init.js` imports all CodeMirror symbols from `/vendor/codemirror-bundle.js` only — never from `esm.sh` or any other CDN. If the bundle is unavailable the plain `<textarea>` gracefully degrades.
 
@@ -270,7 +264,7 @@ Every code or content change must be accompanied by doc updates in the same comm
 
 - `tests/` — when adding features, always add or update tests to cover the new behavior
 - `content/topics/<id>/lesson.md` — whenever `lesson_sections` in `topic.json` changes
-- `static/vendor/` — whenever CodeMirror or font versions are bumped (commit rebuilt files)
+- `static/vendor/` — whenever the CodeMirror bundle is rebuilt (commit rebuilt files)
 
 ## Commit Message Format
 
@@ -281,7 +275,7 @@ Every code or content change must be accompanied by doc updates in the same comm
   - `security: fix origin validation — parse URL instead of startswith`
   - `feat: add execution visualizer with per-step stdout`
   - `test: add HTTP origin validation and content drift tests`
-  - `chore: vendor CodeMirror 6 and fonts for offline use`
+  - `chore: vendor CodeMirror 6 for offline use`
   - `docs: update SETUP and AGENTS for vendor bundle setup`
 
 ## Git Identity
@@ -310,7 +304,7 @@ Run `python -m ruff check --no-cache .` before reporting Python code or CI/tooli
 
 ### 2. No CDN drift
 
-The app must work offline after cloning. Every external resource (fonts, JS libraries) must be vendored in `static/vendor/`. No new `<link href="https://...">` or `import ... from "https://..."` lines in committed code.
+The app must work offline after cloning. Every external resource (JS libraries) must be vendored in `static/vendor/`; the UI uses system fonts (no web fonts). No new `<link href="https://...">` or `import ... from "https://..."` lines in committed code.
 
 ### 3. Content and code together
 

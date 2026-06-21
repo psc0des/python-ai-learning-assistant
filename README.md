@@ -29,7 +29,7 @@ python app.py
 
 Then open `http://127.0.0.1:8765` in your browser.
 
-The app runs fully offline — fonts and the code editor are bundled in `static/vendor/` with no CDN calls at runtime.
+The app runs fully offline — the code editor is bundled in `static/vendor/` and the UI uses system fonts, with no CDN calls at runtime.
 
 ## Screenshots
 
