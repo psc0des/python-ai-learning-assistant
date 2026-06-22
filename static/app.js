@@ -89,6 +89,7 @@ const els = {
   askAiMinimize: document.querySelector("#askAiMinimize"),
   askAiMaximize: document.querySelector("#askAiMaximize"),
   askAiNewChat: document.querySelector("#askAiNewChat"),
+  askAiSessionTabs: document.querySelector("#askAiSessionTabs"),
   askAiLauncher: document.querySelector("#askAiLauncher"),
   askAiLauncherStatus: document.querySelector("#askAiLauncherStatus"),
   askAiOutput: document.querySelector("#askAiOutput"),
@@ -102,6 +103,12 @@ let preferredModel = "";
 let coachMessages = [];
 const ASK_AI_WELCOME_MESSAGE = "Need a quick explanation? Ask about highlighted text, a lesson idea, a Try It example, or a visualizer step. I can break it down, give a small example, or connect it to what you are learning.";
 let askAiMessages = [{ role: "assistant", text: ASK_AI_WELCOME_MESSAGE }];
+// Ask AI supports parallel chat sessions (like separate messenger threads):
+// each session keeps its own message array so "New chat" never erases another
+// conversation. askAiMessages always points at the active session's array.
+let askAiSessionSeq = 1;
+let activeAskAiSessionId = askAiSessionSeq;
+let askAiSessions = [{ id: askAiSessionSeq, title: "New chat", messages: askAiMessages }];
 const MESSAGE_TYPE_INTERVAL_MS = 24;
 const MESSAGE_TYPE_CHUNK_SIZE = 2;
 let coachTypingTimer = null;
@@ -964,15 +971,85 @@ function toggleAskAiMaximize() {
   });
 }
 
+function _askAiSessionTitle(messages) {
+  const firstUser = messages.find((message) => message.role === "user");
+  if (!firstUser) return "New chat";
+  const text = firstUser.text.replace(/\s+/g, " ").trim();
+  return text.length > 28 ? `${text.slice(0, 28)}…` : text;
+}
+
+function _archiveActiveAskAiSession() {
+  const session = askAiSessions.find((s) => s.id === activeAskAiSessionId);
+  if (session) session.title = _askAiSessionTitle(session.messages);
+}
+
+function renderAskAiSessionTabs() {
+  if (!els.askAiSessionTabs) return;
+  if (askAiSessions.length < 2) {
+    els.askAiSessionTabs.hidden = true;
+    els.askAiSessionTabs.innerHTML = "";
+    return;
+  }
+  els.askAiSessionTabs.hidden = false;
+  els.askAiSessionTabs.innerHTML = askAiSessions
+    .map((session) => {
+      const active = session.id === activeAskAiSessionId;
+      const label = escapeHtml(session.title || "New chat");
+      return `<button type="button" class="ask-ai-session-tab${active ? " active" : ""}" role="tab" aria-selected="${active}" data-session-id="${session.id}" title="${label}"><span class="ask-ai-session-tab-label">${label}</span><span class="ask-ai-session-tab-close" data-close-session-id="${session.id}" aria-label="Close chat" title="Close chat">&times;</span></button>`;
+    })
+    .join("");
+}
+
+function switchAskAiSession(id) {
+  if (id === activeAskAiSessionId) return;
+  const session = askAiSessions.find((s) => s.id === id);
+  if (!session) return;
+  // Invalidate any in-flight stream tied to the session we're leaving so a
+  // late chunk cannot land in the chat we are switching to.
+  askAiStreamGen++;
+  _stopTypingTimer("askAi");
+  _archiveActiveAskAiSession();
+  activeAskAiSessionId = id;
+  askAiMessages = session.messages;
+  if (els.askAiInput) els.askAiInput.value = "";
+  renderAskAiMessages();
+  renderAskAiSessionTabs();
+  openAskAiPanel({ focusInput: true });
+  if (els.askAiOutput) requestAnimationFrame(() => { els.askAiOutput.scrollTop = 0; });
+}
+
+function closeAskAiSession(id) {
+  // Always keep at least one chat open.
+  if (askAiSessions.length <= 1) return;
+  const idx = askAiSessions.findIndex((s) => s.id === id);
+  if (idx === -1) return;
+  const wasActive = id === activeAskAiSessionId;
+  askAiSessions.splice(idx, 1);
+  if (wasActive) {
+    askAiStreamGen++;
+    _stopTypingTimer("askAi");
+    const next = askAiSessions[Math.max(0, idx - 1)];
+    activeAskAiSessionId = next.id;
+    askAiMessages = next.messages;
+    renderAskAiMessages();
+  }
+  renderAskAiSessionTabs();
+}
+
 function startNewAskAiChat() {
   // Invalidate any in-flight Ask AI stream so a late response for the
   // previous chat cannot be written into the new chat's transcript.
   askAiStreamGen++;
   _stopTypingTimer("askAi");
+  _archiveActiveAskAiSession();
+  askAiSessionSeq++;
   askAiMessages = [{ role: "assistant", text: ASK_AI_WELCOME_MESSAGE }];
+  askAiSessions.push({ id: askAiSessionSeq, title: "New chat", messages: askAiMessages });
+  activeAskAiSessionId = askAiSessionSeq;
   if (els.askAiInput) els.askAiInput.value = "";
   setAskAiStatus("✨ New chat started");
   renderAskAiMessages();
+  renderAskAiSessionTabs();
   openAskAiPanel({ focusInput: true });
   // Make the reset obvious: jump to the top of the fresh transcript, then settle
   // the status line back to the provider state after a moment.
@@ -2287,6 +2364,19 @@ if (els.askAiMaximize) {
 
 if (els.askAiNewChat) {
   els.askAiNewChat.addEventListener("click", startNewAskAiChat);
+}
+
+if (els.askAiSessionTabs) {
+  els.askAiSessionTabs.addEventListener("click", (event) => {
+    const closeBtn = event.target.closest("[data-close-session-id]");
+    if (closeBtn) {
+      event.stopPropagation();
+      closeAskAiSession(Number(closeBtn.dataset.closeSessionId));
+      return;
+    }
+    const tab = event.target.closest("[data-session-id]");
+    if (tab) switchAskAiSession(Number(tab.dataset.sessionId));
+  });
 }
 
 // Code editor: Tab indent + Ctrl+Enter to run + auto-save

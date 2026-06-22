@@ -70,11 +70,51 @@ def test_new_chat_starts_fresh_clearly():
     new_chat_start = app_js.index("function startNewAskAiChat")
     new_chat_end = app_js.index("\n}", new_chat_start)
     body = app_js[new_chat_start:new_chat_end]
-    # Still resets to the welcome message (cross-conversation guard relies on this).
+    # Still resets the active transcript to the welcome message.
     assert "askAiMessages = [{ role: \"assistant\", text: ASK_AI_WELCOME_MESSAGE }]" in body
     # Makes the reset obvious to the learner.
     assert "New chat started" in body
     assert "scrollTop = 0" in body
+    # The previous conversation is archived as its own session, not discarded.
+    assert "_archiveActiveAskAiSession()" in body
+    assert "askAiSessions.push(" in body
+
+
+def test_new_chat_creates_parallel_session_not_overwrite():
+    # The real user-reported bug: "New chat" used to wipe the only transcript.
+    # Ask AI must instead behave like separate messenger threads — starting a
+    # new chat must not erase a previous one, and learners must be able to
+    # switch back to it.
+    app_js = _app_js()
+    assert "let askAiSessions = [{ id: askAiSessionSeq, title: \"New chat\", messages: askAiMessages }];" in app_js
+    assert "function switchAskAiSession(id)" in app_js
+    assert "function closeAskAiSession(id)" in app_js
+    # Switching sessions invalidates any in-flight stream for the chat being left,
+    # the same generation guard already used for New Chat.
+    switch_start = app_js.index("function switchAskAiSession")
+    switch_end = app_js.index("\n}", switch_start)
+    switch_body = app_js[switch_start:switch_end]
+    assert "askAiStreamGen++;" in switch_body
+    assert "askAiMessages = session.messages;" in switch_body
+    # Closing a session never drops the last remaining chat.
+    close_start = app_js.index("function closeAskAiSession")
+    close_end = app_js.index("\n}", close_start)
+    close_body = app_js[close_start:close_end]
+    assert "if (askAiSessions.length <= 1) return;" in close_body
+
+
+def test_ask_ai_session_tabs_render_only_when_multiple_chats_exist():
+    index_html = _index_html()
+    assert 'id="askAiSessionTabs"' in index_html
+    assert 'role="tablist"' in index_html
+
+    app_js = _app_js()
+    render_start = app_js.index("function renderAskAiSessionTabs")
+    render_end = app_js.index("\n}", render_start)
+    body = app_js[render_start:render_end]
+    # A single chat does not clutter the panel with a tab strip.
+    assert "if (askAiSessions.length < 2) {" in body
+    assert "els.askAiSessionTabs.hidden = true;" in body
 
 
 def test_lab_and_practice_text_renders_inline_code_not_literal_backticks():

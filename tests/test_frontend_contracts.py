@@ -262,6 +262,7 @@ def test_ai_stream_generation_guards_prevent_cross_conversation_leaks():
     )
     assert (
         "askAiStreamGen++;\n  _stopTypingTimer(\"askAi\");\n"
+        "  _archiveActiveAskAiSession();\n  askAiSessionSeq++;\n"
         "  askAiMessages = [{ role: \"assistant\", text: ASK_AI_WELCOME_MESSAGE }];"
         in app_js
     )

@@ -1555,6 +1555,65 @@ button.secondary:hover {
   line-height: 1;
 }
 
+.ask-ai-session-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.ask-ai-session-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-width: 160px;
+  padding: 5px 8px 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ask-ai-session-tab:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.ask-ai-session-tab.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fffdf8;
+}
+
+.ask-ai-session-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-ai-session-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.ask-ai-session-tab-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.15);
+}
+
 .ask-ai-status-row {
   display: flex;
   justify-content: flex-end;
@@ -1651,6 +1710,7 @@ button.secondary:hover {
 .coach-transcript {
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   background: var(--surface);
 }

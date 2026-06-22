@@ -6,7 +6,7 @@
     <title>Python Skill Lab — Learn Python from Basics to AI</title>
     <meta name="description" content="A free, local Python learning app covering basics, data structures, OOP, FastAPI, async, LangChain, RAG, and more. Practice with guided labs, AI coaching, and progress tracking." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/styles.css?v=10" />
+    <link rel="stylesheet" href="/styles.css?v=11" />
     <!-- CodeMirror 6: loaded as ES module from local vendor bundle, degrades to textarea if unavailable -->
     <script type="module" src="/codemirror-init.js?v=local-vendor-2"></script>
   </head>
@@ -306,6 +306,7 @@
             <button id="askAiClose" type="button" class="ask-ai-close ask-ai-win-btn" aria-label="Close Ask AI" title="Close">&#10005;</button>
           </div>
         </div>
+        <div id="askAiSessionTabs" class="ask-ai-session-tabs" role="tablist" aria-label="Ask AI chats" hidden></div>
         <div class="ask-ai-status-row">
           <span id="askAiStatus" class="coach-status">Provider ready</span>
         </div>
@@ -333,6 +334,6 @@
       </button>
     </div>
 
-    <script src="/app.js?v=16"></script>
+    <script src="/app.js?v=17"></script>
   </body>
 </html>
