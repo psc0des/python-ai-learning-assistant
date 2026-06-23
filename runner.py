@@ -267,12 +267,16 @@ def _run_user_code():
     code_obj = compile({user_code!r}, "<your code>", "exec")
     exec(code_obj, USER_GLOBALS)
 
+_top_level_failed = False
+
 try:
     _run_user_code()
 except SyntaxError as _exc:
+    _top_level_failed = True
     _where = (" on line " + str(_exc.lineno)) if _exc.lineno else ""
     print("Your code has a syntax error" + _where + ": " + str(_exc.msg), file=sys.stderr)
 except Exception as _exc:
+    _top_level_failed = True
     # Show only the learner's frames, not the runner's internal wrapper frames.
     _frames = [fr for fr in traceback.extract_tb(sys.exc_info()[2]) if fr.filename == "<your code>"]
     if _frames:
@@ -305,7 +309,7 @@ for test in TESTS:
             "label": label,
             "call": expression,
             "expected": expected,
-            "actual": repr(exc),
+            "actual": "could not run - see error above" if _top_level_failed else repr(exc),
             "printed": capture.getvalue(),
             "passed": False,
         }})

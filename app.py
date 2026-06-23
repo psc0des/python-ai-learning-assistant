@@ -448,11 +448,14 @@ class Handler(SimpleHTTPRequestHandler):
 
     def send_json(self, payload: dict[str, Any], status: int = 200) -> None:
         body = json.dumps(payload, indent=2).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            logger.info("Client disconnected before response was sent.")
 
     def send_ndjson_stream(self, events: Any, status: int = 200) -> None:
         self.send_response(status)

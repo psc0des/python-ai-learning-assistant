@@ -2705,13 +2705,18 @@ _aiSettingsBtn.addEventListener("click", (e) => {
     return;
   }
   const rect = _aiSettingsBtn.getBoundingClientRect();
+  const sidebarEl = document.querySelector(".sidebar");
+  // Measure from the sidebar's own edge, not the trigger button's — the button
+  // doesn't span the sidebar's full width, so using its rect let the panel land
+  // inside the sidebar at wide viewports.
+  const sidebarRight = sidebarEl ? sidebarEl.getBoundingClientRect().right : rect.right;
   const panelW = 280;
-  const spaceRight = window.innerWidth - rect.right - 16;
+  const spaceRight = window.innerWidth - sidebarRight - 16;
   _aiSettingsPanel.style.width = `${panelW}px`;
   if (spaceRight >= panelW) {
     // Enough room to the right of the sidebar — open there so it doesn't cover the topic list
     _aiSettingsPanel.style.bottom = "auto";
-    _aiSettingsPanel.style.left = `${rect.right + 8}px`;
+    _aiSettingsPanel.style.left = `${sidebarRight + 8}px`;
     _aiSettingsPanel.style.top = `${rect.top}px`;
     _aiSettingsPanel.hidden = false;
     // Clamp after render so Save & Apply is never pushed below the viewport

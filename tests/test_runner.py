@@ -45,6 +45,17 @@ class TestNonSerializableReturn:
         assert "exec(" not in stderr
         assert result["ok"] is False
 
+    def test_syntax_error_hides_raw_exception_repr_in_failed_tests(self):
+        # Regression: per-test rows showed a raw NameError(...) repr even when
+        # the function never ran because of a top-level syntax error — noisy
+        # and contradictory right under the clean syntax-error message.
+        exercises = [{"id": "se2", "tests": [{"call": "f()", "expected": 1, "label": "x"}]}]
+        result = run_user_code({"code": "def f()\n  return 1", "exercise_id": "se2"}, exercises)
+        test = result["tests"][0]
+        assert test["passed"] is False
+        assert "NameError" not in test["actual"]
+        assert test["actual"] == "could not run - see error above"
+
     def test_top_level_runtime_error_hides_wrapper_frames(self):
         # A module-level runtime error should reference the learner's code, not
         # the runner's wrapper frames.

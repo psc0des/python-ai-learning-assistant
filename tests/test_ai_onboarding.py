@@ -35,6 +35,20 @@ def test_hosted_unreachable_error_is_unchanged_for_endpoint_advice():
     assert "Check that the endpoint is correct" in msg
 
 
+def test_expired_or_invalid_api_key_error_is_translated_not_shown_raw():
+    # Regression: an upstream 401 body was shown verbatim to learners, e.g.
+    # {"error":{"message":"Invalid API Key","code":"expired_api_key"}}.
+    exc = RuntimeError(
+        'AI provider returned HTTP 401: {"error":{"message":"Invalid API Key",'
+        '"type":"invalid_request_error","code":"expired_api_key"}}'
+    )
+    msg = ai_coach.friendly_provider_error("groq", "https://api.groq.com/openai/v1/chat/completions", exc)
+    assert "expired_api_key" not in msg
+    assert "{" not in msg
+    assert "Groq Cloud" in msg
+    assert "AI Settings" in msg
+
+
 def test_ask_ai_coach_with_no_local_model_returns_actionable_error():
     result = ai_coach.ask_ai_coach(
         {"provider": "ollama", "model": "", "topic_id": "", "question": "hi"},

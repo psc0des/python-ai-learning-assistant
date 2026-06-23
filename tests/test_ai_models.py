@@ -30,6 +30,24 @@ def test_ollama_model_listing_does_not_invent_fallbacks_when_down(monkeypatch):
     assert "AI Settings" in result["error"]
 
 
+def test_missing_provider_defaults_to_configured_server_provider(monkeypatch):
+    # Regression: a request omitting "provider" silently defaulted to ollama
+    # even when the server has a different provider configured/saved.
+    monkeypatch.setenv("PY_SKILL_LAB_AI_PROVIDER", "groq")
+    monkeypatch.delenv(ai_coach.ENV_GROQ_API_KEY, raising=False)
+
+    result = ai_coach.list_ai_models({})
+
+    assert result["suggestions_only"] is True
+    assert result["models"] == ai_coach.FALLBACK_MODELS["groq"]
+
+
+def test_missing_provider_falls_back_to_ollama_when_nothing_configured(monkeypatch):
+    monkeypatch.delenv("PY_SKILL_LAB_AI_PROVIDER", raising=False)
+
+    assert ai_coach._default_provider() == "ollama"
+
+
 def test_ollama_model_listing_returns_only_installed_models(monkeypatch):
     def fake_tags(url, headers):
         return {

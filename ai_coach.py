@@ -66,6 +66,15 @@ FALLBACK_MODELS: dict[str, list[str]] = {
 }
 
 
+def _default_provider() -> str:
+    """Fall back to the server's saved/active provider, not a hardcoded one.
+
+    A request that omits "provider" should behave like /api/ai-settings'
+    advertised provider, not silently assume Ollama.
+    """
+    return os.environ.get("PY_SKILL_LAB_AI_PROVIDER", "ollama").strip().lower() or "ollama"
+
+
 # ---------------------------------------------------------------------------
 # HTTP helpers
 # ---------------------------------------------------------------------------
@@ -218,6 +227,11 @@ def friendly_provider_error(provider: str, endpoint: str, exc: Exception) -> str
                 + _HOSTED_ALTERNATIVE_HINT
             )
         return f"Could not reach {provider_label} at {endpoint_text}. Check that the endpoint is correct."
+    if "401" in text or "expired_api_key" in lower or "invalid_api_key" in lower or "invalid api key" in lower:
+        return (
+            f"{provider_label} rejected the request because the API key is missing, invalid, or expired. "
+            "Open AI Settings and paste a current key for this provider, then try again."
+        )
     return text
 
 
@@ -756,7 +770,7 @@ def _prepare_ai_request(
     topics: list[dict[str, Any]],
     exercises: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    provider = str(payload.get("provider", "ollama")).lower()
+    provider = str(payload.get("provider", _default_provider())).lower()
     client_key = str(payload.get("api_key", ""))
     api_key = resolve_api_key(provider, client_key)
     model = str(payload.get("model", "")).strip()
@@ -835,7 +849,7 @@ def ask_ai_coach(
     try:
         request = _prepare_ai_request(payload, topics, exercises)
     except Exception as exc:
-        provider = str(payload.get("provider", "ollama")).lower()
+        provider = str(payload.get("provider", _default_provider())).lower()
         return {
             "ok": False,
             "answer": "- Check your AI settings and try again.",
@@ -978,7 +992,7 @@ def stream_ai_coach(
     try:
         request = _prepare_ai_request(payload, topics, exercises)
     except Exception as exc:
-        provider = str(payload.get("provider", "ollama")).lower()
+        provider = str(payload.get("provider", _default_provider())).lower()
         yield {
             "type": "done",
             "ok": False,
@@ -1095,7 +1109,7 @@ def model_list_url(chat_endpoint: str) -> str:
 
 def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
     """List available models for a given AI provider."""
-    provider = str(payload.get("provider", "ollama")).lower()
+    provider = str(payload.get("provider", _default_provider())).lower()
     endpoint = str(payload.get("endpoint", "")).strip()
     client_key = str(payload.get("api_key", ""))
     api_key = resolve_api_key(provider, client_key)
