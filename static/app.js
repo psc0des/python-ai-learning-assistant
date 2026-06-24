@@ -778,21 +778,18 @@ function checkPracticeTest() {
   }
 
   document.querySelectorAll('.unanswered-highlight').forEach((c) => c.classList.remove('unanswered-highlight'));
-  const unanswered = questions.filter(
-    (_, i) => !document.querySelector(`input[name="question-${i}"]:checked`)
-  ).length;
-  if (unanswered) {
+  const unansweredIndexes = questions
+    .map((_, i) => i)
+    .filter((i) => !document.querySelector(`input[name="question-${i}"]:checked`));
+  if (unansweredIndexes.length) {
+    const unanswered = unansweredIndexes.length;
     els.testResult.textContent = `${unanswered} question${unanswered > 1 ? "s" : ""} unanswered — please answer all before checking.`;
-    const firstIdx = questions.findIndex(
-      (_, i) => !document.querySelector(`input[name="question-${i}"]:checked`)
-    );
-    if (firstIdx !== -1) {
-      const firstCard = document.querySelector(`[data-question-index="${firstIdx}"]`);
-      if (firstCard) {
-        firstCard.classList.add('unanswered-highlight');
-        firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
+    unansweredIndexes.forEach((i) => {
+      const card = document.querySelector(`[data-question-index="${i}"]`);
+      if (card) card.classList.add('unanswered-highlight');
+    });
+    const firstCard = document.querySelector(`[data-question-index="${unansweredIndexes[0]}"]`);
+    if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -1610,8 +1607,8 @@ function formatResult(result) {
         : `${escapeHtml(testName)}${testName ? " returned " : "Returned "}`;
       lines.push(
         `  <span class="${klass}">${status}</span> ${prefix}${escapeHtml(
-          JSON.stringify(test.actual)
-        )} (expected ${escapeHtml(JSON.stringify(test.expected))})`
+          pyStringify(test.actual)
+        )} (expected ${escapeHtml(pyStringify(test.expected))})`
       );
     });
     lines.push("");
@@ -1632,6 +1629,17 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+// Like JSON.stringify, but renders None instead of null so Python return
+// values read the way a learner typed them, not as JS's "null".
+function pyStringify(value) {
+  if (value === null) return "None";
+  if (Array.isArray(value)) return `[${value.map(pyStringify).join(", ")}]`;
+  if (typeof value === "object") {
+    return `{${Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${pyStringify(v)}`).join(", ")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function isRunnableSnippet(code, lang) {
@@ -2030,7 +2038,7 @@ function renderViz() {
         const isChanged = !isNew && JSON.stringify(prevVars[n]) !== JSON.stringify(step.vars[n]);
         const cls = isNew ? " viz-var-new" : isChanged ? " viz-var-changed" : "";
         const badge = isNew ? '<span class="viz-var-badge">new</span>' : isChanged ? '<span class="viz-var-badge">changed</span>' : "";
-        return `<div class="viz-var${cls}">${badge}<span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(JSON.stringify(step.vars[n]))}</span></div>`;
+        return `<div class="viz-var${cls}">${badge}<span class="viz-var-name">${escapeHtml(n)}</span><span class="viz-var-val">${escapeHtml(pyStringify(step.vars[n]))}</span></div>`;
       }).join("")
     : '<p class="viz-empty">No variables yet.</p>';
 
@@ -2921,7 +2929,7 @@ async function askInlineViz(question) {
   if (vizState.error) ctx += `\n\nError: ${vizState.error}`;
   if (step) {
     const lineCode = (vizState.lines[step.line - 1] || "").trim();
-    const varsStr = Object.entries(step.vars || {}).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(", ") || "none";
+    const varsStr = Object.entries(step.vars || {}).map(([k, v]) => `${k} = ${pyStringify(v)}`).join(", ") || "none";
     ctx += `\n\nCurrently on line ${step.line}: \`${lineCode}\`\nVariables: ${varsStr}`;
   }
   els.vizNote.innerHTML = `<span class="viz-ai-badge">AI</span> I sent this step's context to Ask AI.`;

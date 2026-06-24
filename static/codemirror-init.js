@@ -57,6 +57,29 @@ const editorTheme = EditorView.theme({
 
 let cmView = null;
 
+// Enter auto-indents the new line (insertNewlineAndIndent in defaultKeymap).
+// If a learner then types their own leading spaces to copy an indented
+// example verbatim, the typed spaces stack on top of the auto-indent instead
+// of replacing it, producing whitespace that looks right on screen but isn't
+// — surfacing as a confusing "unindent does not match" error. Swallow
+// further whitespace-only keystrokes typed at the end of a still-blank
+// (indent-only) line so retyping the indent is a no-op. Scoped to
+// "input.type" so Tab (a deliberate extra-indent action) and paste (which
+// should preserve exact whitespace) are unaffected.
+const suppressRedundantLeadingIndent = EditorState.transactionFilter.of((tr) => {
+  if (!tr.docChanged || !tr.isUserEvent("input.type")) return tr;
+  const changes = [];
+  tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+    changes.push({ fromA, toA, text: inserted.toString() });
+  });
+  const allRedundant = changes.length > 0 && changes.every(({ fromA, toA, text }) => {
+    if (fromA !== toA || !/^[ \t]+$/.test(text)) return false;
+    const line = tr.startState.doc.lineAt(fromA);
+    return toA === line.to && /^[ \t]*$/.test(line.text.slice(0, fromA - line.from));
+  });
+  return allRedundant ? [] : tr;
+});
+
 const baseExtensions = [
   history(),
   lineNumbers(),
@@ -65,6 +88,7 @@ const baseExtensions = [
   crosshairCursor(),
   highlightActiveLine(),
   indentOnInput(),
+  suppressRedundantLeadingIndent,
   bracketMatching(),
   closeBrackets(),
   syntaxHighlighting(oneDarkHighlightStyle),
