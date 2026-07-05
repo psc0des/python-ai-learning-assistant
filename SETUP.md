@@ -14,7 +14,7 @@ E:\AI\Python_Learning_Assistant
 Python_Learning_Assistant/
   app.py              Local HTTP server, API routes (including /api/trace)
   content_loader.py   Structured content loader from content/
-  runner.py           Lab test runner and execution tracer (sys.settrace in subprocess)
+  runner.py           Lab test runner and execution tracer (WASI/wasmtime sandbox, sys.settrace)
   ai_coach.py         AI provider integration
   content/
     manifest.json     Topic order and schema metadata (22 topics)
@@ -53,7 +53,7 @@ Python_Learning_Assistant/
 ## Requirements
 
 - Python 3.10 or newer
-- No required third-party Python packages for the current version
+- `wasmtime` (`pip install -r requirements.txt`) — required. This runs the vendored WASI Python build (`vendor/wasi/python-3.12.0.wasm`) that sandboxes learner code; there is no pure-stdlib way to do this.
 - Development tools from `requirements-dev.txt` for tests, lint, and pre-commit
 - Node.js 18 or newer (only needed to rebuild the CodeMirror vendor bundle — pre-built bundle is committed)
 - Optional local AI:
@@ -77,7 +77,7 @@ to do instead of failing silently.
 
 ## First-Time Vendor Setup
 
-The pre-built vendor files (`static/vendor/`) are committed to the repo — you do **not** need to rebuild them to run the app. Rebuild only when upgrading CodeMirror.
+The pre-built vendor files (`static/vendor/`) and the WASI Python sandbox (`vendor/wasi/python-3.12.0.wasm`) are committed to the repo — you do **not** need to rebuild or download them to run the app. Rebuild the CodeMirror bundle only when upgrading CodeMirror; the WASI binary only needs replacing if upgrading the sandboxed Python version (see `vendor/wasi/README.md`). You do need to `pip install -r requirements.txt` once for the `wasmtime` engine that runs the vendored binary.
 
 To rebuild the CodeMirror bundle:
 
@@ -352,7 +352,7 @@ The current app intentionally binds to localhost so it is not exposed to the net
 
 ## Important Security Note
 
-The coding lab executes Python snippets locally with a timeout. This is fine for personal learning, but it is not a secure sandbox for untrusted users.
+The coding lab executes most Python snippets inside a real WASM/WASI sandbox (`wasmtime` + a vendored WASI CPython build — see `CLAUDE.md`'s "Code runner" section) with no filesystem, network, or process-spawn capability. Code that imports `asyncio` falls back to a subprocess sandbox instead (WASI has no socket support, which asyncio's event loop needs), which is defense-in-depth, not a hard guarantee, for that narrow case only.
 
 Before deploying for multiple users, a senior developer should review and harden:
 
@@ -381,7 +381,7 @@ Eight topics have an inline SVG concept diagram embedded in one lesson section (
 
 ### Execution Visualizer
 
-Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` in a subprocess and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel. The modal is draggable — grab the header and move it anywhere on screen.
+Every code editor — the scratchpad, the lab editor, and the lesson try-it popup — has a **Visualize** button. It calls `/api/trace`, which runs the code under `sys.settrace` (inside the same WASI sandbox as `/api/run`, with the same `asyncio` subprocess fallback) and returns a list of `{line, vars}` steps (max 300). The shared `#vizOverlay` modal steps through the execution line by line with a variables panel. The modal is draggable — grab the header and move it anywhere on screen.
 
 Three cases are handled deterministically without AI:
 - **Runtime error** (e.g. `NameError`): some steps ran before the crash. The final step is highlighted with a plain-English note.

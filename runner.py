@@ -1,22 +1,49 @@
 """Sandboxed code runner for Python Skill Lab.
 
-Executes learner code in a restricted subprocess with:
+Executes learner code inside a real WASM/WASI sandbox (via `wasmtime` and a
+vendored WASI-target CPython 3.12 build — see `vendor/wasi/README.md`), with:
 - AST-based import allowlisting and built-in/attribute blocking before execution
 - input() blocked before execution — labs use parameters or sample variables
 - open() blocked via AST scan — no file I/O from learner code
-- Strict timeout with process kill
+- Strict timeout via WASM epoch interruption
 - Size limits on submitted code
 
-IMPORTANT — this is defense-in-depth against accidental misuse, not a hard
-security boundary. Learner code runs as real bytecode in the same interpreter
-as this runner, so a determined learner who wants to reach the host machine
-(e.g. by walking `.f_back`/`.f_builtins`/`gi_frame` on a live frame object)
-can still find a path to it. The allowlist + frame-attribute + dunder blocks
-below close every escape found during a security audit, but no in-process
-denylist/allowlist can close this class of attack completely — only OS-level
-isolation (a container, a locked-down account, or a WASM interpreter such as
-Pyodide) is a real boundary. Do not expose this app to a network or
-multi-user environment.
+SECURITY MODEL — read this before touching the execution path. There are
+TWO execution engines here, with two different security guarantees:
+
+1. **WASI sandbox (`_run_via_wasi`, the default path)** — this IS a real
+   security boundary, not defense-in-depth. Learner code runs inside a
+   WebAssembly module with no preopened directories (zero filesystem
+   access), no socket support (`OSError: Not supported`), and no process
+   model at all (`os.system`/`fork`/`exec` don't exist as capabilities —
+   confirmed empirically: `os.system` isn't even an attribute in this WASI
+   CPython build). Every escape technique found in the original security
+   audit (gc/inspect module-graph walks, frame-walking via `f_back`/
+   `f_builtins`, the str.format dunder bypass) still "succeeds" at the
+   Python level inside WASI — learner code CAN still reach a reference to
+   the `os` module via `gc.get_objects()` — but it no longer matters,
+   because the capabilities those escapes used to reach (spawning a shell,
+   opening an arbitrary host file, opening a socket) are not wired up to
+   anything by the WASI runtime. The boundary here is enforced by the WASM
+   VM itself, independent of what Python-level tricks reach which objects.
+
+2. **Subprocess fallback (existing, kept only for `asyncio`)** — WASI
+   Preview 1 has no `socket.socketpair()`, which `asyncio`'s event loop
+   requires for its self-pipe wakeup mechanism, so any code that actually
+   *runs* an asyncio event loop cannot execute inside the WASI sandbox
+   (`import asyncio` alone is fine; calling `asyncio.run(...)` traps with
+   `OSError: Not supported`). `_imports_asyncio()` detects this via AST and
+   routes that narrow slice of code through the ORIGINAL hardened
+   subprocess sandbox instead. For this path only, the AST allowlist +
+   frame-attribute + dunder blocks below are still a defense-in-depth
+   measure, not a hard boundary — the same caveat that applied to the whole
+   file before the WASI migration still applies here specifically. Do not
+   expose this app to a network or multi-user environment on the strength
+   of this fallback path alone.
+
+The AST scan runs on BOTH paths regardless, primarily now for beginner-
+friendly UX (a custom "input() isn't available here" message beats a raw
+WASI `OSError`) rather than as the security boundary itself for the WASI path.
 """
 
 from __future__ import annotations
@@ -29,16 +56,111 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from pathlib import Path
 from typing import Any
+
+import wasmtime
 
 logger = logging.getLogger(__name__)
 
 MAX_CODE_BYTES = 20_000
 RUN_TIMEOUT_SECONDS = 6
 
-# Each run/trace request starts a fresh isolated Python subprocess on purpose.
-# Reusing an interpreter would be faster, but it would also keep learner state
-# alive between runs and weaken the local safety boundary.
+# Each run/trace request gets a fresh WASM Store (or, for the asyncio
+# fallback, a fresh subprocess) on purpose. Reusing an interpreter would be
+# faster, but it would also keep learner state alive between runs and weaken
+# the isolation between one learner's run and the next.
+
+# ---------------------------------------------------------------------------
+# WASI sandbox engine (compiled once at import time; Store is per-execution)
+# ---------------------------------------------------------------------------
+
+_WASI_WASM_PATH = Path(__file__).parent / "vendor" / "wasi" / "python-3.12.0.wasm"
+
+_wasi_engine_config = wasmtime.Config()
+_wasi_engine_config.epoch_interruption = True
+_WASI_ENGINE = wasmtime.Engine(_wasi_engine_config)
+_WASI_MODULE = wasmtime.Module.from_file(_WASI_ENGINE, str(_WASI_WASM_PATH))
+_WASI_LINKER = wasmtime.Linker(_WASI_ENGINE)
+_WASI_LINKER.define_wasi()
+
+
+class _WasiTimeout(Exception):
+    """Raised when WASI execution is interrupted by the epoch-based timeout.
+
+    Mirrors the role of subprocess.TimeoutExpired for the WASI path so
+    run_user_code/trace_user_code can handle both paths with one except clause.
+    """
+
+
+def _imports_asyncio(code: str) -> bool:
+    """Return True if `code` imports asyncio at the top level.
+
+    WASI Preview 1 has no socket support, and asyncio's event loop needs
+    socket.socketpair() for its self-pipe wakeup mechanism, so any code that
+    actually runs an event loop cannot execute inside the WASI sandbox. This
+    routes such code to the hardened subprocess fallback instead. A learner
+    who merely imports asyncio without running a loop would work fine under
+    WASI too, but detecting "imports it" is a simple, safe, conservative
+    over-approximation of "needs the subprocess fallback."
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(alias.name.split(".")[0] == "asyncio" for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and node.module.split(".")[0] == "asyncio":
+                return True
+    return False
+
+
+def _run_via_wasi(source_code: str, timeout: float) -> tuple[str, str]:
+    """Execute `source_code` (a full `python -c <source>` script) inside the
+    vendored WASI Python sandbox via wasmtime.
+
+    Returns (stdout, stderr). Raises _WasiTimeout if the epoch-based timeout
+    fires before execution finishes.
+    """
+    tmpdir = tempfile.mkdtemp(prefix="pyskilllab_wasi_")
+    stdout_path = os.path.join(tmpdir, "stdout.txt")
+    stderr_path = os.path.join(tmpdir, "stderr.txt")
+    try:
+        store = wasmtime.Store(_WASI_ENGINE)
+        store.set_epoch_deadline(1)
+
+        wasi_config = wasmtime.WasiConfig()
+        wasi_config.argv = ("python", "-c", source_code)
+        wasi_config.stdout_file = stdout_path
+        wasi_config.stderr_file = stderr_path
+        # Deliberately no preopen_dir() calls at all — the sandboxed program
+        # has zero filesystem access as a structural property of the WASI
+        # capability model, not because of anything checked in Python code.
+        store.set_wasi(wasi_config)
+
+        instance = _WASI_LINKER.instantiate(store, _WASI_MODULE)
+        start_func = instance.exports(store)["_start"]
+
+        timer = threading.Timer(timeout, _WASI_ENGINE.increment_epoch)
+        timer.start()
+        try:
+            start_func(store)
+        except wasmtime.Trap as trap:
+            if trap.trap_code == wasmtime.TrapCode.INTERRUPT:
+                raise _WasiTimeout() from trap
+            raise
+        finally:
+            timer.cancel()
+
+        stdout = Path(stdout_path).read_text(encoding="utf-8", errors="replace") if os.path.exists(stdout_path) else ""
+        stderr = Path(stderr_path).read_text(encoding="utf-8", errors="replace") if os.path.exists(stderr_path) else ""
+        return stdout, stderr
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 # ---------------------------------------------------------------------------
 # Dangerous construct detection
@@ -495,34 +617,43 @@ def run_user_code(payload: dict[str, Any], exercises: list[dict[str, Any]]) -> d
     test_code = build_test_code(code, tests)
 
     try:
-        # Create isolated temp directory for execution.
-        # NOTE: We use mkdtemp() instead of TemporaryDirectory() because on Windows
-        # the TemporaryDirectory.__exit__ cleanup races with the OS releasing the
-        # subprocess's directory handle, causing WinError 5 'Access is denied'.
-        # shutil.rmtree(ignore_errors=True) silently skips any files still locked.
-        tmpdir = tempfile.mkdtemp(prefix="pyskilllab_")
-        try:
-            env = os.environ.copy()
-            env["PYTHONDONTWRITEBYTECODE"] = "1"
-            # Remove potentially dangerous env vars from child process
-            for key in ("PYTHONSTARTUP", "PYTHONPATH"):
-                env.pop(key, None)
+        if _imports_asyncio(code):
+            # Narrow carve-out: asyncio's event loop needs socketpair(),
+            # which WASI doesn't support, so this slice of code falls back
+            # to the original hardened subprocess sandbox (see module
+            # docstring for the full security-model explanation).
+            # NOTE: We use mkdtemp() instead of TemporaryDirectory() because on
+            # Windows the TemporaryDirectory.__exit__ cleanup races with the OS
+            # releasing the subprocess's directory handle, causing WinError 5
+            # 'Access is denied'. shutil.rmtree(ignore_errors=True) silently
+            # skips any files still locked.
+            tmpdir = tempfile.mkdtemp(prefix="pyskilllab_")
+            try:
+                env = os.environ.copy()
+                env["PYTHONDONTWRITEBYTECODE"] = "1"
+                # Remove potentially dangerous env vars from child process
+                for key in ("PYTHONSTARTUP", "PYTHONPATH"):
+                    env.pop(key, None)
 
-            proc = subprocess.run(
-                [sys.executable, "-I", "-B", "-c", test_code],
-                capture_output=True,
-                text=True,
-                timeout=RUN_TIMEOUT_SECONDS,
-                cwd=tmpdir,
-                env=env,
-            )
-            stdout = _cap_stdout(proc.stdout)
-            stderr = proc.stderr
-        finally:
-            # ignore_errors=True: if Windows still holds a handle, the dir stays
-            # in %TEMP% until the OS cleans it up — not a correctness problem.
-            shutil.rmtree(tmpdir, ignore_errors=True)
-    except subprocess.TimeoutExpired:
+                proc = subprocess.run(
+                    [sys.executable, "-I", "-B", "-c", test_code],
+                    capture_output=True,
+                    text=True,
+                    timeout=RUN_TIMEOUT_SECONDS,
+                    cwd=tmpdir,
+                    env=env,
+                )
+                stdout = _cap_stdout(proc.stdout)
+                stderr = proc.stderr
+            finally:
+                # ignore_errors=True: if Windows still holds a handle, the dir
+                # stays in %TEMP% until the OS cleans it up — not a
+                # correctness problem.
+                shutil.rmtree(tmpdir, ignore_errors=True)
+        else:
+            stdout_raw, stderr = _run_via_wasi(test_code, RUN_TIMEOUT_SECONDS)
+            stdout = _cap_stdout(stdout_raw)
+    except (subprocess.TimeoutExpired, _WasiTimeout):
         stdout = ""
         stderr = "Execution timed out. Check for infinite loops or very slow code."
     except Exception as exc:
@@ -670,25 +801,29 @@ def trace_user_code(payload: dict[str, Any]) -> dict[str, Any]:
 
     trace_code = build_trace_code(code)
     try:
-        tmpdir = tempfile.mkdtemp(prefix="pyskilllab_trace_")
-        try:
-            env = os.environ.copy()
-            env["PYTHONDONTWRITEBYTECODE"] = "1"
-            for key in ("PYTHONSTARTUP", "PYTHONPATH"):
-                env.pop(key, None)
-            proc = subprocess.run(
-                [sys.executable, "-I", "-B", "-c", trace_code],
-                capture_output=True,
-                text=True,
-                timeout=RUN_TIMEOUT_SECONDS,
-                cwd=tmpdir,
-                env=env,
-            )
-            stdout = _cap_stdout(proc.stdout)
-            stderr = proc.stderr
-        finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
-    except subprocess.TimeoutExpired:
+        if _imports_asyncio(code):
+            tmpdir = tempfile.mkdtemp(prefix="pyskilllab_trace_")
+            try:
+                env = os.environ.copy()
+                env["PYTHONDONTWRITEBYTECODE"] = "1"
+                for key in ("PYTHONSTARTUP", "PYTHONPATH"):
+                    env.pop(key, None)
+                proc = subprocess.run(
+                    [sys.executable, "-I", "-B", "-c", trace_code],
+                    capture_output=True,
+                    text=True,
+                    timeout=RUN_TIMEOUT_SECONDS,
+                    cwd=tmpdir,
+                    env=env,
+                )
+                stdout = _cap_stdout(proc.stdout)
+                stderr = proc.stderr
+            finally:
+                shutil.rmtree(tmpdir, ignore_errors=True)
+        else:
+            stdout_raw, stderr = _run_via_wasi(trace_code, RUN_TIMEOUT_SECONDS)
+            stdout = _cap_stdout(stdout_raw)
+    except (subprocess.TimeoutExpired, _WasiTimeout):
         return {"ok": False, "steps": [], "stdout": "",
                 "error": "Execution timed out. Check for infinite loops or very slow code."}
     except Exception as exc:

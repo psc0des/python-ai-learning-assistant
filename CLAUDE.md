@@ -9,13 +9,17 @@ A local-first, beginner-focused learning app for Python, backend APIs, DevOps au
 - **Code editor:** CodeMirror 6 — vendored as a pre-built ESM bundle at `static/vendor/codemirror-bundle.js` (rebuilt via `scripts/build.js` using esbuild + npm)
 - **Fonts:** system fonts only — the warm-notebook theme uses `Georgia` (serif) and `Consolas`/system monospace via `--font-sans` / `--font-mono` in `styles.css`. No web fonts, nothing to vendor.
 - **HTTP server:** `http.server.ThreadingHTTPServer` (stdlib only — no Flask, no FastAPI)
+- **Code sandbox:** `wasmtime` (pip) + a vendored WASI-target CPython 3.12 build at `vendor/wasi/python-3.12.0.wasm` — the one required third-party runtime dependency; see `requirements.txt` and the "Code runner" security section below for why
 - **AI Coach:** OpenAI-compatible endpoints — Ollama, LM Studio, OpenAI, Anthropic, Google AI Studio, Grok (xAI), Groq Cloud, Azure AI Foundry
-- **Testing:** pytest (no third-party packages required to run the app)
+- **Testing:** pytest (`pip install -r requirements.txt` is required to run the app now — `wasmtime` is a real dependency, not optional)
 - **Vendor tooling (build-time only):** Node.js 18+, esbuild, npm — only needed to rebuild the CodeMirror bundle
 
 ## Key Commands
 
 ```powershell
+# One-time setup: install the sandbox runtime dependency
+python -m pip install -r requirements.txt
+
 # Run the app
 python app.py
 
@@ -46,9 +50,10 @@ $env:PY_SKILL_LAB_PORT="9000"; python app.py
 Python_Learning_Assistant/
   app.py                  HTTP server, API routes, origin validation (_is_allowed_origin)
   content_loader.py       Structured curriculum loader from content/
-  runner.py               Lab runner + execution tracer (sys.settrace, AST safety scan)
+  runner.py               Lab runner + execution tracer (WASI/wasmtime sandbox, sys.settrace, AST safety scan)
   ai_coach.py             AI provider integration (8 providers, fallback-safe)
   models.py               Request/response validation and startup content checks
+  vendor/wasi/            Vendored WASI-target CPython 3.12 build used for code sandboxing
   content/
     manifest.json         Topic order and schema metadata (22 topics)
     sources.json          Official source registry with checked_at dates
@@ -104,14 +109,25 @@ Tests in `tests/test_origin_validation.py` cover: exact match, empty origin, loc
 
 ### Code runner
 
-`runner.py` runs learner code in a subprocess with a short timeout. It applies three layers of blocking:
-1. **AST import allowlist** — `ALLOWED_MODULES` in `runner.py` is a small, explicit allowlist of pure-computation/formatting stdlib modules (`math`, `json`, `collections`, `itertools`, `typing`, `contextlib`, etc.). Any import not on the list is rejected. This is deliberately an allowlist, not a denylist — a security audit proved that a denylist always misses a pivot module (`gc`, `inspect`, `codecs`, `platform`, `sysconfig` all reach dangerous functionality and were never blocked under the old denylist). Extend `ALLOWED_MODULES` only with modules that have no filesystem/network/process/introspection capability.
-2. **AST attribute/builtin/string scan** — rejects dangerous builtins (`exec`, `eval`, `__import__`, etc.), `open()`, `input()`, direct `__builtins__` name access, non-allowlisted dunder attributes (`__globals__`, `__subclasses__`, `__class__`, etc. — note `__class__` is deliberately **not** allowlisted, unlike some earlier sandboxes, because it is the first step of the classic `().__class__.__base__.__subclasses__()` escape), the non-dunder frame-walking attributes in `BLOCKED_FRAME_ATTRS` (`f_back`, `f_builtins`, `gi_frame`, `cr_frame`, etc. — reachable from any live frame or generator without importing anything, and each hands back the interpreter's real, unstripped builtins), and string literals containing frame/builtins internals as a substring (blocks the `"{0.__globals__}".format(fn)` str.format bypass, which hides the dunder inside a string constant the AST attribute checks never see).
-3. **Runtime restriction** — injects a stripped `__builtins__` dict into `USER_GLOBALS` for both run and trace paths, removing `eval`, `exec`, `compile`, `breakpoint`, `open`, `input`, `globals`, `locals`, `vars`, `getattr`, `setattr`, and `delattr` so the restricted set is enforced even if the AST scan is bypassed. `__import__` is deliberately **not** stripped here — Python's own `import` statement calls it internally, so removing it would break every legitimate import; the AST scan (layer 2) is the correct place to block direct `__import__(...)` calls and `__builtins__` access.
+`runner.py` executes learner code inside a **real WASM/WASI sandbox** — this is a genuine security boundary, not defense-in-depth, for the vast majority of code. A narrow, structurally-required exception (code that imports `asyncio`) falls back to a hardened subprocess sandbox that is still defense-in-depth only. Read this whole section before touching any part of the execution path — the two paths have different guarantees and mixing them up is the single easiest way to accidentally weaken this.
 
-**This is defense-in-depth, not a security boundary, and must never be described as one.** Learner code runs as real bytecode in the same interpreter as the runner; the three layers above close every escape found during a security audit (module pivots, frame-walking, format-string bypass), but no in-process allowlist can close this class of attack completely — a sufficiently creative new pivot could still exist. Do not describe learner code as unable to read/write files or reach the host — describe the sandbox as hardened, not as a guarantee. **Do not expose this app to a network or multi-user environment.** If this app is ever deployed where isolation must be a real guarantee (a classroom, a shared host), learner code execution must move to OS-level isolation (a locked-down container/account) or a WASM Python runtime (e.g. Pyodide) where the host interpreter is never shared with learner code.
+**Primary path — WASI sandbox (`_run_via_wasi` in `runner.py`):** learner code runs inside a WebAssembly module (`vendor/wasi/python-3.12.0.wasm`, a WASI-target CPython 3.12 build — see `vendor/wasi/README.md` for provenance) via the `wasmtime` engine. This is a **real** boundary because:
+- **Zero filesystem access.** No directories are ever preopened (`WasiConfig` never calls `preopen_dir`), so `open()` fails with `FileNotFoundError` regardless of what path is requested — not because a pattern was matched, but because there is no accessible filesystem inside the sandbox at all.
+- **No network.** WASI Preview 1 has no socket syscalls; `socket.socket(...)` raises `OSError: Not supported`.
+- **No process model.** `os.system`/`fork`/`exec`/`subprocess` don't exist as working capabilities — confirmed empirically: `os.system` isn't even an attribute on the `os` module in this WASI build, and `subprocess.run(...)` raises `OSError: wasi does not support processes.`
+- **Timeouts via WASM epoch interruption**, not process kill: a background timer thread calls `engine.increment_epoch()` after `RUN_TIMEOUT_SECONDS`; the running WASM module traps with `TrapCode.INTERRUPT`, which `_run_via_wasi` converts into `_WasiTimeout` (handled identically to `subprocess.TimeoutExpired` by the caller).
 
-`input()` is blocked before execution because the subprocess is non-interactive — a blocked `input()` call would silently wait until the run timeout, which looks like an infinite loop to a beginner. The runner returns a clear targeted message instead. Labs should use function parameters and sample variables, not `input()`. Bare `help()` (no arguments) gets the same treatment for the same reason — it opens pydoc's interactive console, which also reads from stdin and hangs until the timeout. `help(some_object)` is not blocked; it prints immediately and returns, so only the zero-argument form is restricted.
+The critical property: every escape technique the old subprocess-only sandbox had to defend against with an AST scan (`gc`/`inspect` module-graph walks, frame-walking via `f_back`/`f_builtins`, the `str.format` dunder bypass) **still "succeeds" at the Python level** inside WASI — a learner genuinely can reach a live reference to the `os` module via `gc.get_objects()`. It no longer matters, because the capabilities those escapes used to reach (spawn a shell, read/write a host file, open a socket) simply are not wired up to anything by the WASI runtime. The boundary is enforced by the WASM VM itself, independent of which Python object graph tricks reach which objects. Tests: `tests/test_wasi_sandbox.py` — these deliberately bypass the AST scan entirely and call `_run_via_wasi` directly with raw escape payloads, to prove the WASM boundary holds on its own, not just that the AST layer catches them.
+
+**Fallback path — hardened subprocess, `asyncio` only:** WASI Preview 1 has no `socket.socketpair()`, which `asyncio`'s event loop requires for its self-pipe wakeup mechanism — `asyncio.run(...)` traps with `OSError: Not supported` inside WASI (confirmed empirically; plain `import asyncio` with no event loop actually running works fine under WASI, but nothing in this app's content relies on that distinction, so the routing is conservative). `_imports_asyncio()` detects `import asyncio` / `from asyncio import ...` via AST and routes that code through the **original** subprocess sandbox instead — same `sys.executable -I -B -c`, same AST allowlist/frame-attribute/dunder/string-marker checks as before. **For this path only, all of the previous "defense-in-depth, not a boundary" caveats still apply**: it is not a hard guarantee, only the WASI path is. Do not expose this app to a network or multi-user environment on the strength of the subprocess fallback alone.
+
+Both paths still run the same AST scan first (`scan_for_dangerous_code`, allowlist `ALLOWED_MODULES`, `BLOCKED_FRAME_ATTRS`, `_ALLOWED_DUNDERS`, `DANGEROUS_STRING_MARKERS` — unchanged from before this migration). For the WASI path this is now primarily a UX layer (a friendly "input() isn't available here" beats a raw WASI `OSError`) rather than the security boundary itself; for the subprocess fallback it remains the actual defense. Extend `ALLOWED_MODULES` only with modules that have no filesystem/network/process/introspection capability, exactly as before.
+
+`input()` is blocked before execution because the sandbox is non-interactive — a blocked `input()` call would silently wait until the run timeout, which looks like an infinite loop to a beginner. The runner returns a clear targeted message instead. Labs should use function parameters and sample variables, not `input()`. Bare `help()` (no arguments) gets the same treatment for the same reason — it opens pydoc's interactive console, which also reads from stdin and hangs until the timeout. `help(some_object)` is not blocked; it prints immediately and returns, so only the zero-argument form is restricted.
+
+`sys.settrace` (the Execution Visualizer's mechanism, `trace_user_code`/`build_trace_code`) works identically under WASI — confirmed empirically and covered by `tests/test_wasi_sandbox.py::TestWasiTraceVisualizer`. The visualizer follows the exact same WASI-primary/asyncio-subprocess-fallback split as the main runner.
+
+**Setup requirement:** `wasmtime` (in `requirements.txt`) is now a required runtime dependency — `python -m pip install -r requirements.txt` before `python app.py`. This is the one exception to "stdlib only, no pip install needed"; there is no pure-stdlib way to run a WASM sandbox. The vendored `.wasm` binary (~26 MB) is committed directly (no Git LFS) — see `vendor/wasi/README.md` for its source, checksum, and license.
 
 HTTP request bodies are capped at 100 KB (`MAX_REQUEST_BODY_BYTES` in `app.py`) before JSON parsing, so an oversized POST cannot consume memory before the runner's code-size check applies.
 
@@ -319,7 +335,7 @@ Do not add features, refactor, or introduce abstractions beyond what the task re
 
 ### 5. Security is load-bearing
 
-The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers three independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP), AI coach (`/api/ai-coach` — 10 req/60s per IP), and model-list (`/api/ai-models` — 30 req/60s per IP). `check_rate_limit()` evicts a bucket's dict entry entirely once its pruned window is empty rather than leaving a permanent empty-list entry — otherwise every distinct source IP that ever made one request leaked 3 dict entries for the life of the process.
+The origin validation check, the WASI sandbox boundary, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers three independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP), AI coach (`/api/ai-coach` — 10 req/60s per IP), and model-list (`/api/ai-models` — 30 req/60s per IP). `check_rate_limit()` evicts a bucket's dict entry entirely once its pruned window is empty rather than leaving a permanent empty-list entry — otherwise every distinct source IP that ever made one request leaked 3 dict entries for the life of the process.
 
 `do_POST`'s top-level exception handler catches `(ValueError, RecursionError)` around `json.loads`, not just `json.JSONDecodeError` — `json.JSONDecodeError` is itself a `ValueError` subclass, but pathologically deep nesting (a ~20,000-deep array well under the 100 KB body cap) raises `RecursionError`, which is not a `ValueError` and used to fall through to the generic 500 handler and leak an exception repr for trivially malformed input.
 

@@ -3,7 +3,7 @@
 **A local desktop learning app for Python, backend APIs, DevOps automation, and AI engineering.** Runs entirely on your own machine — no account, no internet required, no server to manage.
 
 > **⚠️ Personal use only — do not host for other people.**
-> Python Skill Lab runs the code you write in a local subprocess on `127.0.0.1`. The code runner is designed for personal learning, not as a hardened security sandbox. **Do not deploy this on a shared, public, or multi-user server and do not expose the port to a network.** On your own desktop it is no more powerful than your own terminal, which is exactly the point.
+> Python Skill Lab runs the code you write inside a real WASM/WASI sandbox on `127.0.0.1` (no filesystem, network, or process-spawn access from inside it), with one narrow exception — code using `asyncio` falls back to a local subprocess with lighter, defense-in-depth-only protections. **Do not deploy this on a shared, public, or multi-user server and do not expose the port to a network** regardless — this app is built and tested for single-user, localhost use, not as a hardened multi-tenant service.
 
 ## Who This Is For
 
@@ -18,12 +18,13 @@ Every topic follows the same flow: overview → lesson → hands-on labs → pra
 ## Requirements
 
 - Python 3.10 or newer
-- No `pip install` needed — the app uses only the Python standard library
+- `wasmtime` (`pip install -r requirements.txt`) — runs the vendored WASI sandbox that isolates learner code; the one required third-party package
 - Optional: an AI provider key or a local Ollama/LM Studio instance for the AI coach feature (the app works fine without one)
 
 ## Run
 
 ```powershell
+pip install -r requirements.txt
 python app.py
 ```
 
@@ -48,7 +49,7 @@ pip install -r requirements-dev.txt
 python -B -m pytest tests -q -p no:cacheprovider
 ```
 
-`pytest` is the only dev dependency. The app itself needs no `pip install`. Run the full suite before publishing changes.
+`pytest` is the only dev dependency beyond the app's own `wasmtime` requirement. Run the full suite before publishing changes.
 
 ## What It Covers
 
@@ -77,7 +78,7 @@ The app loads this through `content_loader.py` and keeps the same `/api/curricul
 
 ## Notes
 
-The code runner executes snippets locally with a short timeout. Treat it as a practice tool, not a security sandbox for untrusted code.
+The code runner executes snippets inside a real WASM/WASI sandbox (via `wasmtime` and a vendored WASI CPython build) with a short timeout — no filesystem, network, or process access from inside it. Code using `asyncio` falls back to a local subprocess instead (WASI has no socket support, which asyncio's event loop needs), with lighter, defense-in-depth-only protections for that case. See `CLAUDE.md`'s "Code runner" section for the full model.
 
 AI request timeout defaults are intentionally short so the learning UI does not appear frozen if a provider is down:
 
