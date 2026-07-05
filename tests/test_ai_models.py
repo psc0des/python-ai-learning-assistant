@@ -497,3 +497,88 @@ def test_ai_coach_stream_endpoint_returns_ndjson(monkeypatch):
     assert lines[1] == {"type": "chunk", "text": "lo"}
     assert lines[2]["type"] == "done"
     assert lines[2]["text"] == "Hello"
+
+
+class TestEndpointPinning:
+    """Regression tests for the HIGH SSRF / key-exfiltration finding: a
+    request's "endpoint" field used to be sent straight through as the URL
+    the server connects to, carrying the server's own resolved API key with
+    it. A caller could redirect the server (and its stored secret) to any
+    host it chose. Endpoints for hosted providers are now pinned to each
+    provider's known host; a non-matching endpoint is ignored in favor of
+    the real default rather than honored."""
+
+    def test_groq_ignores_attacker_endpoint_and_uses_real_host(self, monkeypatch):
+        requested = {}
+
+        def fake_post(url, headers, payload, timeout=None):
+            requested["url"] = url
+            requested["auth"] = headers.get("Authorization", "")
+            return {"choices": [{"message": {"content": "hi"}}], "usage": {}}
+
+        monkeypatch.setattr(ai_coach, "post_json", fake_post)
+        monkeypatch.setenv(ai_coach.ENV_GROQ_API_KEY, "gsk_real_secret")
+
+        result = ai_coach.ask_ai_coach(
+            {
+                "provider": "groq",
+                "endpoint": "http://attacker.example:8899/v1/chat/completions",
+                "model": "llama-3.3-70b-versatile",
+                "question": "hi",
+                "mode": "chat",
+            },
+            topics=[], exercises=[],
+        )
+
+        # The attacker-supplied host must be ignored — the request must go
+        # to the real Groq API, not the caller-chosen host.
+        assert requested["url"] == "https://api.groq.com/openai/v1/chat/completions"
+        assert "attacker.example" not in requested["url"]
+        assert result["ok"] is True
+
+    def test_openai_ignores_attacker_endpoint_in_model_listing(self, monkeypatch):
+        requested = {}
+
+        def fake_get(url, headers):
+            requested["url"] = url
+            return {"data": [{"id": "gpt-4.1-mini"}]}
+
+        monkeypatch.setattr(ai_coach, "get_json", fake_get)
+
+        ai_coach.list_ai_models({
+            "provider": "openai",
+            "endpoint": "https://attacker.example/v1/chat/completions",
+            "api_key": "sk-real-secret",
+        })
+
+        assert requested["url"] == "https://api.openai.com/v1/models"
+        assert "attacker.example" not in requested["url"]
+
+    def test_azure_foundry_rejects_non_azure_endpoint(self):
+        result = ai_coach.ask_ai_coach(
+            {
+                "provider": "azure-foundry",
+                "endpoint": "https://attacker.example/v1",
+                "api_key": "test-key",
+                "model": "gpt-4o",
+                "question": "hi",
+                "mode": "chat",
+            },
+            topics=[], exercises=[],
+        )
+        # Not a live network error — the endpoint is rejected before any
+        # request is made, and the fallback path is triggered.
+        assert result["ok"] is False
+        assert "azure.com" in result["error"].lower() or "azure" in result["error"].lower()
+
+    def test_pinned_endpoint_accepts_real_provider_host(self):
+        result = ai_coach._pinned_endpoint(
+            "groq", "https://api.groq.com/openai/v1/chat/completions", "default"
+        )
+        assert result == "https://api.groq.com/openai/v1/chat/completions"
+
+    def test_pinned_endpoint_rejects_other_host(self):
+        result = ai_coach._pinned_endpoint(
+            "groq", "http://evil.example/steal", "https://api.groq.com/openai/v1/chat/completions"
+        )
+        assert result == "https://api.groq.com/openai/v1/chat/completions"

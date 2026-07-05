@@ -23,6 +23,7 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -258,6 +259,66 @@ def resolve_api_key(provider: str, client_key: str) -> str:
             logger.debug("Using server-side API key for %s", provider)
             return server_key
     return client_key
+
+
+# ---------------------------------------------------------------------------
+# Endpoint pinning (SSRF / key-exfiltration guard)
+# ---------------------------------------------------------------------------
+
+# Hosted providers with a single, fixed API host. A request's "endpoint" field
+# used to be sent straight through as the URL the SERVER connects to, with
+# the server's own resolved API key (the .env-stored one, not the caller's)
+# attached to that request. A caller could redirect the server to any host
+# and have it hand over the stored secret — confirmed live during a security
+# audit (a listener on an arbitrary port received a real Groq key). Pinning
+# each provider to its known host closes this: a non-matching endpoint is
+# silently ignored in favor of the provider's real default.
+_PROVIDER_ALLOWED_HOSTS: dict[str, frozenset[str]] = {
+    "openai": frozenset({"api.openai.com"}),
+    "anthropic": frozenset({"api.anthropic.com"}),
+    "google": frozenset({"generativelanguage.googleapis.com"}),
+    "grok": frozenset({"api.x.ai"}),
+    "groq": frozenset({"api.groq.com"}),
+}
+
+# Azure AI Foundry has no single fixed host — every deployment is a unique
+# per-tenant URL — so it can't be pinned to one hostname like the others.
+# Instead its host must end with one of Microsoft's own Azure AI/OpenAI
+# domain suffixes, which still prevents the stored key from being sent to an
+# arbitrary attacker-chosen host.
+_AZURE_HOST_SUFFIXES = (".services.ai.azure.com", ".openai.azure.com", ".cognitiveservices.azure.com")
+
+
+def _pinned_endpoint(provider: str, endpoint: str, default: str) -> str:
+    """Use `endpoint` only if its host matches this provider's known,
+    trusted host; otherwise silently fall back to the real default.
+
+    Local providers (ollama, lmstudio) are not pinned — they default to
+    localhost and don't carry a real server-stored secret the same way.
+    """
+    if not endpoint:
+        return default
+    try:
+        host = (urlparse(endpoint).hostname or "").lower()
+    except Exception:
+        return default
+    allowed = _PROVIDER_ALLOWED_HOSTS.get(provider)
+    if allowed and host in allowed:
+        return endpoint
+    return default
+
+
+def _require_azure_host(endpoint: str) -> str:
+    """Azure AI Foundry has no fixed default to fall back to, so reject an
+    endpoint outright instead of silently substituting one when its host
+    isn't a recognized Azure AI/OpenAI domain."""
+    host = (urlparse(endpoint).hostname or "").lower() if endpoint else ""
+    if not host or not any(host.endswith(suffix) for suffix in _AZURE_HOST_SUFFIXES):
+        raise ValueError(
+            "Azure AI Foundry endpoint must be an azure.com AI/OpenAI resource URL "
+            "(e.g. https://<resource>.services.ai.azure.com/... or https://<resource>.openai.azure.com/...)."
+        )
+    return endpoint
 
 
 # ---------------------------------------------------------------------------
@@ -887,7 +948,7 @@ def ask_ai_coach(
             if not api_key:
                 raise ValueError("OpenAI API key is required. Set it in the UI or as PY_SKILL_LAB_OPENAI_KEY env var.")
             call_result = call_openai_compatible(
-                endpoint or "https://api.openai.com/v1/chat/completions",
+                _pinned_endpoint("openai", endpoint, "https://api.openai.com/v1/chat/completions"),
                 api_key,
                 model or FALLBACK_MODELS["openai"][0],
                 prompt, temperature, top_p, max_tokens,
@@ -897,7 +958,7 @@ def ask_ai_coach(
             if not api_key:
                 raise ValueError("Anthropic API key is required. Set it in the UI or as PY_SKILL_LAB_ANTHROPIC_KEY env var.")
             call_result = call_anthropic(
-                endpoint or "https://api.anthropic.com/v1/messages",
+                _pinned_endpoint("anthropic", endpoint, "https://api.anthropic.com/v1/messages"),
                 api_key,
                 model or FALLBACK_MODELS["anthropic"][0],
                 prompt, temperature, top_p, max_tokens,
@@ -912,7 +973,7 @@ def ask_ai_coach(
             g_tok_in = g_tok_out = 0
             g_elapsed = g_tps = 0.0
             for _ev in stream_google(
-                endpoint or "https://generativelanguage.googleapis.com/v1beta",
+                _pinned_endpoint("google", endpoint, "https://generativelanguage.googleapis.com/v1beta"),
                 api_key,
                 model or FALLBACK_MODELS["google"][0],
                 prompt, temperature, top_p, top_k, max_tokens,
@@ -936,7 +997,7 @@ def ask_ai_coach(
             if not api_key:
                 raise ValueError("Grok API key is required. Get one at console.x.ai or set PY_SKILL_LAB_GROK_KEY env var.")
             call_result = call_openai_compatible(
-                endpoint or "https://api.x.ai/v1/chat/completions",
+                _pinned_endpoint("grok", endpoint, "https://api.x.ai/v1/chat/completions"),
                 api_key,
                 model or FALLBACK_MODELS["grok"][0],
                 prompt, temperature, top_p, max_tokens,
@@ -946,7 +1007,7 @@ def ask_ai_coach(
             if not api_key:
                 raise ValueError("Groq API key is required. Get one free at console.groq.com or set PY_SKILL_LAB_GROQ_KEY env var.")
             call_result = call_openai_compatible(
-                endpoint or "https://api.groq.com/openai/v1/chat/completions",
+                _pinned_endpoint("groq", endpoint, "https://api.groq.com/openai/v1/chat/completions"),
                 api_key,
                 model or FALLBACK_MODELS["groq"][0],
                 prompt, temperature, top_p, max_tokens,
@@ -957,8 +1018,9 @@ def ask_ai_coach(
                 raise ValueError("Azure AI Foundry API key is required. Enter it in AI Settings or set PY_SKILL_LAB_AZURE_FOUNDRY_KEY env var.")
             if not endpoint:
                 raise ValueError("Azure AI Foundry endpoint is required. Enter your project URL in AI Settings.")
+            azure_endpoint = _require_azure_host(endpoint)
             call_result = call_openai_compatible(
-                openai_compatible_chat_url(endpoint, endpoint),
+                openai_compatible_chat_url(azure_endpoint, azure_endpoint),
                 api_key,
                 model or "",
                 prompt, temperature, top_p, max_tokens,
@@ -1034,7 +1096,7 @@ def stream_ai_coach(
             if not api_key:
                 raise ValueError("Google API key is required. Get one free at aistudio.google.com or set PY_SKILL_LAB_GOOGLE_KEY env var.")
             yield from stream_google(
-                endpoint or "https://generativelanguage.googleapis.com/v1beta",
+                _pinned_endpoint("google", endpoint, "https://generativelanguage.googleapis.com/v1beta"),
                 api_key,
                 model or FALLBACK_MODELS["google"][0],
                 prompt, temperature, top_p, top_k, max_tokens,
@@ -1044,24 +1106,25 @@ def stream_ai_coach(
             if provider == "openai":
                 if not api_key:
                     raise ValueError("OpenAI API key is required. Set it in the UI or as PY_SKILL_LAB_OPENAI_KEY env var.")
-                url = endpoint or "https://api.openai.com/v1/chat/completions"
+                url = _pinned_endpoint("openai", endpoint, "https://api.openai.com/v1/chat/completions")
                 selected_model = model or FALLBACK_MODELS["openai"][0]
             elif provider == "grok":
                 if not api_key:
                     raise ValueError("Grok API key is required. Get one at console.x.ai or set PY_SKILL_LAB_GROK_KEY env var.")
-                url = endpoint or "https://api.x.ai/v1/chat/completions"
+                url = _pinned_endpoint("grok", endpoint, "https://api.x.ai/v1/chat/completions")
                 selected_model = model or FALLBACK_MODELS["grok"][0]
             elif provider == "groq":
                 if not api_key:
                     raise ValueError("Groq API key is required. Get one free at console.groq.com or set PY_SKILL_LAB_GROQ_KEY env var.")
-                url = endpoint or "https://api.groq.com/openai/v1/chat/completions"
+                url = _pinned_endpoint("groq", endpoint, "https://api.groq.com/openai/v1/chat/completions")
                 selected_model = model or FALLBACK_MODELS["groq"][0]
             else:
                 if not api_key:
                     raise ValueError("Azure AI Foundry API key is required. Enter it in AI Settings or set PY_SKILL_LAB_AZURE_FOUNDRY_KEY env var.")
                 if not endpoint:
                     raise ValueError("Azure AI Foundry endpoint is required. Enter your project URL in AI Settings.")
-                url = openai_compatible_chat_url(endpoint, endpoint)
+                azure_endpoint = _require_azure_host(endpoint)
+                url = openai_compatible_chat_url(azure_endpoint, azure_endpoint)
                 selected_model = model or ""
             yield from stream_openai_compatible(
                 url,
@@ -1132,11 +1195,11 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
             data = get_json(url, {"Authorization": f"Bearer {api_key or 'lm-studio'}"})
             models = [item["id"] for item in data.get("data", []) if item.get("id")]
         elif provider == "openai":
-            url = model_list_url(endpoint or "https://api.openai.com/v1/chat/completions")
+            url = model_list_url(_pinned_endpoint("openai", endpoint, "https://api.openai.com/v1/chat/completions"))
             data = get_json(url, {"Authorization": f"Bearer {api_key}"})
             models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
         elif provider == "anthropic":
-            url = model_list_url(endpoint or "https://api.anthropic.com/v1/messages")
+            url = model_list_url(_pinned_endpoint("anthropic", endpoint, "https://api.anthropic.com/v1/messages"))
             data = get_json(url, {"x-api-key": api_key, "anthropic-version": "2023-06-01"})
             models = [item["id"] for item in data.get("data", []) if item.get("id")]
         elif provider in ("grok", "groq"):
@@ -1144,11 +1207,11 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
                 "https://api.x.ai/v1/chat/completions" if provider == "grok"
                 else "https://api.groq.com/openai/v1/chat/completions"
             )
-            url = model_list_url(endpoint or default_endpoint)
+            url = model_list_url(_pinned_endpoint(provider, endpoint, default_endpoint))
             data = get_json(url, {"Authorization": f"Bearer {api_key}"})
             models = sorted(item["id"] for item in data.get("data", []) if item.get("id"))
         elif provider == "google":
-            base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+            base = _pinned_endpoint("google", endpoint, "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
             data = get_json(f"{base}/models?key={api_key}", {})
             models = [
                 item["name"].replace("models/", "")
@@ -1159,7 +1222,8 @@ def list_ai_models(payload: dict[str, Any]) -> dict[str, Any]:
         elif provider == "azure-foundry":
             if not endpoint:
                 raise ValueError("Azure AI Foundry endpoint is required (e.g. https://….services.ai.azure.com/…/v1)")
-            url = openai_compatible_models_url(endpoint, endpoint)
+            azure_endpoint = _require_azure_host(endpoint)
+            url = openai_compatible_models_url(azure_endpoint, azure_endpoint)
             data = get_json(url, {"Authorization": f"Bearer {api_key}"})
             models = [item["id"] for item in data.get("data", []) if item.get("id")]
         else:
