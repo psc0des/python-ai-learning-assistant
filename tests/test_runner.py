@@ -254,6 +254,29 @@ class TestInputBlocking:
         assert any("input()" in v for v in violations)
 
 
+class TestHelpBlocking:
+    """Regression tests for the LOW finding: bare help() (no arguments) opens
+    pydoc's interactive console, which reads from stdin in this
+    non-interactive runner and silently hangs until the 6s run timeout —
+    looking exactly like a frozen/infinite-looping program to a beginner who
+    typed a perfectly harmless line. help(x) with an argument is fine (it
+    prints immediately and returns) and must not be blocked."""
+
+    def test_scan_blocks_bare_help(self):
+        violations = scan_for_dangerous_code("help()")
+        assert any("help()" in v for v in violations)
+
+    def test_scan_allows_help_with_argument(self):
+        violations = scan_for_dangerous_code("help(str)")
+        assert violations == []
+
+    def test_run_blocks_bare_help_with_clear_message_not_timeout(self):
+        result = run_user_code({"code": "help()", "exercise_id": ""}, EXERCISES)
+        assert result["ok"] is False
+        assert "help()" in result["stderr"]
+        assert "timed out" not in result["stderr"].lower()
+
+
 class TestSandboxBypassBlocking:
     def test_scan_blocks_builtins_name_access(self):
         violations = scan_for_dangerous_code("__builtins__['__import__']('os')")

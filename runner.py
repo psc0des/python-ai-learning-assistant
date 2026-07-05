@@ -167,6 +167,19 @@ def scan_for_dangerous_code(code: str) -> list[str]:
                     f"Use a function parameter or a sample variable instead."
                 )
 
+            # Bare help() (no arguments) opens pydoc's interactive console,
+            # which reads from stdin — the subprocess is non-interactive, so
+            # this hangs until the run timeout, exactly like an unblocked
+            # input() call would. help(some_object) is fine: it prints
+            # immediately and returns, so only the zero-argument form is
+            # blocked here.
+            if func_name == "help" and not node.args and not node.keywords:
+                violations.append(
+                    f"Line {node.lineno}: help() with no arguments opens an interactive prompt "
+                    f"this non-interactive runner can't respond to. Try help(str) or "
+                    f"help(some_function) instead — those print immediately."
+                )
+
             if func_name == "open":
                 violations.append(
                     f"Line {node.lineno}: open() is not available in this sandbox. "
@@ -464,7 +477,9 @@ def run_user_code(payload: dict[str, Any], exercises: list[dict[str, Any]]) -> d
             feedback.append("Rewrite interactive prompts as a function parameter or a sample variable, then run the code again.")
         if "open()" in violation_text:
             feedback.append("File reading and writing are blocked here; use variables, lists, dictionaries, or function parameters instead.")
-        if not any(name in violation_text for name in ("input()", "open()")):
+        if "help() with no arguments" in violation_text:
+            feedback.append("Pass something to help(), like help(str) or help(len), instead of calling it with no arguments.")
+        if not any(name in violation_text for name in ("input()", "open()", "help() with no arguments")):
             feedback.append("System access is restricted so practice code stays focused on the exercise logic.")
         feedback.append("Focus on Python's built-in data types, functions, control flow, and return values.")
         return {
