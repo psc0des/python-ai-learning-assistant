@@ -407,6 +407,25 @@ def strip_test_marker(stdout: str) -> str:
     return stdout.rsplit(marker, 1)[0].strip()
 
 
+MAX_STDOUT_BYTES = 300_000  # cap captured stdout so a tight print loop can't return an unbounded HTTP body
+
+
+def _cap_stdout(stdout: str, limit: int = MAX_STDOUT_BYTES) -> str:
+    """Truncate oversized stdout, keeping the tail.
+
+    The 6s RUN_TIMEOUT_SECONDS already bounds how long a print loop can run,
+    but nothing previously bounded how much of its output was captured and
+    returned — `print('A'*500000)` produced a ~500 KB response with no cap
+    to match the 100 KB request-body cap. The results marker (__PY_SKILL_LAB_
+    RESULTS__) is always printed last, so keeping the tail rather than the
+    head preserves it whenever possible.
+    """
+    data = stdout.encode("utf-8", errors="ignore")
+    if len(data) <= limit:
+        return stdout
+    return "... (earlier output truncated — you printed too much)\n" + data[-limit:].decode("utf-8", errors="ignore")
+
+
 # ---------------------------------------------------------------------------
 # Main runner
 # ---------------------------------------------------------------------------
@@ -482,7 +501,7 @@ def run_user_code(payload: dict[str, Any], exercises: list[dict[str, Any]]) -> d
                 cwd=tmpdir,
                 env=env,
             )
-            stdout = proc.stdout
+            stdout = _cap_stdout(proc.stdout)
             stderr = proc.stderr
         finally:
             # ignore_errors=True: if Windows still holds a handle, the dir stays
@@ -650,7 +669,7 @@ def trace_user_code(payload: dict[str, Any]) -> dict[str, Any]:
                 cwd=tmpdir,
                 env=env,
             )
-            stdout = proc.stdout
+            stdout = _cap_stdout(proc.stdout)
             stderr = proc.stderr
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)

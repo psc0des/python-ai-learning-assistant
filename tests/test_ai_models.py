@@ -582,3 +582,41 @@ class TestEndpointPinning:
             "groq", "http://evil.example/steal", "https://api.groq.com/openai/v1/chat/completions"
         )
         assert result == "https://api.groq.com/openai/v1/chat/completions"
+
+
+class TestMalformedRunResult:
+    """Regression test for the MEDIUM finding: POST /api/ai-coach with a
+    non-dict run_result (e.g. a list) used to raise an uncaught
+    AttributeError from inside the provider-failure fallback path itself
+    (_fallback_ai_result calling .get() on it), escaping as a raw HTTP 500."""
+
+    def test_list_run_result_does_not_crash(self, monkeypatch):
+        monkeypatch.delenv(ai_coach.ENV_OPENAI_API_KEY, raising=False)
+        result = ai_coach.ask_ai_coach(
+            {
+                "provider": "openai",
+                "api_key": "",
+                "model": "",
+                "question": "hi",
+                "run_result": [1, 2],
+                "mode": "lab",
+            },
+            topics=[], exercises=[],
+        )
+        assert result["ok"] is False
+        assert "error" in result
+
+    def test_string_run_result_does_not_crash(self, monkeypatch):
+        monkeypatch.delenv(ai_coach.ENV_OPENAI_API_KEY, raising=False)
+        result = ai_coach.ask_ai_coach(
+            {
+                "provider": "openai",
+                "api_key": "",
+                "model": "",
+                "question": "hi",
+                "run_result": "not a dict",
+                "mode": "lab",
+            },
+            topics=[], exercises=[],
+        )
+        assert result["ok"] is False

@@ -16,6 +16,8 @@ from runner import (
     strip_test_marker,
     coach_feedback,
     scan_for_dangerous_code,
+    _cap_stdout,
+    MAX_STDOUT_BYTES,
 )
 
 EXERCISES = load_content().exercises
@@ -275,3 +277,26 @@ class TestSandboxBypassBlocking:
             EXERCISES,
         )
         assert result["ok"] is False
+
+
+class TestStdoutCap:
+    """Regression tests for the LOW finding: /api/run had no cap on captured
+    stdout, so a tight print loop could return an unbounded HTTP response
+    body (proven live: print('A'*500000) returned a ~500 KB body)."""
+
+    def test_cap_stdout_leaves_small_output_untouched(self):
+        assert _cap_stdout("hello") == "hello"
+
+    def test_cap_stdout_truncates_oversized_output_keeping_tail(self):
+        huge = "x" * (MAX_STDOUT_BYTES + 1000) + "TAIL_MARKER"
+        capped = _cap_stdout(huge)
+        assert len(capped.encode("utf-8")) <= MAX_STDOUT_BYTES + 100
+        assert capped.endswith("TAIL_MARKER")
+        assert "truncated" in capped
+
+    def test_run_user_code_caps_huge_print_output(self):
+        result = run_user_code(
+            {"code": "print('A' * 500000)", "exercise_id": ""},
+            EXERCISES,
+        )
+        assert len(result["stdout"].encode("utf-8")) <= MAX_STDOUT_BYTES + 200

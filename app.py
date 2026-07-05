@@ -195,12 +195,18 @@ def check_rate_limit(ip: str, bucket: str = "code", max_requests: int = RATE_LIM
     key = f"{bucket}:{ip}"
     now = time.monotonic()
     with _rate_lock:
-        _rate_buckets[key] = [
-            t for t in _rate_buckets[key] if now - t < RATE_LIMIT_WINDOW
-        ]
-        if len(_rate_buckets[key]) >= max_requests:
+        pruned = [t for t in _rate_buckets[key] if now - t < RATE_LIMIT_WINDOW]
+        # Evict the key entirely once its window is empty, rather than leaving
+        # an empty list sitting in the dict forever — otherwise every distinct
+        # source IP that ever made one request leaves 3 permanent dict entries
+        # (one per bucket) for the life of the process.
+        if not pruned:
+            _rate_buckets.pop(key, None)
+        if len(pruned) >= max_requests:
+            _rate_buckets[key] = pruned
             return False
-        _rate_buckets[key].append(now)
+        pruned.append(now)
+        _rate_buckets[key] = pruned
         return True
 
 
@@ -426,7 +432,12 @@ class Handler(SimpleHTTPRequestHandler):
 
             self.send_json(result)
 
-        except json.JSONDecodeError:
+        except (ValueError, RecursionError):
+            # ValueError covers json.JSONDecodeError (a subclass); RecursionError
+            # is raised by json.loads on pathologically deep nesting (e.g. a
+            # 20,000-deep array well under the 100 KB body cap) and is not a
+            # ValueError, so it must be caught explicitly or it falls through
+            # to the generic 500 handler below and leaks an exception repr.
             self.send_json(
                 {"ok": False, "error": "Invalid JSON in request body."},
                 status=400,

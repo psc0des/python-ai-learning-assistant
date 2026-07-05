@@ -318,7 +318,13 @@ Do not add features, refactor, or introduce abstractions beyond what the task re
 
 ### 5. Security is load-bearing
 
-The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers three independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP), AI coach (`/api/ai-coach` — 10 req/60s per IP), and model-list (`/api/ai-models` — 30 req/60s per IP).
+The origin validation check, the AST safety scan, and the rate limiter are not optional. Do not weaken them as a shortcut or side effect of other changes. The rate limiter covers three independent buckets: code-execution (`/api/run`, `/api/trace` — 15 req/60s per IP), AI coach (`/api/ai-coach` — 10 req/60s per IP), and model-list (`/api/ai-models` — 30 req/60s per IP). `check_rate_limit()` evicts a bucket's dict entry entirely once its pruned window is empty rather than leaving a permanent empty-list entry — otherwise every distinct source IP that ever made one request leaked 3 dict entries for the life of the process.
+
+`do_POST`'s top-level exception handler catches `(ValueError, RecursionError)` around `json.loads`, not just `json.JSONDecodeError` — `json.JSONDecodeError` is itself a `ValueError` subclass, but pathologically deep nesting (a ~20,000-deep array well under the 100 KB body cap) raises `RecursionError`, which is not a `ValueError` and used to fall through to the generic 500 handler and leak an exception repr for trivially malformed input.
+
+`runner.py`'s `_cap_stdout()` truncates captured stdout to `MAX_STDOUT_BYTES` (300 KB), keeping the **tail** (the results/trace marker is always printed last) — there was previously no cap to match the 100 KB request-body cap, so a tight print loop could return an unbounded HTTP response body.
+
+`ai_coach._prepare_ai_request()` coerces a non-dict `run_result` to `{}` — `_fallback_ai_result()` calls `.get()` on it, and because the default provider is unconfigured Ollama, a malformed `run_result` (e.g. a list) used to raise an uncaught `AttributeError` from inside the provider-failure fallback path itself, escaping as a raw HTTP 500 on what is a common code path in normal use.
 
 ### 6. Verify before reporting
 

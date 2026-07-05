@@ -840,6 +840,12 @@ def _prepare_ai_request(
     topic_id = str(payload.get("topic_id", ""))
     exercise_id = str(payload.get("exercise_id", ""))
     run_result = payload.get("run_result", {})
+    # _fallback_ai_result() and build_ai_prompt() both assume run_result is a
+    # dict (they call .get() on it); a malformed request sending a list/str/
+    # number here used to raise an uncaught AttributeError from inside the
+    # provider-failure fallback path itself, escaping as a raw 500.
+    if not isinstance(run_result, dict):
+        run_result = {}
     question = str(payload.get("question", "")).strip()
     chat_history = payload.get("chat_history", [])
     mode = str(payload.get("mode", "lab"))
