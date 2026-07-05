@@ -56,6 +56,23 @@ class TestBlockedBuiltins:
         violations = scan_for_dangerous_code("compile('pass', '', 'exec')")
         assert len(violations) >= 1
 
+    def test_allows_re_compile_attribute_call(self):
+        # Regression test: re.compile(...) is a method/attribute call named
+        # "compile" on the `re` module, not the dangerous bare compile()
+        # builtin — the two must not be conflated. Found via content
+        # authoring: this previously false-positive-blocked the extremely
+        # common, safe re.compile().
+        violations = scan_for_dangerous_code("import re\npattern = re.compile(r'\\\\d+')\n")
+        assert violations == []
+
+    def test_still_blocks_builtins_attribute_eval_bypass(self):
+        # Confirms narrowing the BLOCKED_BUILTINS check to ast.Name calls
+        # did not reopen the __builtins__.eval(...) style bypass — it's
+        # still caught by the separate __builtins__ Name-access check.
+        violations = scan_for_dangerous_code("__builtins__.eval('1+1')")
+        assert violations
+        assert any("__builtins__" in v for v in violations)
+
     def test_blocks_dunder_import(self):
         violations = scan_for_dangerous_code("__import__('os')")
         assert len(violations) >= 1

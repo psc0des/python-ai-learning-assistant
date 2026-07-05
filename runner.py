@@ -277,7 +277,16 @@ def scan_for_dangerous_code(code: str) -> list[str]:
             elif isinstance(func, ast.Attribute):
                 func_name = func.attr
 
-            if func_name in BLOCKED_BUILTINS:
+            # Only block these as BARE builtin calls (e.g. compile(...)), not
+            # as a method/attribute call on some other object (e.g.
+            # re.compile(...) — a completely unrelated, safe stdlib function
+            # that happens to share the name). A qualified call on the REAL
+            # builtins object specifically (__builtins__.eval(...)) is
+            # already caught by the separate __builtins__ Name-access check
+            # below, so narrowing this to ast.Name does not reopen that
+            # bypass. Found via content authoring: this previously blocked
+            # the extremely common, safe re.compile() with a false positive.
+            if isinstance(func, ast.Name) and func_name in BLOCKED_BUILTINS:
                 violations.append(
                     f"Line {node.lineno}: '{func_name}()' is not allowed in the practice sandbox."
                 )
