@@ -1,11 +1,22 @@
 """Sandboxed code runner for Python Skill Lab.
 
 Executes learner code in a restricted subprocess with:
-- AST-based import and built-in blocking before execution
+- AST-based import allowlisting and built-in/attribute blocking before execution
 - input() blocked before execution — labs use parameters or sample variables
 - open() blocked via AST scan — no file I/O from learner code
 - Strict timeout with process kill
 - Size limits on submitted code
+
+IMPORTANT — this is defense-in-depth against accidental misuse, not a hard
+security boundary. Learner code runs as real bytecode in the same interpreter
+as this runner, so a determined learner who wants to reach the host machine
+(e.g. by walking `.f_back`/`.f_builtins`/`gi_frame` on a live frame object)
+can still find a path to it. The allowlist + frame-attribute + dunder blocks
+below close every escape found during a security audit, but no in-process
+denylist/allowlist can close this class of attack completely — only OS-level
+isolation (a container, a locked-down account, or a WASM interpreter such as
+Pyodide) is a real boundary. Do not expose this app to a network or
+multi-user environment.
 """
 
 from __future__ import annotations
@@ -33,14 +44,22 @@ RUN_TIMEOUT_SECONDS = 6
 # Dangerous construct detection
 # ---------------------------------------------------------------------------
 
-BLOCKED_MODULES = frozenset({
-    "os", "sys", "subprocess", "shutil", "socket", "http",
-    "urllib", "requests", "pathlib", "ctypes", "signal",
-    "multiprocessing", "threading", "pickle", "shelve",
-    "importlib", "runpy", "code", "codeop", "compileall",
-    "webbrowser", "ftplib", "smtplib", "telnetlib",
-    "xmlrpc", "tkinter", "turtle", "antigravity",
-    "_thread", "concurrent",
+# Allowlist, not a denylist. A security audit proved that any module not
+# explicitly blocked (gc, inspect, codecs, platform, sysconfig, io, ...) can
+# be used to pivot back to the real os module or the interpreter's real
+# builtins, so the only defensible policy is "nothing runs unless it is on
+# this list." Every module here is pure-computation/formatting with no
+# filesystem, network, process, or introspection capability. Extend this
+# list deliberately when new lesson/lab content needs a module — do not add
+# anything that can access the filesystem, network, processes, or live
+# interpreter objects (no os, sys, io, gc, inspect, ctypes, socket, etc.).
+ALLOWED_MODULES = frozenset({
+    "math", "random", "string", "re",
+    "datetime", "collections", "itertools", "functools",
+    "typing", "dataclasses", "enum", "decimal", "fractions",
+    "statistics", "copy", "heapq", "bisect", "textwrap",
+    "uuid", "abc", "operator", "contextlib", "asyncio",
+    "json", "numbers", "cmath",
 })
 
 BLOCKED_BUILTINS = frozenset({
@@ -50,6 +69,44 @@ BLOCKED_BUILTINS = frozenset({
     "getattr", "setattr", "delattr",
 })
 
+# Non-dunder attributes that hand back a live frame object. A frame's
+# f_builtins/f_globals are the REAL, unrestricted interpreter builtins (the
+# stripped USER_GLOBALS builtins only apply to the frame learner code runs
+# in) — so any of these is a one-hop pivot to os/eval/exec/open regardless
+# of what is stripped from USER_GLOBALS. Blocking the dunder-style names
+# alone is not enough because these are ordinary attribute names, not dunders.
+BLOCKED_FRAME_ATTRS = frozenset({
+    "f_back", "f_builtins", "f_globals", "f_locals", "f_code", "f_trace",
+    "gi_frame", "gi_code", "cr_frame", "cr_code", "ag_frame", "ag_code",
+    "tb_frame", "tb_next",
+})
+
+# Dunders a beginner legitimately needs for OOP/operator-overloading lessons.
+# __class__, __subclasses__, __bases__, __mro__, __globals__ etc. are
+# deliberately excluded — each is a step on the classic
+# ().__class__.__base__.__subclasses__() style object-graph walk back to a
+# dangerous class or module.
+_ALLOWED_DUNDERS = frozenset({
+    "__init__", "__str__", "__repr__", "__len__",
+    "__getitem__", "__setitem__", "__contains__",
+    "__iter__", "__next__", "__enter__", "__exit__",
+    "__eq__", "__ne__", "__lt__", "__gt__",
+    "__le__", "__ge__", "__hash__", "__bool__",
+    "__add__", "__sub__", "__mul__", "__truediv__",
+    "__floordiv__", "__mod__", "__pow__",
+    "__name__", "__doc__",
+})
+
+# str.format's dotted mini-language (e.g. "{0.__globals__}".format(fn)) reaches
+# dunder attributes from INSIDE a string constant, where the AST Attribute/Name
+# checks below never look. Flag these markers wherever they appear in a string
+# literal — a beginner's own code has no legitimate reason to reference them.
+DANGEROUS_STRING_MARKERS = (
+    "__globals__", "__builtins__", "__subclasses__", "__import__",
+    "__reduce__", "__loader__", "__base__", "__bases__", "__mro__",
+    "f_builtins", "f_back", "f_globals", "f_locals",
+    "gi_frame", "cr_frame", "ag_frame", "tb_frame",
+)
 
 
 class CodeSecurityError(Exception):
@@ -71,20 +128,20 @@ def scan_for_dangerous_code(code: str) -> list[str]:
         return []
 
     for node in ast.walk(tree):
-        # --- Import checks ---
+        # --- Import checks (allowlist — deny anything not explicitly safe) ---
         if isinstance(node, ast.Import):
             for alias in node.names:
                 root_module = alias.name.split(".")[0]
-                if root_module in BLOCKED_MODULES:
+                if root_module not in ALLOWED_MODULES:
                     violations.append(
                         f"Line {node.lineno}: import '{alias.name}' is not allowed in the practice sandbox. "
-                        f"This sandbox is for learning exercises — system access modules are blocked for safety."
+                        f"This sandbox only permits a safe set of standard-library modules for learning exercises."
                     )
 
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 root_module = node.module.split(".")[0]
-                if root_module in BLOCKED_MODULES:
+                if root_module not in ALLOWED_MODULES:
                     violations.append(
                         f"Line {node.lineno}: import from '{node.module}' is not allowed in the practice sandbox."
                     )
@@ -123,20 +180,26 @@ def scan_for_dangerous_code(code: str) -> list[str]:
                     f"Line {node.lineno}: access to '__builtins__' is not allowed in the sandbox."
                 )
 
-        # --- Dunder attribute access (e.g. __class__, __subclasses__) ---
+        # --- Attribute access: dunders, and non-dunder frame-walking pivots ---
         elif isinstance(node, ast.Attribute):
-            if node.attr.startswith("__") and node.attr.endswith("__"):
-                if node.attr not in {"__init__", "__str__", "__repr__", "__len__",
-                                      "__getitem__", "__setitem__", "__contains__",
-                                      "__iter__", "__next__", "__enter__", "__exit__",
-                                      "__eq__", "__ne__", "__lt__", "__gt__",
-                                      "__le__", "__ge__", "__hash__", "__bool__",
-                                      "__add__", "__sub__", "__mul__", "__truediv__",
-                                      "__floordiv__", "__mod__", "__pow__",
-                                      "__name__", "__doc__", "__class__"}:
+            if node.attr in BLOCKED_FRAME_ATTRS:
+                violations.append(
+                    f"Line {node.lineno}: access to '{node.attr}' is restricted in the sandbox."
+                )
+            elif node.attr.startswith("__") and node.attr.endswith("__"):
+                if node.attr not in _ALLOWED_DUNDERS:
                     violations.append(
                         f"Line {node.lineno}: access to '{node.attr}' is restricted in the sandbox."
                     )
+
+        # --- String literals referencing frame/builtins internals (format-string bypass) ---
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            matched = next((m for m in DANGEROUS_STRING_MARKERS if m in node.value), None)
+            if matched:
+                violations.append(
+                    f"Line {node.lineno}: this string references the restricted internal name "
+                    f"'{matched}' and is not allowed in the sandbox."
+                )
 
     return violations
 
@@ -235,6 +298,12 @@ import sys
 import traceback
 
 _BLOCKED = frozenset({{'eval', 'exec', 'compile', 'breakpoint', 'open', 'input', 'globals', 'locals', 'vars', 'getattr', 'setattr', 'delattr'}})
+# NOTE: '__import__' is deliberately NOT in this set — Python's own `import`
+# statement calls __builtins__.__import__ internally, so removing it would
+# break every legitimate `import json`/`import math`/etc. Direct calls to
+# __import__(...) as a function, and __builtins__ name/subscript access, are
+# already blocked by the AST scan (BLOCKED_BUILTINS / the __builtins__ Name
+# check), which is the correct layer to stop that specific bypass.
 TESTS = json.loads({encoded_tests_json})
 USER_GLOBALS = {{"__name__": "__main__", "__builtins__": {{k: v for k, v in vars(_bi).items() if k not in _BLOCKED}}}}
 
@@ -459,6 +528,12 @@ import builtins as _bi
 import sys, json, io, contextlib, types
 
 _BLOCKED = frozenset({{'eval', 'exec', 'compile', 'breakpoint', 'open', 'input', 'globals', 'locals', 'vars', 'getattr', 'setattr', 'delattr'}})
+# NOTE: '__import__' is deliberately NOT in this set — Python's own `import`
+# statement calls __builtins__.__import__ internally, so removing it would
+# break every legitimate `import json`/`import math`/etc. Direct calls to
+# __import__(...) as a function, and __builtins__ name/subscript access, are
+# already blocked by the AST scan (BLOCKED_BUILTINS / the __builtins__ Name
+# check), which is the correct layer to stop that specific bypass.
 MAX_STEPS = {MAX_TRACE_STEPS}
 USER_FILE = "<user>"
 steps = []

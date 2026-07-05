@@ -139,3 +139,105 @@ class TestSafeCode:
         code = "class Foo:\n    def __init__(self):\n        pass\n    def __str__(self):\n        return 'foo'\n    def __len__(self):\n        return 0"
         violations = scan_for_dangerous_code(code)
         assert violations == []
+
+    def test_allows_contextlib_import(self):
+        # Needed for the context-managers curriculum content
+        code = "import contextlib\n@contextlib.contextmanager\ndef cm():\n    yield 1"
+        violations = scan_for_dangerous_code(code)
+        assert violations == []
+
+    def test_allows_itertools_functools_collections_typing(self):
+        code = (
+            "import itertools\nimport functools\nimport collections\nimport typing\n"
+            "import dataclasses\nimport enum\n"
+        )
+        violations = scan_for_dangerous_code(code)
+        assert violations == []
+
+
+class TestModuleAllowlist:
+    """Regression tests for the CRITICAL sandbox-escape finding: the old module
+    policy was a denylist, so any module not explicitly named (gc, inspect,
+    codecs, platform, sysconfig, io, ...) passed straight through and could be
+    used to reach the real os module or the interpreter's real builtins. The
+    policy is now an allowlist — anything not explicitly safe is rejected."""
+
+    def test_blocks_gc_import(self):
+        # The original proven escape: gc.get_objects() walk to the os module
+        violations = scan_for_dangerous_code("import gc")
+        assert len(violations) >= 1
+
+    def test_blocks_inspect_import(self):
+        violations = scan_for_dangerous_code("import inspect")
+        assert len(violations) >= 1
+
+    def test_blocks_codecs_import(self):
+        violations = scan_for_dangerous_code("import codecs")
+        assert len(violations) >= 1
+
+    def test_blocks_platform_import(self):
+        violations = scan_for_dangerous_code("import platform")
+        assert len(violations) >= 1
+
+    def test_blocks_sysconfig_import(self):
+        violations = scan_for_dangerous_code("import sysconfig")
+        assert len(violations) >= 1
+
+    def test_blocks_io_import(self):
+        violations = scan_for_dangerous_code("import io")
+        assert len(violations) >= 1
+
+
+class TestFrameWalkingBlocked:
+    """Regression tests for the CRITICAL root-cause finding: any live frame or
+    generator object hands back f_builtins/f_globals, which are the REAL,
+    unstripped interpreter builtins — a one-hop pivot to eval/exec/open that
+    does not require importing anything at all."""
+
+    def test_blocks_generator_gi_frame(self):
+        code = "def g():\n    yield 1\ng().gi_frame\n"
+        violations = scan_for_dangerous_code(code)
+        assert len(violations) >= 1
+        assert any("gi_frame" in v for v in violations)
+
+    def test_blocks_f_back(self):
+        code = "some_frame.f_back\n"
+        violations = scan_for_dangerous_code(code)
+        assert any("f_back" in v for v in violations)
+
+    def test_blocks_globals_attribute(self):
+        code = "def f():\n    pass\nf.__globals__\n"
+        violations = scan_for_dangerous_code(code)
+        assert any("__globals__" in v for v in violations)
+
+    def test_blocks_f_builtins_attr(self):
+        code = "frame_holder.f_builtins\n"
+        violations = scan_for_dangerous_code(code)
+        assert any("f_builtins" in v for v in violations)
+
+    def test_blocks_tb_frame(self):
+        code = "try:\n    1 / 0\nexcept Exception as e:\n    e.__traceback__.tb_frame\n"
+        violations = scan_for_dangerous_code(code)
+        assert violations, "Expected violation for __traceback__ and/or tb_frame access"
+
+    def test_blocks_class_attribute(self):
+        # __class__ used to be allowlisted; it is the first hop of
+        # ().__class__.__base__.__subclasses__() and is no longer permitted.
+        violations = scan_for_dangerous_code("x = []\nx.__class__\n")
+        assert any("__class__" in v for v in violations)
+
+
+class TestFormatStringBypassBlocked:
+    """Regression test for the leak found during audit: '{0.__globals__}'.format(fn)
+    reaches dunder attributes from inside a string literal, where the AST
+    Attribute/Name checks never look because the dunder is text, not a node."""
+
+    def test_blocks_format_string_globals_leak(self):
+        code = "def f():\n    pass\nprint('{0.__globals__}'.format(f))\n"
+        violations = scan_for_dangerous_code(code)
+        assert any("__globals__" in v for v in violations)
+
+    def test_blocks_format_string_builtins_leak(self):
+        code = "print('{0.__builtins__}'.format(object()))\n"
+        violations = scan_for_dangerous_code(code)
+        assert violations
