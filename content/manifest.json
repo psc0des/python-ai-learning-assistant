@@ -8,6 +8,8 @@
     "functions",
     "oop",
     "errors-testing",
+    "sql-http-git",
+    "python-devops",
     "fastapi",
     "pydantic",
     "async",
@@ -20,8 +22,6 @@
     "rag-vectors",
     "simple-rag-project",
     "simple-tool-calling",
-    "ai-app-architecture",
-    "python-devops",
-    "sql-http-git"
+    "ai-app-architecture"
   ]
 }
