@@ -182,12 +182,12 @@ After validation, you need to get data back out of the model — to send as a JS
 
 ```python
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 
 class OrderSummary(BaseModel):
     order_id: str
     total: float
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     internal_note: str = Field(default='', exclude=True)  # hide from output
 
 order = OrderSummary(

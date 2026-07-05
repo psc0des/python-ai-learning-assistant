@@ -180,7 +180,7 @@ async def good_example():
 - Synchronous DB drivers → use async DB libraries (asyncpg, motor, etc.)
 
 ```python
-# Professional pattern: run blocking code in a thread pool
+# Professional pattern: run blocking code in a separate thread
 import asyncio
 import time
 
@@ -189,9 +189,12 @@ def slow_file_read(path):
     return 'file contents'
 
 async def main():
-    # Run blocking function without freezing the event loop:
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, slow_file_read, 'data.txt')
+    # Run blocking function without freezing the event loop. asyncio.to_thread
+    # (3.9+) is the modern way to do this — it replaces the older pattern of
+    # manually grabbing the loop with get_event_loop() and calling
+    # run_in_executor(), which is still common in older code but no longer
+    # the recommended approach:
+    result = await asyncio.to_thread(slow_file_read, 'data.txt')
     print(result)
 ```
 

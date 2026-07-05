@@ -98,8 +98,8 @@ If you POST `{'product_id': 'abc', 'quantity': 200}`, FastAPI automatically resp
 422 Unprocessable Entity
 {
   "detail": [
-    {"field": "product_id", "msg": "value is not a valid integer"},
-    {"field": "quantity",   "msg": "ensure this value is less than or equal to 100"}
+    {"type": "int_parsing", "loc": ["body", "product_id"], "msg": "Input should be a valid integer, unable to parse string as an integer", "input": "abc"},
+    {"type": "less_than_equal", "loc": ["body", "quantity"], "msg": "Input should be less than or equal to 100", "input": 200}
   ]
 }
 ```
