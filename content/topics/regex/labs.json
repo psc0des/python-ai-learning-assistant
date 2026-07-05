@@ -1,0 +1,204 @@
+[
+  {
+    "id": "regex-extract-digits",
+    "topic_id": "regex",
+    "title": "Extract All Numbers",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `extract_digits(text)` using `re.findall` that returns a list of every digit-sequence found in `text`, as strings.",
+    "starter": "import re\n\ndef extract_digits(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "two numbers",
+        "call": "extract_digits('Order 4521 shipped 2024')",
+        "expected": [
+          "4521",
+          "2024"
+        ]
+      },
+      {
+        "label": "no numbers",
+        "call": "extract_digits('no numbers here')",
+        "expected": []
+      },
+      {
+        "label": "adjacent runs",
+        "call": "extract_digits('a1b22c333')",
+        "expected": [
+          "1",
+          "22",
+          "333"
+        ]
+      }
+    ],
+    "hint": "re.findall(r'\\d+', text) returns every run of one-or-more digits as a list of strings.",
+    "solution": "import re\ndef extract_digits(text):\n    return re.findall(r'\\d+', text)\n",
+    "explanation": "\\d+ matches one or more consecutive digits; findall collects every non-overlapping match in the string."
+  },
+  {
+    "id": "regex-valid-username",
+    "topic_id": "regex",
+    "title": "Validate a Username",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `is_valid_username(name)` using `re.fullmatch` that returns True if `name` consists only of letters, digits, and underscores, and is at least 1 character long.",
+    "starter": "import re\n\ndef is_valid_username(name):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid",
+        "call": "is_valid_username('user_42')",
+        "expected": true
+      },
+      {
+        "label": "invalid characters",
+        "call": "is_valid_username('bad name!')",
+        "expected": false
+      },
+      {
+        "label": "empty string",
+        "call": "is_valid_username('')",
+        "expected": false
+      }
+    ],
+    "hint": "re.fullmatch requires the ENTIRE string to match, unlike search — use [A-Za-z0-9_]+ and wrap the result in bool(...).",
+    "solution": "import re\ndef is_valid_username(name):\n    return bool(re.fullmatch(r'[A-Za-z0-9_]+', name))\n",
+    "explanation": "fullmatch (not search or match) is essential here — search would accept 'bad name!' by finding a valid-looking substring inside it."
+  },
+  {
+    "id": "regex-extract-domain",
+    "topic_id": "regex",
+    "title": "Extract Email Domain",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `extract_domain(email)` using a capturing group that returns the domain part of a simple email address (everything after `@`), or `None` if the string doesn't match.",
+    "starter": "import re\n\ndef extract_domain(email):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic email",
+        "call": "extract_domain('alice@example.com')",
+        "expected": "example.com"
+      },
+      {
+        "label": "not an email",
+        "call": "extract_domain('not-an-email')",
+        "expected": null
+      },
+      {
+        "label": "another domain",
+        "call": "extract_domain('bob@test.org')",
+        "expected": "test.org"
+      }
+    ],
+    "hint": "re.fullmatch(r'[\\w.]+@([\\w.]+)', email) — the group captures everything after @; return m.group(1) if there's a match, else None.",
+    "solution": "import re\ndef extract_domain(email):\n    m = re.fullmatch(r'[\\w.]+@([\\w.]+)', email)\n    return m.group(1) if m else None\n",
+    "explanation": "The capturing group isolates just the domain, so you don't need to manually split the string on '@' and handle the no-match case yourself."
+  },
+  {
+    "id": "regex-redact-phone",
+    "topic_id": "regex",
+    "title": "Redact Phone Numbers",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `redact_phone_numbers(text)` using `re.sub` that replaces any sequence matching `XXX-XXX-XXXX` (digits and dashes) with the literal text `'REDACTED'`.",
+    "starter": "import re\n\ndef redact_phone_numbers(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "one number",
+        "call": "redact_phone_numbers('Call 555-123-4567 now')",
+        "expected": "Call REDACTED now"
+      },
+      {
+        "label": "no number",
+        "call": "redact_phone_numbers('no phone here')",
+        "expected": "no phone here"
+      },
+      {
+        "label": "two numbers",
+        "call": "redact_phone_numbers('123-456-7890 and 987-654-3210')",
+        "expected": "REDACTED and REDACTED"
+      }
+    ],
+    "hint": "re.sub(r'\\d{3}-\\d{3}-\\d{4}', 'REDACTED', text) replaces every match in one call.",
+    "solution": "import re\ndef redact_phone_numbers(text):\n    return re.sub(r'\\d{3}-\\d{3}-\\d{4}', 'REDACTED', text)\n",
+    "explanation": "{3} and {4} require an exact digit count, so this pattern won't accidentally match a differently-shaped number sequence."
+  },
+  {
+    "id": "regex-parse-date",
+    "topic_id": "regex",
+    "title": "Parse a Date String",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `parse_date(date_str)` using named groups that returns `{'year': ..., 'month': ..., 'day': ...}` (as strings) parsed from a `'YYYY-MM-DD'` string, or `None` if it doesn't match.",
+    "starter": "import re\n\ndef parse_date(date_str):\n    pass\n",
+    "tests": [
+      {
+        "label": "valid date",
+        "call": "parse_date('2024-03-15')",
+        "expected": {
+          "year": "2024",
+          "month": "03",
+          "day": "15"
+        }
+      },
+      {
+        "label": "not a date",
+        "call": "parse_date('not a date')",
+        "expected": null
+      }
+    ],
+    "hint": "re.fullmatch(r'(?P<year>\\d{4})-(?P<month>\\d{2})-(?P<day>\\d{2})', date_str) — call .groupdict() on the match if it exists.",
+    "solution": "import re\ndef parse_date(date_str):\n    m = re.fullmatch(r'(?P<year>\\d{4})-(?P<month>\\d{2})-(?P<day>\\d{2})', date_str)\n    return m.groupdict() if m else None\n",
+    "explanation": "groupdict() turns the three named groups directly into the exact dict shape the function needs to return, with no manual key assignment."
+  },
+  {
+    "id": "regex-capstone-log-parser",
+    "topic_id": "regex",
+    "title": "Capstone: Log Parser",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `LogParser` class that parses simple `'LEVEL: message'` log lines using a compiled, named-group regex pattern.\n\nImplement:\n- A class attribute `LINE_PATTERN` — a compiled regex matching `'LEVEL: message'` with named groups `level` and `message` (e.g. `r'(?P<level>\\w+): (?P<message>.+)'`).\n- `__init__(self)` — store an empty `entries` list.\n- `parse_line(self, line)` — match `line` against `LINE_PATTERN`; if it matches, append `{'level': ..., 'message': ...}` to `entries` and return `True`; otherwise return `False` without appending anything.\n- `count_by_level(self)` — return a dict counting how many entries exist per level.\n- `find_messages_matching(self, pattern)` — return a list of messages (in insertion order) whose text matches the given regex `pattern` string.\n- `summary(self)` — return `{'total': <entry count>, 'by_level': <count_by_level() result>}`.",
+    "starter": "import re\n\nclass LogParser:\n    LINE_PATTERN = re.compile(r'(?P<level>\\w+): (?P<message>.+)')\n\n    def __init__(self):\n        pass\n\n    def parse_line(self, line):\n        pass\n\n    def count_by_level(self):\n        pass\n\n    def find_messages_matching(self, pattern):\n        pass\n\n    def summary(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "parse valid line returns True",
+        "call": "(_p := LogParser()).parse_line('ERROR: connection refused')",
+        "expected": true
+      },
+      {
+        "label": "parse invalid line returns False",
+        "call": "_p.parse_line('not a valid log line')",
+        "expected": false
+      },
+      {
+        "label": "parse two more + count_by_level",
+        "call": "(_p.parse_line('INFO: started'), _p.parse_line('ERROR: timeout'), _p.count_by_level())[2]",
+        "expected": {
+          "ERROR": 2,
+          "INFO": 1
+        }
+      },
+      {
+        "label": "find_messages_matching",
+        "call": "_p.find_messages_matching(r'time|refused')",
+        "expected": [
+          "connection refused",
+          "timeout"
+        ]
+      },
+      {
+        "label": "summary",
+        "call": "_p.summary()",
+        "expected": {
+          "total": 3,
+          "by_level": {
+            "ERROR": 2,
+            "INFO": 1
+          }
+        }
+      }
+    ],
+    "hint": "__init__ stores self.entries = []. parse_line uses LINE_PATTERN.match(line); if it returns None, return False; otherwise append m.group('level')/m.group('message') as a dict and return True. count_by_level can use collections.Counter over entry levels. find_messages_matching compiles the given pattern and filters entries whose message it matches with .search(). summary composes len(self.entries) and count_by_level().",
+    "solution": "import re\nfrom collections import Counter\n\nclass LogParser:\n    LINE_PATTERN = re.compile(r'(?P<level>\\w+): (?P<message>.+)')\n\n    def __init__(self):\n        self.entries = []\n\n    def parse_line(self, line):\n        m = self.LINE_PATTERN.match(line)\n        if not m:\n            return False\n        self.entries.append({'level': m.group('level'), 'message': m.group('message')})\n        return True\n\n    def count_by_level(self):\n        return dict(Counter(e['level'] for e in self.entries))\n\n    def find_messages_matching(self, pattern):\n        regex = re.compile(pattern)\n        return [e['message'] for e in self.entries if regex.search(e['message'])]\n\n    def summary(self):\n        return {'total': len(self.entries), 'by_level': self.count_by_level()}\n",
+    "explanation": "This mirrors a real log-ingestion tool: a single compiled pattern (built once as a class attribute, not recompiled on every call) extracts structured fields from raw text, and the class builds simple aggregations (counts, filtered search) on top of the parsed records — the same shape as this topic's earlier lessons, combined into one stateful class."
+  }
+]

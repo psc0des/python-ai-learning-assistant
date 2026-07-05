@@ -1,0 +1,115 @@
+{
+  "topic_id": "regex",
+  "questions": [
+    {
+      "question": "What does `re.match()` check that `re.search()` does not?",
+      "options": [
+        "match() only checks whether the pattern occurs at the very start of the string; search() checks the whole string for a match anywhere.",
+        "match() is case-insensitive by default.",
+        "match() only works with compiled patterns.",
+        "match() returns a list of all matches; search() returns just one."
+      ],
+      "answer": 0,
+      "explanation": "re.match() anchors to the beginning of the string, so a pattern that clearly appears later in the string but not at position 0 will not match — re.search() checks anywhere in the string."
+    },
+    {
+      "question": "What does the pattern `\\d+` match?",
+      "options": [
+        "Exactly one digit.",
+        "Any single character at all.",
+        "One or more digits.",
+        "Zero or more digits."
+      ],
+      "answer": 2,
+      "explanation": "\\d matches a single digit character; + means 'one or more of the previous element', so \\d+ matches a run of one or more digits."
+    },
+    {
+      "question": "What does a capturing group `()` let you do?",
+      "options": [
+        "Make that part of the pattern optional.",
+        "Repeat that part of the pattern automatically.",
+        "Ignore that part of the pattern during matching.",
+        "Retrieve just that part of the match afterward via .group(n), instead of re-parsing the whole match yourself."
+      ],
+      "answer": 3,
+      "explanation": "A parenthesized group is captured separately from the overall match, retrievable individually — e.g. group(1) for the first group — without needing to slice or re-parse the full matched text."
+    },
+    {
+      "question": "What is the advantage of a named group `(?P<year>\\d{4})` over a numbered group `(\\d{4})`?",
+      "options": [
+        "Named groups match faster than numbered groups.",
+        "Named groups are retrieved by a descriptive name (.group('year') or .groupdict()), which stays correct even if you reorder groups later.",
+        "Named groups can match multiple different values simultaneously.",
+        "There is no real difference between the two."
+      ],
+      "answer": 1,
+      "explanation": "Numbered groups (.group(1), .group(2)) become fragile and hard to read as a pattern grows; named groups are self-documenting and remain correct if the group order in the pattern changes."
+    },
+    {
+      "question": "What does `re.sub(pattern, replacement, text)` do?",
+      "options": [
+        "Replaces every match of pattern in text with replacement (a string or a function).",
+        "Splits text into pieces wherever pattern matches.",
+        "Removes pattern from text without putting anything in its place.",
+        "Counts how many times pattern occurs in text."
+      ],
+      "answer": 0,
+      "explanation": "re.sub performs search-and-replace across every match of pattern in text; the replacement can be a plain string or a function called once per match."
+    },
+    {
+      "question": "What is the difference between the greedy quantifier `.*` and the lazy quantifier `.*?`?",
+      "options": [
+        "There is no difference; they always match identical text.",
+        "Lazy quantifiers are always faster to execute than greedy ones.",
+        "Greedy quantifiers only work inside re.findall, never re.search.",
+        "Greedy matches as much as possible; lazy matches as little as possible — this changes the result whenever there are multiple possible stopping points."
+      ],
+      "answer": 3,
+      "explanation": "Given text with more than one matching delimiter, .* consumes as much as possible before backtracking to satisfy the rest of the pattern, while .*? stops at the very first opportunity — producing very different results on the same input."
+    },
+    {
+      "question": "Why should regex patterns almost always be written as raw strings (`r'...'`)?",
+      "options": [
+        "Raw strings execute faster at runtime.",
+        "Without the r prefix, Python's own string escaping (e.g. \\n as newline) can collide with regex escaping (e.g. \\d), causing confusing bugs.",
+        "The re module raises a SyntaxError on non-raw pattern strings.",
+        "Raw strings automatically make the match case-insensitive."
+      ],
+      "answer": 1,
+      "explanation": "A pattern like '\\d' (no r prefix) risks Python interpreting backslash sequences itself before the regex engine ever sees the string; r'\\d' passes the two characters through unambiguously."
+    },
+    {
+      "question": "What does `re.compile(pattern)` give you that calling `re.search(pattern, text)` directly does not?",
+      "options": [
+        "Automatic case-insensitivity.",
+        "The ability to reuse the pre-parsed pattern object across many searches without re-parsing the pattern string each time.",
+        "The ability to match nested structures like HTML or JSON.",
+        "A guarantee that the pattern will only ever match once."
+      ],
+      "answer": 1,
+      "explanation": "Compiling a pattern once and reusing the resulting object (especially inside a loop) avoids re-parsing the same pattern string on every call, and is clearer when the same pattern is used repeatedly."
+    },
+    {
+      "question": "Why is regex generally a poor tool for parsing deeply nested structures like HTML or JSON?",
+      "options": [
+        "Regex cannot use character classes like [A-Za-z].",
+        "Regex only works on ASCII text, not Unicode.",
+        "Regex can only match a fixed, predetermined number of characters.",
+        "Regex has no built-in concept of nesting depth or balanced structure — a real parser is the correct tool for that."
+      ],
+      "answer": 3,
+      "explanation": "Regex matches flat patterns of characters; it cannot track how many levels deep a tag or bracket is nested, which is exactly what parsing nested structures correctly requires — that's a job for a real parser, not a bigger pattern."
+    },
+    {
+      "question": "What does the word-boundary anchor `\\b` match?",
+      "options": [
+        "Any whitespace character.",
+        "A line break specifically.",
+        "The literal two-character sequence backslash-b.",
+        "The invisible edge between a word character and a non-word character (or the start/end of the string), consuming no characters itself."
+      ],
+      "answer": 3,
+      "explanation": "\\b is a zero-width assertion — it matches a position, not a character, at the boundary between \\w (word) and non-\\w characters, which is why \\b[a-z]+\\b matches whole words rather than partial ones."
+    }
+  ]
+}

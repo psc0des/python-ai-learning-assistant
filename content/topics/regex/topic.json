@@ -1,0 +1,94 @@
+{
+  "id": "regex",
+  "track": "Intermediate Python",
+  "title": "Regular Expressions in Python",
+  "level": "Intermediate",
+  "intro": "Regular expressions ('regex') are a compact pattern-matching language for finding, validating, and extracting text — parsing a log line, validating a username, redacting an email address, or pulling a date out of a filename. Python's `re` module is the standard tool for all of this. This topic covers the patterns and functions you'll actually reach for, plus the traps that catch almost everyone the first time (greedy matching, forgetting `r'...'`, and reaching for regex when it's the wrong tool).",
+  "mental_model": "A regex pattern is a search recipe written in a tiny language of its own: `\\d` means 'a digit here', `+` means 'one or more of the last thing', `()` means 'remember this part for later'. Reading a regex is like reading a very terse checklist for what a piece of text must look like, left to right. `re.search` walks the checklist against your string looking for the first place it's satisfied; `re.findall` keeps walking and collects every place it's satisfied; groups let you keep a labeled receipt for just the parts you actually want back out.",
+  "syntax": "import re\n\nm = re.search(r'(\\d{4})-(\\d{2})-(\\d{2})', '2024-03-15')\nprint(m.group(1), m.group(2), m.group(3))\n",
+  "example": "import re\n\ndef extract_digits(text):\n    return re.findall(r'\\d+', text)\n\nprint(extract_digits('Order 4521 shipped 2024'))\n",
+  "must_know": [
+    "Always write patterns as raw strings (`r'...'`) — otherwise Python's own string escaping fights with regex escaping.",
+    "`re.match()` only checks the start of the string; `re.search()` checks anywhere; `re.fullmatch()` requires the whole string to match.",
+    "`()` creates a capturing group, retrievable with `.group(n)`; `(?P<name>...)` creates a named group, retrievable with `.group('name')` or `.groupdict()`.",
+    "Quantifiers (`*`, `+`) are greedy by default (match as much as possible) — add `?` (`*?`, `+?`) to make them lazy (match as little as possible).",
+    "`re.sub(pattern, replacement, text)` does search-and-replace; the replacement can be a function called once per match."
+  ],
+  "common_traps": [
+    "Forgetting the `r` prefix on a pattern string, letting Python's string escaping collide with regex escaping.",
+    "Using `.*` (greedy) when `.*?` (lazy) was needed, causing a match to span from the first delimiter all the way to the last instead of stopping at the nearest one.",
+    "Forgetting to escape a literal special character like `.` — it matches ANY character, not just a literal dot.",
+    "Using `re.match()` and being confused when a string that clearly 'contains' the pattern returns None, because match() only checks the start.",
+    "Reaching for a bigger, more complex regex to parse nested structure (HTML, JSON) instead of using a real parser — regex has no concept of nesting depth."
+  ],
+  "interview": [
+    "Explain the difference between re.match, re.search, and re.fullmatch, with an example where they'd give different results.",
+    "Explain greedy vs. lazy quantifiers with a concrete example where the difference changes the result.",
+    "Explain what a capturing group is and how named groups improve readability over numbered groups.",
+    "Explain why regex is a poor tool for parsing deeply nested or recursive structures."
+  ],
+  "docs": [
+    {
+      "label": "Python Docs: re",
+      "url": "https://docs.python.org/3/library/re.html"
+    },
+    {
+      "label": "Python Docs: re — Functions",
+      "url": "https://docs.python.org/3/library/re.html#module-contents"
+    },
+    {
+      "label": "Python Docs: re.sub",
+      "url": "https://docs.python.org/3/library/re.html#re.sub"
+    },
+    {
+      "label": "Python Docs: re.compile",
+      "url": "https://docs.python.org/3/library/re.html#re.compile"
+    }
+  ],
+  "real_world": [
+    "Log analysis and monitoring tools use regex to parse structured fields (level, timestamp, message) out of raw log lines.",
+    "Form validation (usernames, phone numbers, simple email checks) commonly uses regex for a first-pass check before deeper validation.",
+    "Data cleaning pipelines use re.sub to redact, normalize, or reformat text extracted from unstructured sources."
+  ],
+  "outcome": "By the end of this topic, you should be able to write and read basic regex patterns, choose the right matching function for the job, extract data with capturing and named groups, perform search-and-replace with re.sub, compile a pattern for reuse, and recognize when greedy matching or an unescaped special character is causing a wrong result.",
+  "lesson_sections": [
+    {
+      "title": "1. Pattern Basics — Literals, Character Classes, and Quantifiers",
+      "body": "A regular expression is a tiny pattern-matching language embedded in a string. `\\d+` means \"one or more digits,\" `[A-Za-z]+` means \"one or more letters,\" `\\w+` means \"one or more word characters (letters, digits, or underscore).\" `re.search()` finds the first match anywhere in a string; a `()` group around part of a pattern lets you pull out just that piece.\n\n```python run\nimport re\n\ntext = 'Order #4521 shipped on 2024-03-15'\n\nhas_digits = re.search(r'\\d+', text)\nprint(has_digits.group())\n\norder_number = re.search(r'#(\\d+)', text)\nprint(order_number.group())\nprint(order_number.group(1))\n```\n\n`group()` (no argument) returns the whole match; `group(1)` returns just the first parenthesized group — here, the digits without the leading `#`. Character classes like `[aeiou]` match any *one* of the listed characters; `+` means \"one or more of the previous thing,\" and `*` means \"zero or more.\"\n\n```python run\nimport re\n\nprint(bool(re.fullmatch(r'[A-Za-z]+', 'Hello')))\nprint(bool(re.fullmatch(r'[A-Za-z]+', 'Hello123')))\nprint(re.findall(r'[aeiou]', 'the quick brown fox'))\nprint(re.findall(r'\\w+', \"user_name-42 costs $9.99\"))\n```\n\n**Always use a raw string (`r'...'`) for patterns.** Without the `r` prefix, Python's own string escaping (`\\n`, `\\t`) competes with regex escaping (`\\d`, `\\w`), producing confusing bugs — `r'\\d'` is unambiguous.",
+      "source_label": "Python Docs: re",
+      "source_url": "https://docs.python.org/3/library/re.html"
+    },
+    {
+      "title": "2. Matching Functions — match, search, fullmatch, and findall",
+      "body": "Four functions cover almost every use case, and picking the wrong one is a common source of confusion: `re.match()` only checks the **start** of the string, `re.search()` checks the whole string for the first match anywhere, `re.fullmatch()` requires the **entire** string to match, and `re.findall()` returns every non-overlapping match as a list.\n\n```python run\nimport re\n\ntext = 'cat hat bat'\nprint(re.match(r'cat', text))\nprint(re.match(r'hat', text))\nprint(re.search(r'hat', text))\nprint(re.findall(r'.at', text))\nprint(re.fullmatch(r'.at', 'cat'))\n```\n\n`re.match(r'hat', text)` returns `None` because `text` doesn't *start* with 'hat' — even though 'hat' clearly appears in the middle. `re.search()` is what most beginners actually want; `re.match()` is for validating that a string *begins* a certain way. A match object is truthy, and `None` (no match) is falsy — `if re.search(...):` is the idiomatic way to check for a match without caring about its exact position or contents.",
+      "source_label": "Python Docs: re — Functions",
+      "source_url": "https://docs.python.org/3/library/re.html#module-contents"
+    },
+    {
+      "title": "3. Groups — Capturing and Extracting Parts of a Match",
+      "body": "Parentheses `()` create a **group** — a piece of the pattern you can pull out individually after a match, instead of re-parsing the whole matched string yourself.\n\n```python run\nimport re\n\nlog = '2024-03-15 ERROR Connection refused'\nm = re.search(r'(\\d{4})-(\\d{2})-(\\d{2}) (\\w+) (.+)', log)\nprint(m.group(1), m.group(2), m.group(3))\nprint(m.group(4))\nprint(m.groups())\n```\n\n`{4}` means \"exactly 4 of the previous thing\" — `\\d{4}` is exactly 4 digits. Numbered groups (`group(1)`, `group(2)`, ...) get confusing fast in a pattern with many groups; **named groups** (`(?P<name>...)`) are clearer and don't break if you reorder groups later.\n\n```python run\nimport re\n\nm = re.search(r'(?P<year>\\d{4})-(?P<month>\\d{2})-(?P<day>\\d{2})', '2024-03-15')\nprint(m.group('year'))\nprint(m.groupdict())\n```\n\n`groupdict()` returns every named group as a ready-to-use dict — a common way to turn an unstructured string (a log line, a filename) into structured data.",
+      "source_label": "Python Docs: re — Match Objects",
+      "source_url": "https://docs.python.org/3/library/re.html#match-objects"
+    },
+    {
+      "title": "4. Substitution — re.sub for Search-and-Replace",
+      "body": "`re.sub(pattern, replacement, text)` replaces every match of `pattern` in `text`. The replacement can be a plain string, or a function — called once per match, receiving the match object and returning the string to substitute in its place.\n\n```python run\nimport re\n\ntext = 'Contact: alice@example.com or bob@example.com'\nredacted = re.sub(r'\\w+@\\w+\\.\\w+', '[EMAIL]', text)\nprint(redacted)\n\ndef upper_match(m):\n    return m.group().upper()\n\nresult = re.sub(r'\\b[a-z]+\\b', upper_match, 'hello world')\nprint(result)\n```\n\n`\\b` is a **word boundary** — it matches the invisible edge between a word character and a non-word character (or the start/end of the string), without consuming any characters itself. `\\b[a-z]+\\b` means \"a run of lowercase letters that starts and ends at a word boundary\" — useful for matching whole words rather than accidentally matching the middle of one.",
+      "source_label": "Python Docs: re.sub",
+      "source_url": "https://docs.python.org/3/library/re.html#re.sub"
+    },
+    {
+      "title": "5. Compiling Patterns and Common Flags",
+      "body": "`re.compile(pattern)` pre-parses a pattern into a reusable object with the same `.match()`/`.search()`/`.findall()` methods as the module-level functions. Compiling once and reusing the result is both faster (no re-parsing the pattern string every call) and clearer when the same pattern is applied many times, e.g. inside a loop.\n\n```python run\nimport re\n\npattern = re.compile(r'^\\s*#')\nlines = ['# comment', '  # indented comment', 'code = 1', '   not a comment']\ncomment_lines = [line for line in lines if pattern.match(line)]\nprint(comment_lines)\n\nprint(bool(re.search(r'hello', 'HELLO WORLD', re.IGNORECASE)))\n```\n\n`^` anchors a match to the **start** of the string (or line, with `re.MULTILINE`); `$` anchors to the end. `re.IGNORECASE` (or the shorter `re.I`) makes matching case-insensitive — passed as an extra argument to `search`/`match`/`compile`. `'   not a comment'` is correctly excluded above because it has non-whitespace content before any `#` at all — there is no `#` in that string.",
+      "source_label": "Python Docs: re.compile",
+      "source_url": "https://docs.python.org/3/library/re.html#re.compile"
+    },
+    {
+      "title": "6. Common Traps — Greedy Matching, Escaping, and When Not to Use Regex",
+      "body": "By default, quantifiers (`*`, `+`) are **greedy** — they match as much as possible. `.*?` (adding `?` after a quantifier) makes it **lazy** instead, matching as little as possible.\n\n```python run\nimport re\n\nhtml = '<b>bold</b> and <i>italic</i>'\ngreedy = re.findall(r'<.*>', html)\nlazy = re.findall(r'<.*?>', html)\nprint(greedy)\nprint(lazy)\n```\n\nThe greedy pattern `<.*>` matches from the **first** `<` all the way to the **last** `>` in the entire string — one giant match spanning both tags — because `.*` happily consumes everything in between, including the other tags. The lazy `<.*?>` stops at the *first* `>` it can, correctly producing four separate small matches.\n\n**Other common traps:**\n- Forgetting to escape a literal special character — `.` matches *any* character, not just a literal dot; to match a real dot, write `\\.`\n- Forgetting the `r` prefix on a pattern string, letting Python's own string escaping interfere with regex escaping\n- Reaching for regex to parse a *nested or recursive* structure (HTML, JSON, deeply nested brackets) — regex has no concept of nesting depth; a real parser (or the `json` module) is the correct tool there, not a bigger regex\n\n**Rule of thumb:** regex is excellent for finding, validating, and extracting patterns in flat, line-oriented text (log lines, simple identifiers, dates). The moment you need to track how deep you are inside nested structure, reach for a real parser instead.",
+      "source_label": "Python Docs: re — Greedy vs. Non-Greedy",
+      "source_url": "https://docs.python.org/3/library/re.html#greedy-versus-non-greedy"
+    }
+  ],
+  "lesson_path": "content/topics/regex/lesson.md",
+  "quality_status": "reference"
+}
