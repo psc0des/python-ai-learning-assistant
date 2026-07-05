@@ -13,6 +13,7 @@
     "python-typing",
     "regex",
     "sql-http-git",
+    "python-packaging",
     "python-devops",
     "fastapi",
     "pydantic",

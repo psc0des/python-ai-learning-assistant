@@ -1,0 +1,194 @@
+[
+  {
+    "id": "packaging-parse-requirement-line",
+    "topic_id": "python-packaging",
+    "title": "Parse One Requirement Line",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `parse_requirement_line(line)` that splits a `requirements.txt` line like `'requests==2.31.0'` into `[name, version]`. Assume every line uses the `==` operator.",
+    "starter": "def parse_requirement_line(line):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic",
+        "call": "parse_requirement_line('requests==2.31.0')",
+        "expected": [
+          "requests",
+          "2.31.0"
+        ]
+      },
+      {
+        "label": "another package",
+        "call": "parse_requirement_line('flask==2.0.1')",
+        "expected": [
+          "flask",
+          "2.0.1"
+        ]
+      }
+    ],
+    "hint": "line.split('==') returns a two-element list of [name, version] directly.",
+    "solution": "def parse_requirement_line(line):\n    name, version = line.split('==')\n    return [name, version]\n",
+    "explanation": "This is the first step any real requirements-file parser takes — splitting the declared name from its pinned version."
+  },
+  {
+    "id": "packaging-parse-requirements",
+    "topic_id": "python-packaging",
+    "title": "Parse a Requirements File",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `parse_requirements(text)` that returns a list of the non-empty, non-comment lines from a multi-line `requirements.txt`-style string (strip whitespace; skip blank lines and lines starting with `#`).",
+    "starter": "def parse_requirements(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "comments and blanks skipped",
+        "call": "parse_requirements('# comment\\nrequests==2.31.0\\n\\nflask>=2.0\\n')",
+        "expected": [
+          "requests==2.31.0",
+          "flask>=2.0"
+        ]
+      },
+      {
+        "label": "empty text",
+        "call": "parse_requirements('')",
+        "expected": []
+      }
+    ],
+    "hint": "Loop over text.strip().splitlines(), stripping each line and skipping ones that are empty or start with '#'.",
+    "solution": "def parse_requirements(text):\n    packages = []\n    for line in text.strip().splitlines():\n        line = line.strip()\n        if not line or line.startswith('#'):\n            continue\n        packages.append(line)\n    return packages\n",
+    "explanation": "This is exactly what pip does internally before installing anything from a requirements.txt — turning free-form text into a clean list of dependency declarations."
+  },
+  {
+    "id": "packaging-parse-version",
+    "topic_id": "python-packaging",
+    "title": "Parse a Semantic Version",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `parse_version(version_str)` that returns `(major, minor, patch)` as a tuple of integers from an `'X.Y.Z'` string.",
+    "starter": "def parse_version(version_str):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic",
+        "call": "parse_version('2.31.0')",
+        "expected": [
+          2,
+          31,
+          0
+        ]
+      },
+      {
+        "label": "double-digit major",
+        "call": "parse_version('10.0.1')",
+        "expected": [
+          10,
+          0,
+          1
+        ]
+      }
+    ],
+    "hint": "version_str.split('.') gives three string parts; convert each with int(...) before returning them as a tuple.",
+    "solution": "def parse_version(version_str):\n    major, minor, patch = version_str.split('.')\n    return (int(major), int(minor), int(patch))\n",
+    "explanation": "Parsing into integers (not leaving them as strings) is what makes tuple comparison give the semantically correct ordering later."
+  },
+  {
+    "id": "packaging-compare-versions",
+    "topic_id": "python-packaging",
+    "title": "Compare Two Versions Correctly",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `compare_versions(v1, v2)` that returns `-1` if `v1 < v2`, `0` if equal, or `1` if `v1 > v2` — comparing as proper semantic versions (numerically), not as raw strings.",
+    "starter": "def parse_version(version_str):\n    return tuple(int(p) for p in version_str.split('.'))\n\ndef compare_versions(v1, v2):\n    pass\n",
+    "tests": [
+      {
+        "label": "numeric comparison, not string",
+        "call": "compare_versions('1.2.0', '1.10.0')",
+        "expected": -1
+      },
+      {
+        "label": "equal versions",
+        "call": "compare_versions('2.0.0', '2.0.0')",
+        "expected": 0
+      },
+      {
+        "label": "v1 greater",
+        "call": "compare_versions('3.0.0', '2.9.9')",
+        "expected": 1
+      }
+    ],
+    "hint": "Parse both versions with parse_version(...) into tuples, then compare the tuples directly with <, >, and ==.",
+    "solution": "def parse_version(version_str):\n    return tuple(int(p) for p in version_str.split('.'))\n\ndef compare_versions(v1, v2):\n    p1, p2 = parse_version(v1), parse_version(v2)\n    if p1 < p2:\n        return -1\n    if p1 > p2:\n        return 1\n    return 0\n",
+    "explanation": "'1.2.0' < '1.10.0' as raw strings would be WRONG (string comparison says '2' > '1' at that position) — comparing the parsed integer tuples instead gives the correct semantic result."
+  },
+  {
+    "id": "packaging-validate-project-config",
+    "topic_id": "python-packaging",
+    "title": "Validate a Project Config",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Write `validate_project_config(config)` that returns a list of missing required keys from `['name', 'version']` (in that order) that are absent from the `config` dict.",
+    "starter": "def validate_project_config(config):\n    pass\n",
+    "tests": [
+      {
+        "label": "complete config",
+        "call": "validate_project_config({'name': 'x', 'version': '1.0'})",
+        "expected": []
+      },
+      {
+        "label": "missing version",
+        "call": "validate_project_config({'name': 'x'})",
+        "expected": [
+          "version"
+        ]
+      },
+      {
+        "label": "missing both",
+        "call": "validate_project_config({})",
+        "expected": [
+          "name",
+          "version"
+        ]
+      }
+    ],
+    "hint": "Check 'name' not in config first, then 'version' not in config, appending the missing key name to a list each time.",
+    "solution": "def validate_project_config(config):\n    missing = []\n    if 'name' not in config:\n        missing.append('name')\n    if 'version' not in config:\n        missing.append('version')\n    return missing\n",
+    "explanation": "This mirrors the minimum validation a real packaging tool performs on a pyproject.toml [project] table before it will build or publish anything."
+  },
+  {
+    "id": "packaging-capstone-dependency-resolver",
+    "topic_id": "python-packaging",
+    "title": "Capstone: Dependency Resolver",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `DependencyResolver` class that tracks package requirements and detects conflicts.\n\nImplement:\n- `__init__(self)` — store an empty `requirements` dict (name -> version).\n- `add_requirement(self, name, version)` — record or overwrite the required version for `name`.\n- `parse_and_add(self, line)` — parse a `'name==version'` line and call `add_requirement` with the parsed name and version.\n- `has_conflict(self, name, version)` — return `True` if `name` is already required at a **different** version than the given one (and `False` if it isn't required yet, or already required at exactly that version).\n- `to_requirements_text(self)` — return a `requirements.txt`-style string: one `name==version` line per package, sorted alphabetically by name, joined with newlines.\n- `summary(self)` — return `{'total': <count>, 'packages': <sorted list of names>}`.",
+    "starter": "class DependencyResolver:\n    def __init__(self):\n        pass\n\n    def add_requirement(self, name, version):\n        pass\n\n    def parse_and_add(self, line):\n        pass\n\n    def has_conflict(self, name, version):\n        pass\n\n    def to_requirements_text(self):\n        pass\n\n    def summary(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "add + no conflict at same version",
+        "call": "(_r := DependencyResolver()).add_requirement('requests','2.31.0') or _r.has_conflict('requests','2.31.0')",
+        "expected": false
+      },
+      {
+        "label": "conflict with a different version",
+        "call": "_r.has_conflict('requests','9.9.9')",
+        "expected": true
+      },
+      {
+        "label": "parse_and_add + summary",
+        "call": "(_r.parse_and_add('flask==2.0.1'), _r.summary())[1]",
+        "expected": {
+          "total": 2,
+          "packages": [
+            "flask",
+            "requests"
+          ]
+        }
+      },
+      {
+        "label": "to_requirements_text is sorted",
+        "call": "_r.to_requirements_text()",
+        "expected": "flask==2.0.1\nrequests==2.31.0"
+      }
+    ],
+    "hint": "__init__ stores self.requirements = {}. add_requirement is a plain dict assignment. parse_and_add splits the line on '==' and delegates to add_requirement. has_conflict checks 'name in self.requirements and self.requirements[name] != version'. to_requirements_text builds 'name==version' strings from sorted(self.requirements.items()) and joins them with newlines. summary composes len(...) and sorted(self.requirements.keys()).",
+    "solution": "class DependencyResolver:\n    def __init__(self):\n        self.requirements = {}\n\n    def add_requirement(self, name, version):\n        self.requirements[name] = version\n\n    def parse_and_add(self, line):\n        name, version = line.split('==')\n        self.add_requirement(name, version)\n\n    def has_conflict(self, name, version):\n        return name in self.requirements and self.requirements[name] != version\n\n    def to_requirements_text(self):\n        lines = [f'{name}=={version}' for name, version in sorted(self.requirements.items())]\n        return '\\n'.join(lines)\n\n    def summary(self):\n        return {'total': len(self.requirements), 'packages': sorted(self.requirements.keys())}\n",
+    "explanation": "This models, in miniature, exactly what a real dependency resolver does: track what each package needs, flag when two requirements disagree on a version, and produce a clean, reproducible requirements.txt from whatever was accumulated — the same underlying logic behind tools like pip-compile or poetry's lock file resolution."
+  }
+]

@@ -1,0 +1,94 @@
+{
+  "id": "python-packaging",
+  "track": "Intermediate Python",
+  "title": "Python Packaging and Environments",
+  "level": "Intermediate",
+  "intro": "Every real Python project needs to answer three questions: what packages does it depend on, at what versions, and how is that kept isolated from every other project on the same machine? This topic covers virtual environments, `pip`/`requirements.txt`, semantic versioning, and the modern `pyproject.toml` project manifest — the packaging fundamentals that sit underneath every `pip install` you've ever run.",
+  "mental_model": "A virtual environment is a separate, private toolbox for one project — its own copy of the tools (installed packages) at exactly the versions that project needs, so tools borrowed for one project never get mixed up with a different project's toolbox sitting right next to it. `requirements.txt` is the shopping list for that toolbox — hand it to anyone (or any server) and `pip install -r requirements.txt` restocks an identical toolbox from scratch. Semantic version numbers (`MAJOR.MINOR.PATCH`) are a promise printed on each tool's label about how much it changed since the last version — patch fixes a chip, minor adds a new tool, major redesigns the handle.",
+  "syntax": "def parse_version(version_str):\n    major, minor, patch = version_str.split('.')\n    return (int(major), int(minor), int(patch))\n\nprint(parse_version('2.31.0') > parse_version('2.4.10'))\n",
+  "example": "def parse_requirements(text):\n    return [\n        line.strip() for line in text.strip().splitlines()\n        if line.strip() and not line.strip().startswith('#')\n    ]\n\nprint(parse_requirements('requests==2.31.0\\n# comment\\nflask>=2.0'))\n",
+  "must_know": [
+    "A virtual environment (`python -m venv .venv`) isolates one project's installed packages from every other project and the system Python.",
+    "`requirements.txt` declares dependencies so `pip install -r requirements.txt` can recreate an identical set of installed packages anywhere.",
+    "Semantic versioning (`MAJOR.MINOR.PATCH`) signals how much changed: patch = bug fix, minor = new backward-compatible feature, major = breaking change.",
+    "Always parse version strings into numeric tuples before comparing or sorting them — plain string comparison gives the wrong order (`'1.9.0' > '1.10.0'` as strings).",
+    "`pyproject.toml` is the modern standard manifest for a project's name, version, dependencies, and build configuration, replacing the older `setup.py` approach."
+  ],
+  "common_traps": [
+    "Committing the `.venv` folder to version control instead of `.gitignore`-ing it.",
+    "Leaving a deployed application's dependencies completely unpinned, so a fresh install months later can silently pull in a breaking new version.",
+    "Comparing or sorting version strings directly instead of parsing them into numeric tuples first.",
+    "Confusing a library's dependency strategy (flexible ranges, since it must work for many users) with an application's (exact pins, for reproducible deploys).",
+    "Forgetting `__init__.py`, so a folder full of Python files never actually becomes an importable package."
+  ],
+  "interview": [
+    "Explain what a virtual environment isolates and why that isolation matters across multiple projects.",
+    "Explain the three parts of semantic versioning and what kind of change each one signals.",
+    "Explain why comparing version strings directly is a bug, and how to compare them correctly.",
+    "Describe the difference between pinning exact versions and using version ranges, and when each is appropriate."
+  ],
+  "docs": [
+    {
+      "label": "Python Docs: venv",
+      "url": "https://docs.python.org/3/library/venv.html"
+    },
+    {
+      "label": "Python Packaging Guide: Requirements Files",
+      "url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/"
+    },
+    {
+      "label": "Semantic Versioning 2.0.0",
+      "url": "https://semver.org/"
+    },
+    {
+      "label": "Python Packaging Guide: pyproject.toml",
+      "url": "https://packaging.python.org/en/latest/guides/writing-pyproject-toml/"
+    }
+  ],
+  "real_world": [
+    "This very app declares its own real dependency (wasmtime) in a requirements.txt, exactly as taught in this topic.",
+    "Deployment pipelines (Docker builds, CI servers) run `pip install -r requirements.txt` as a standard first step to reproduce a known-good environment before running any code.",
+    "Open-source libraries publish semantic version numbers so consumers can safely auto-update patch/minor releases while being warned before a major, breaking upgrade."
+  ],
+  "outcome": "By the end of this topic, you should be able to explain why virtual environments matter, parse and write a requirements.txt, compare semantic versions correctly (not as plain strings), read a basic pyproject.toml, and recognize the packaging mistakes (unpinned versions, committed venvs, string-compared versions) that cause real, hard-to-diagnose bugs.",
+  "lesson_sections": [
+    {
+      "title": "1. Why Virtual Environments — Isolating Project Dependencies",
+      "body": "A virtual environment (\"venv\") is a private, isolated set of installed packages for one project — separate from your system Python and every other project on the same machine. Without one, every project on your computer would have to share a single global set of installed package versions.\n\n```python run\n# Simulating why isolation matters: two \"projects\" needing different tool versions\nproject_a_needs = {'requests': '2.28.0'}\nproject_b_needs = {'requests': '2.31.0'}\nprint(f\"Without venvs, only ONE requests version could be installed globally: conflict={project_a_needs['requests'] != project_b_needs['requests']}\")\n```\n\nCreating and using one is three commands:\n\n```\npython -m venv .venv\n.venv\\Scripts\\activate       # Windows\nsource .venv/bin/activate      # macOS/Linux\npip install requests\n```\n\n`python -m venv .venv` creates the isolated environment (a `.venv` folder holding its own Python interpreter copy and package directory). `activate` switches your current shell to use that environment's Python and `pip` instead of the system-wide ones. Every `pip install` after that only affects `.venv`, never your system Python or any other project.",
+      "source_label": "Python Docs: venv",
+      "source_url": "https://docs.python.org/3/library/venv.html"
+    },
+    {
+      "title": "2. pip and requirements.txt — Declaring Dependencies",
+      "body": "`requirements.txt` is a plain text list of a project's dependencies, one per line, so anyone (including a future you, or a deployment server) can recreate the exact same set of installed packages with `pip install -r requirements.txt`.\n\n```python run\ndef parse_requirements(text):\n    packages = []\n    for line in text.strip().splitlines():\n        line = line.strip()\n        if not line or line.startswith('#'):\n            continue\n        packages.append(line)\n    return packages\n\nrequirements_text = '''\n# Core dependencies\nrequests==2.31.0\nflask>=2.0,<3.0\n\npytest==7.4.0\n'''\nprint(parse_requirements(requirements_text))\n```\n\n`==` pins an **exact** version (most reproducible, used for applications you deploy). `>=` sets a minimum; combined with `<` it defines a range (common for libraries, which want to stay compatible with a range of versions their users might have). No version constraint at all (`requests`) means \"whatever the latest version is right now\" — convenient while developing, risky for anything you'll run again later, since a future install could silently pull in a different, possibly incompatible version.",
+      "source_label": "Python Packaging Guide: Requirements Files",
+      "source_url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/"
+    },
+    {
+      "title": "3. Semantic Versioning — What X.Y.Z Actually Means",
+      "body": "Most Python packages follow **semantic versioning**: `MAJOR.MINOR.PATCH` (e.g. `2.31.0`). A `PATCH` bump (2.31.0 → 2.31.1) means a bug fix with no API changes. A `MINOR` bump (2.31.0 → 2.32.0) means new functionality was added, but everything that worked before still works. A `MAJOR` bump (2.31.0 → 3.0.0) means something that used to work might now be broken — a breaking change.\n\n```python run\ndef parse_version(version_str):\n    major, minor, patch = version_str.split('.')\n    return (int(major), int(minor), int(patch))\n\nv1 = parse_version('2.31.0')\nv2 = parse_version('2.4.10')\nprint(v1)\nprint(v2)\nprint(v1 > v2)\n```\n\n**Common trap:** comparing version strings directly instead of parsing them into numbers first. `'1.9.0' < '1.10.0'` as plain strings compares character by character — and `'9' > '1'`, so Python says `'1.9.0' > '1.10.0'`, which is semantically backwards.\n\n```python run\ndef parse_version(v):\n    return tuple(int(p) for p in v.split('.'))\n\nas_strings = sorted(['1.9.0', '1.10.0', '1.2.0'])\nas_versions = sorted(['1.9.0', '1.10.0', '1.2.0'], key=parse_version)\nprint(as_strings)\nprint(as_versions)\n```\n\nSorting the raw strings gives the wrong order (`'1.10.0'` sorts before `'1.2.0'`); parsing each version into a tuple of integers first, then sorting by that, gives the semantically correct order. This is exactly why version-comparison tools (and `pip` itself) never compare version strings directly.",
+      "source_label": "Semantic Versioning 2.0.0",
+      "source_url": "https://semver.org/"
+    },
+    {
+      "title": "4. pyproject.toml — The Modern Project Manifest",
+      "body": "`pyproject.toml` is the modern, standardized file describing a Python project — its name, version, dependencies, and how it should be built. It replaced the older, more ad-hoc `setup.py` approach.\n\n```\n[project]\nname = \"my-package\"\nversion = \"1.0.0\"\ndependencies = [\"requests>=2.28\"]\n\n[build-system]\nrequires = [\"setuptools\"]\nbuild-backend = \"setuptools.build_meta\"\n```\n\nThe `[project]` table holds metadata a checker (or an installer) reads and validates — every real project manifest needs at least a name and a version.\n\n```python run\ndef validate_project_config(config):\n    errors = []\n    if 'name' not in config:\n        errors.append('missing name')\n    if 'version' not in config:\n        errors.append('missing version')\n    return errors\n\ngood_config = {'name': 'my-package', 'version': '1.0.0'}\nbad_config = {'name': 'my-package'}\nprint(validate_project_config(good_config))\nprint(validate_project_config(bad_config))\n```\n\nThis app's own `requirements.txt` (for `wasmtime`) and `pyproject.toml` (for ruff's lint config) are real, small examples of exactly this — a project declaring what it needs and how it's configured, in one standard place.",
+      "source_label": "Python Packaging Guide: pyproject.toml",
+      "source_url": "https://packaging.python.org/en/latest/guides/writing-pyproject-toml/"
+    },
+    {
+      "title": "5. Project Structure — Organizing Code, Tests, and Packages",
+      "body": "A Python **package** is just a directory containing an `__init__.py` file — that one file is what tells Python \"treat this folder as an importable package,\" not just a folder full of unrelated scripts.\n\n```python run\ndef is_package(directory_contents):\n    return '__init__.py' in directory_contents\n\nprint(is_package(['core.py', '__init__.py']))\nprint(is_package(['core.py']))\n```\n\nA common, sensible layout for a small real project:\n\n```\nmy_project/\n    src/\n        my_project/\n            __init__.py\n            core.py\n    tests/\n        test_core.py\n    pyproject.toml\n    README.md\n```\n\nSeparating `src/` (the actual package) from `tests/` (which imports and exercises it) keeps the package's public shape honest — code under `tests/` has to import `my_project` the same way an external user would, instead of accidentally relying on being in the same folder.",
+      "source_label": "Python Packaging Guide: Package Discovery",
+      "source_url": "https://packaging.python.org/en/latest/guides/packaging-namespace-packages/"
+    },
+    {
+      "title": "6. Common Traps — Committing venvs, Unpinned Versions, and Version-String Bugs",
+      "body": "Three mistakes account for most real-world packaging pain:\n\n- **Committing the `.venv` folder to version control.** A virtual environment contains machine-specific binary files and can be huge — it belongs in `.gitignore`, never in the repository. Anyone cloning the project should run `python -m venv .venv` themselves and install from `requirements.txt`.\n- **Leaving dependencies completely unpinned** (`requests` with no version at all) in a deployed application. It works fine today; months later, a fresh install pulls in whatever the latest version happens to be then — which might have a breaking change — and the exact same code starts failing with no code change of its own. Pin exact versions (`==`) for applications you deploy; use ranges (`>=`, `<`) mainly for libraries meant to stay flexible for their users.\n- **Comparing version strings directly instead of parsing them into numbers.** As section 3 showed, `'1.9.0' < '1.10.0'` as plain text compares incorrectly — always parse a version into its numeric parts before comparing or sorting.\n\n**Rule of thumb:** a project's dependency list should be specific enough that running it again in a year, on a different machine, installs the exact same thing you tested with today. That reproducibility is the entire point of `requirements.txt`, `pyproject.toml`, and virtual environments working together.",
+      "source_label": "Python Packaging Guide: Tool Recommendations",
+      "source_url": "https://packaging.python.org/en/latest/guides/tool-recommendations/"
+    }
+  ],
+  "lesson_path": "content/topics/python-packaging/lesson.md",
+  "quality_status": "reference"
+}

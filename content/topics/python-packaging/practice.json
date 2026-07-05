@@ -1,0 +1,115 @@
+{
+  "topic_id": "python-packaging",
+  "questions": [
+    {
+      "question": "What does a Python virtual environment isolate?",
+      "options": [
+        "One project's installed packages and their versions from every other project and the system Python.",
+        "Network access for the running program.",
+        "The CPU and memory available to a script.",
+        "Which files a program is allowed to read."
+      ],
+      "answer": 0,
+      "explanation": "A venv gives one project its own private set of installed packages, so different projects on the same machine can require different (even conflicting) versions of the same package without interfering with each other."
+    },
+    {
+      "question": "What does `pip install -r requirements.txt` do?",
+      "options": [
+        "Creates a new virtual environment automatically.",
+        "Installs every package listed in requirements.txt, at the versions specified there.",
+        "Uninstalls every package not listed in requirements.txt.",
+        "Publishes the current project to PyPI."
+      ],
+      "answer": 1,
+      "explanation": "requirements.txt is a plain declaration of dependencies; pip install -r reads it and installs each listed package (and version constraint) into the currently active environment."
+    },
+    {
+      "question": "In semantic versioning `MAJOR.MINOR.PATCH`, what does a MAJOR version bump signal?",
+      "options": [
+        "A minor bug fix with no other changes.",
+        "A new backward-compatible feature was added.",
+        "A breaking change — something that worked before might not work anymore.",
+        "The package was renamed."
+      ],
+      "answer": 2,
+      "explanation": "By semantic versioning convention, incrementing MAJOR specifically signals that the new version may break code that relied on the previous version's behavior."
+    },
+    {
+      "question": "Why is comparing version strings directly (e.g. `'1.9.0' < '1.10.0'`) often wrong?",
+      "options": [
+        "Python cannot compare strings with '.' in them at all.",
+        "String comparison is character-by-character, so '9' is considered greater than '1' at that position, giving the wrong overall order.",
+        "It always raises a TypeError.",
+        "It only works for versions with exactly two parts."
+      ],
+      "answer": 1,
+      "explanation": "Plain string comparison doesn't know these are numbers — it compares character by character, so '1.9.0' incorrectly compares as greater than '1.10.0'; parsing into integer tuples first fixes this."
+    },
+    {
+      "question": "What is `pyproject.toml`?",
+      "options": [
+        "A file that stores a project's git commit history.",
+        "The modern, standardized manifest file describing a project's metadata, dependencies, and build configuration.",
+        "A configuration file only used by pytest.",
+        "An auto-generated log of every pip install ever run."
+      ],
+      "answer": 1,
+      "explanation": "pyproject.toml is the standardized place for a project's name, version, dependencies, and build-system configuration, replacing the older setup.py-based approach."
+    },
+    {
+      "question": "What makes a directory an importable Python package rather than just a folder of scripts?",
+      "options": [
+        "Naming the directory 'package'.",
+        "Having at least one .py file inside it.",
+        "Containing an `__init__.py` file.",
+        "Being listed in requirements.txt."
+      ],
+      "answer": 2,
+      "explanation": "The presence of __init__.py (even if empty) is what tells Python's import system to treat a directory as a package rather than an unrelated folder of scripts."
+    },
+    {
+      "question": "Why should the `.venv` folder never be committed to version control?",
+      "options": [
+        "Git does not support folders starting with a dot.",
+        "It contains machine-specific binaries and can be very large — anyone cloning the project should create their own with `python -m venv`.",
+        "It would make the code run slower.",
+        "It automatically deletes itself after one use."
+      ],
+      "answer": 1,
+      "explanation": "A virtual environment is tied to the exact machine and Python installation that created it; committing it bloats the repository and doesn't even work reliably on a different machine — requirements.txt is what should be committed instead."
+    },
+    {
+      "question": "When is leaving a dependency completely unpinned (no version specified at all) most risky?",
+      "options": [
+        "It is never risky under any circumstances.",
+        "Only when using Python 2.",
+        "In a deployed application, where a fresh install later could silently pull in a newer, breaking version with no code change on your end.",
+        "Only when the package has fewer than 3 total releases."
+      ],
+      "answer": 2,
+      "explanation": "An unpinned dependency installs 'whatever is latest right now' — for an application you deploy and re-install later, that means a future install can pull in an incompatible version, breaking previously-working code with no visible cause."
+    },
+    {
+      "question": "What is the main practical difference between how a library and an application typically pin dependencies?",
+      "options": [
+        "Libraries usually allow a flexible version range (to stay compatible for many users); applications typically pin exact versions (for reproducible deploys).",
+        "Libraries always pin exact versions; applications never specify versions at all.",
+        "There is no meaningful difference in practice.",
+        "Only applications are allowed to use pyproject.toml."
+      ],
+      "answer": 0,
+      "explanation": "A library needs to work across a range of versions its many downstream users might already have installed, while an application you control end-to-end benefits from pinning exact versions so every deploy is identical and reproducible."
+    },
+    {
+      "question": "What is the overall goal that requirements.txt, pyproject.toml, and virtual environments serve together?",
+      "options": [
+        "Making Python code run faster.",
+        "Reproducibility — installing the exact same set of dependencies again, on any machine, at any later time.",
+        "Automatically writing documentation for the project.",
+        "Preventing any use of third-party packages."
+      ],
+      "answer": 1,
+      "explanation": "All three tools exist to answer the same question reliably: 'if I set this project up again — on a different machine, or a year from now — will I get the exact same working environment?'"
+    }
+  ]
+}
