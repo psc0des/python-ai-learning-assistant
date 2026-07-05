@@ -67,12 +67,16 @@ parallel source of truth.
 
 ## Security and Runtime Rules
 
-Python Skill Lab runs learner code locally on the user's own machine. It is not
-a hardened sandbox for shared or public hosting.
+Python Skill Lab runs learner code locally on the user's own machine, most of
+it inside a real WASM/WASI sandbox (see `CLAUDE.md`'s "Code runner" section).
+The `asyncio` subprocess fallback path remains defense-in-depth only. Neither
+is a substitute for a full security review before shared or public hosting.
 
 - Do not weaken `_is_allowed_origin` in `app.py`.
-- Do not remove the AST scan or stripped `__builtins__` runtime restrictions in
-  `runner.py`.
+- Do not weaken the WASI sandbox in `runner.py` (`_run_via_wasi`, the module
+  allowlist, or the vendored WASI binary), and do not remove the AST scan or
+  stripped `__builtins__` runtime restrictions that still protect the
+  `asyncio` subprocess fallback path.
 - Do not route user, AI, or external HTML/SVG into trusted authored-content
   rendering paths.
 - Do not persist API keys to files, localStorage, or committed examples.

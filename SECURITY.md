@@ -6,9 +6,15 @@ Python Skill Lab is a local, single-user learning tool. It binds to
 `127.0.0.1` by default and runs learner code on the same machine as the person
 using the app.
 
-The code runner includes defense-in-depth guardrails, including origin checks,
-request limits, an AST safety scan, and restricted runtime builtins. These are
-appropriate for personal learning, but they are not a hardened security sandbox.
+Most learner code executes inside a real WASM/WASI sandbox (`wasmtime` plus a
+vendored WASI CPython build) with no filesystem, network, or process-spawn
+access from inside it — this is a genuine isolation boundary, not just
+pattern-matching. One narrow exception: code that imports `asyncio` falls back
+to a subprocess sandbox instead, since WASI has no socket support (which
+asyncio's event loop requires) — that fallback is defense-in-depth only (an
+AST safety scan, restricted runtime builtins), not a hard guarantee. The app
+also includes origin checks and request limits at the HTTP layer. See
+`CLAUDE.md`'s "Code runner" section for the full model.
 
 Do not expose this app to a public network, shared server, classroom server, or
 multi-user environment without a separate security review and real isolation
