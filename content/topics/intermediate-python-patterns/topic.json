@@ -1,0 +1,98 @@
+{
+  "id": "intermediate-python-patterns",
+  "track": "Intermediate Python",
+  "title": "Intermediate Python Patterns",
+  "level": "Intermediate",
+  "intro": "Once you're comfortable writing functions and classes, three patterns show up everywhere in real Python code: decorators (like `@app.get` in FastAPI or `@tool` in LangChain), generators (lazy iteration with `yield`), and context managers (the `with` statement). This topic teaches you to read and write all three — the fundamentals that later become invisible assumptions in the backend and AI topics.",
+  "mental_model": "Think of a decorator as gift wrapping — the object inside doesn't change, but everything about how you interact with it does. A generator is a vending machine that dispenses one item at a time on request, instead of a delivery truck that shows up with everything in memory at once. A context manager is a chaperone: it shows up before your code runs (`__enter__`), stays out of the way while you work, and always steps back in to clean up (`__exit__`) — even if something goes wrong.",
+  "syntax": "def decorator(func):\n    def wrapper(*args, **kwargs):\n        # do something before\n        result = func(*args, **kwargs)\n        # do something after\n        return result\n    return wrapper\n\n@decorator\ndef greet(name):\n    return f'Hello, {name}!'\n",
+  "example": "def countdown(n):\n    while n > 0:\n        yield n\n        n -= 1\n\nfor number in countdown(3):\n    print(number)\n",
+  "must_know": [
+    "A decorator is just a function that takes a function and returns a (usually wrapped) function — the `@` syntax is sugar for `func = decorator(func)`.",
+    "Always apply `functools.wraps(func)` inside a decorator, or the wrapped function loses its real `__name__` and `__doc__`.",
+    "A generator function contains `yield` and returns a generator object immediately — none of its code runs until you call `next()` on it (or iterate it).",
+    "Any class with `__iter__` returning self and `__next__` raising `StopIteration` when exhausted can be used directly in a `for` loop.",
+    "`with` guarantees `__exit__` runs even if the block raises an exception — use it (or `@contextlib.contextmanager`) for any setup/cleanup pair."
+  ],
+  "common_traps": [
+    "Forgetting `functools.wraps`, which breaks introspection, debugging tools, and anything that relies on a function's real name.",
+    "Writing a decorator's wrapper without `*args, **kwargs`, so it silently breaks on any decorated function that takes arguments.",
+    "Calling a generator function and expecting the loop body to run immediately — nothing executes until you iterate it.",
+    "Looping over the same generator twice and getting nothing the second time, because generators are exhausted after one full pass.",
+    "Returning `True` from `__exit__` by accident, which silently swallows exceptions the caller expected to see."
+  ],
+  "interview": [
+    "Explain what `@decorator` desugars to and why the extra nesting layer is needed for a decorator that takes its own arguments.",
+    "Explain the difference between a function that returns a list and a generator function that yields the same values.",
+    "Walk through what `__enter__` and `__exit__` receive and return, and when `__exit__`'s return value matters.",
+    "Describe a real decorator you'd use in a web framework and what problem it solves."
+  ],
+  "docs": [
+    {
+      "label": "Python Glossary: decorator",
+      "url": "https://docs.python.org/3/glossary.html#term-decorator"
+    },
+    {
+      "label": "Python Docs: functools.wraps",
+      "url": "https://docs.python.org/3/library/functools.html#functools.wraps"
+    },
+    {
+      "label": "Python Glossary: generator",
+      "url": "https://docs.python.org/3/glossary.html#term-generator"
+    },
+    {
+      "label": "Python Tutorial: Iterators",
+      "url": "https://docs.python.org/3/tutorial/classes.html#iterators"
+    },
+    {
+      "label": "Python Docs: contextlib",
+      "url": "https://docs.python.org/3/library/contextlib.html"
+    }
+  ],
+  "real_world": [
+    "Web frameworks (Flask, FastAPI) use decorators to register route handlers — `@app.get('/users')` is exactly the pattern this topic teaches.",
+    "AI agent frameworks like LangChain register callable tools with a `@tool` decorator, and data pipelines use generators to stream large datasets without loading everything into memory.",
+    "Database libraries and test frameworks use context managers for transactions and fixtures, guaranteeing cleanup runs even when a test fails."
+  ],
+  "outcome": "By the end of this topic, you should be able to write a decorator (with and without arguments) that preserves the wrapped function's identity, write and consume a generator function, implement the iterator protocol on a custom class, and write both class-based and @contextlib.contextmanager-based context managers.",
+  "lesson_sections": [
+    {
+      "title": "1. Decorators — Wrapping a Function Without Rewriting It",
+      "body": "A decorator is gift wrapping for a function — the function underneath doesn't change, but everything about how you receive and use it does. Technically, a decorator is just a function that takes a function and returns a (usually different) function.\n\n`@loud` above `def greet(name):` is exactly the same as writing `greet = loud(greet)` right after the definition. The `@` syntax is convenient sugar for that reassignment — nothing more.\n\n```python run\ndef loud(func):\n    def wrapper(*args, **kwargs):\n        print(f'Calling {func.__name__}')\n        result = func(*args, **kwargs)\n        print(f'{func.__name__} returned {result!r}')\n        return result\n    return wrapper\n\ndef add(a, b):\n    return a + b\n\n# Manually apply the decorator — this is exactly what @loud does:\nadd = loud(add)\nprint(add(2, 3))\n```\n\nIn real code you almost never write it manually — you use `@` directly above the function it decorates:\n\n```python run\ndef loud(func):\n    def wrapper(*args, **kwargs):\n        print(f'Calling {func.__name__}')\n        return func(*args, **kwargs)\n    return wrapper\n\n@loud\ndef greet(name):\n    return f'Hello, {name}!'\n\nprint(greet('Ada'))\n```\n\n**One catch:** the wrapper replaces the original function, so tools that inspect `func.__name__` or `func.__doc__` now see the wrapper's, not the original's. `functools.wraps(func)` fixes this by copying that metadata across — always use it in production decorators:\n\n```python run\nimport time\nimport functools\n\ndef timed(func):\n    @functools.wraps(func)\n    def wrapper(*args, **kwargs):\n        start = time.perf_counter()\n        result = func(*args, **kwargs)\n        elapsed = time.perf_counter() - start\n        print(f'{func.__name__} took {elapsed:.6f}s')\n        return result\n    return wrapper\n\n@timed\ndef add(a, b):\n    return a + b\n\nprint(add(2, 3))\n```\n\nThis is exactly the pattern you'll meet again later as `@app.get(...)` in FastAPI and `@tool` in LangChain — both are ordinary decorators wrapping your function with extra behavior (routing, tool registration) around it.",
+      "source_label": "Python Glossary: decorator",
+      "source_url": "https://docs.python.org/3/glossary.html#term-decorator"
+    },
+    {
+      "title": "2. Decorators with Arguments — Building a Decorator Factory",
+      "body": "Sometimes a decorator itself needs configuration — `@repeat(times=3)` or `@retry(attempts=5)`. That requires one more layer of nesting: a **decorator factory**, a function that takes your configuration arguments and returns the actual decorator.\n\nThink of it as three nested boxes: the factory takes settings and hands back a decorator; the decorator takes your function and hands back a wrapper; the wrapper is what actually runs when your function is called.\n\n```python run\nimport functools\n\ndef repeat(times):\n    def decorator(func):\n        @functools.wraps(func)\n        def wrapper(*args, **kwargs):\n            return [func(*args, **kwargs) for _ in range(times)]\n        return wrapper\n    return decorator\n\n@repeat(times=3)\ndef roll_die_face():\n    return 6   # deterministic stand-in for a real random roll\n\nprint(roll_die_face())\n```\n\nA more realistic example — validating an argument before the real function ever runs, configured per use:\n\n```python run\nimport functools\n\ndef validate_range(low, high):\n    def decorator(func):\n        @functools.wraps(func)\n        def wrapper(value):\n            if not (low <= value <= high):\n                raise ValueError(f'{value} is out of range [{low}, {high}]')\n            return func(value)\n        return wrapper\n    return decorator\n\n@validate_range(0, 100)\ndef set_volume(level):\n    return f'Volume set to {level}'\n\nprint(set_volume(50))\ntry:\n    set_volume(150)\nexcept ValueError as exc:\n    print(f'Rejected: {exc}')\n```\n\n**Common trap:** forgetting the extra nesting layer and writing `def repeat(times, func):` directly — that can't be used with `@repeat(times=3)` syntax at all, because `@` only ever passes the decorated function as the *single* argument to whatever the expression above it evaluates to.",
+      "source_label": "Python Docs: functools.wraps",
+      "source_url": "https://docs.python.org/3/library/functools.html#functools.wraps"
+    },
+    {
+      "title": "3. Generators and yield — Lazy, One-at-a-Time Iteration",
+      "body": "A generator is a vending machine, not a delivery truck: it hands you one item at a time, on request, instead of showing up with everything already loaded in memory. Any function containing `yield` is a **generator function** — calling it does not run its body at all. It immediately returns a generator object, and the body only runs up to the next `yield` each time you call `next()` on it (which is exactly what a `for` loop does under the hood).\n\n```python run\ndef count_up_to(limit):\n    n = 1\n    while n <= limit:\n        yield n\n        n += 1\n\ncounter = count_up_to(5)\nprint(next(counter))\nprint(next(counter))\n\nfor remaining in counter:\n    print(remaining)\n```\n\nNotice the `for` loop picks up exactly where the two `next()` calls left off — a generator remembers its own paused state between calls. Once it runs off the end of its code, it is **exhausted**: iterating it again produces nothing, you'd need to call the generator function again for a fresh one.\n\nThe real payoff is memory: a generator never holds a full sequence in memory at once.\n\n```python run\ndef first_n_squares_list(n):\n    return [i * i for i in range(n)]   # builds the whole list in memory immediately\n\ndef first_n_squares_gen(n):\n    for i in range(n):\n        yield i * i   # computes one value at a time, on demand\n\nprint(first_n_squares_list(5))\ngen = first_n_squares_gen(5)\nprint(list(gen))\nprint(sum(first_n_squares_gen(1000)))   # never builds a 1000-item list in memory\n```\n\nThat last line sums a thousand values without ever materializing a thousand-item list — `sum()` pulls one value at a time from the generator and discards it immediately. This is exactly how you'd stream a huge file or a paginated API response without running out of memory.",
+      "source_label": "Python Glossary: generator",
+      "source_url": "https://docs.python.org/3/glossary.html#term-generator"
+    },
+    {
+      "title": "4. Custom Iterators — __iter__ and __next__",
+      "body": "A generator function is the easy way to get an iterator. The full **iterator protocol** underneath it is just two dunder methods, and you can implement them yourself on any class: `__iter__(self)` (usually just `return self`) and `__next__(self)`, which returns the next value or raises `StopIteration` once there is nothing left.\n\n```python run\nclass Countdown:\n    def __init__(self, start):\n        self.current = start\n\n    def __iter__(self):\n        return self\n\n    def __next__(self):\n        if self.current <= 0:\n            raise StopIteration\n        value = self.current\n        self.current -= 1\n        return value\n\nfor number in Countdown(3):\n    print(number)\n```\n\nA `for` loop is really just repeatedly calling `iter()` once and then `next()` until `StopIteration` is raised — you can do exactly that by hand:\n\n```python run\nclass Countdown:\n    def __init__(self, start):\n        self.current = start\n\n    def __iter__(self):\n        return self\n\n    def __next__(self):\n        if self.current <= 0:\n            raise StopIteration\n        value = self.current\n        self.current -= 1\n        return value\n\nit = iter(Countdown(2))   # what 'for' does automatically\nprint(next(it))\nprint(next(it))\ntry:\n    next(it)\nexcept StopIteration:\n    print('Exhausted — this is exactly what ends a for-loop')\n```\n\n**When to write a class instead of a generator function:** when the iterator needs extra public methods or state that outside code inspects (like `.current` or a `.reset()` method) — a plain generator function has no way to expose that. Otherwise, a generator function is almost always simpler.",
+      "source_label": "Python Tutorial: Iterators",
+      "source_url": "https://docs.python.org/3/tutorial/classes.html#iterators"
+    },
+    {
+      "title": "5. Context Managers — with, __enter__/__exit__, and @contextmanager",
+      "body": "A context manager is a chaperone for a block of code: it shows up before your code runs (`__enter__`), stays out of the way while you work, and always steps back in to clean up (`__exit__`) — even if your code raises an exception. That guarantee is exactly what `with` is for, and it's why `with open(...) as f:` always closes the file, no matter what happens inside the block.\n\nThis sandbox blocks real file access, but the same protocol applies to any resource that needs guaranteed cleanup — a database transaction is a perfect stand-in:\n\n```python run\nclass Transaction:\n    def __init__(self, name):\n        self.name = name\n        self.committed = False\n\n    def __enter__(self):\n        print(f'BEGIN {self.name}')\n        return self\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        if exc_type is None:\n            self.committed = True\n            print(f'COMMIT {self.name}')\n        else:\n            print(f'ROLLBACK {self.name} (due to {exc_type.__name__})')\n        return False   # do not suppress the exception\n\nwith Transaction('update_balance') as txn:\n    print('...doing work...')\nprint('committed:', txn.committed)\n\ntry:\n    with Transaction('risky_update') as txn2:\n        raise ValueError('insufficient funds')\nexcept ValueError as exc:\n    print(f'caught outside the with-block: {exc}')\n```\n\n**Returning `True` from `__exit__` suppresses the exception** — the caller never sees it. That's occasionally useful, but doing it by accident is a common bug that silently hides real errors, which is why the example above deliberately returns `False`.\n\nWriting a full class is verbose for simple cases. `@contextlib.contextmanager` turns a generator function with exactly one `yield` into a context manager: code before `yield` becomes `__enter__`, the yielded value becomes the `as` target, and code after `yield` (in a `finally`) becomes `__exit__`.\n\n```python run\nimport contextlib\n\n@contextlib.contextmanager\ndef indent_log(label):\n    print(f'-> entering {label}')\n    try:\n        yield label.upper()\n    finally:\n        print(f'<- leaving {label}')\n\nwith indent_log('setup') as tag:\n    print(f'working inside {tag}')\n```",
+      "source_label": "Python Docs: contextlib",
+      "source_url": "https://docs.python.org/3/library/contextlib.html"
+    },
+    {
+      "title": "6. Choosing the Right Pattern",
+      "body": "All three patterns solve a different shape of problem, and real code often combines them:\n\n- **Decorator** — you want to change or add behavior *around* a callable without touching its own code (logging, timing, validation, registration).\n- **Generator** — you want to produce a sequence of values lazily, one at a time, especially when the sequence is large, unbounded, or expensive to fully build up front.\n- **Context manager** — you want guaranteed setup/teardown around a block, regardless of whether it succeeds or raises.\n\nThey compose naturally — a decorator can wrap a function that's called inside a generator expression, all inside a context manager:\n\n```python run\nimport contextlib\nimport functools\n\ndef logged(func):\n    @functools.wraps(func)\n    def wrapper(*args, **kwargs):\n        print(f'[log] calling {func.__name__}')\n        return func(*args, **kwargs)\n    return wrapper\n\n@contextlib.contextmanager\ndef batch(label):\n    print(f'[batch] start {label}')\n    yield\n    print(f'[batch] end {label}')\n\n@logged\ndef double(n):\n    return n * 2\n\nwith batch('demo'):\n    for value in (double(x) for x in range(3)):\n        print(value)\n```\n\n**Where you'll meet these again:** Flask and FastAPI register every route with a decorator (`@app.get('/users')`); LangChain registers callable tools with `@tool`; data pipelines and RAG chunking use generators to stream large inputs; and database sessions, HTTP clients, and test fixtures almost universally use context managers for guaranteed cleanup. Recognizing these three shapes is what makes that later code readable instead of magical.",
+      "source_label": "Python Docs: contextlib",
+      "source_url": "https://docs.python.org/3/library/contextlib.html#contextlib.contextmanager"
+    }
+  ],
+  "lesson_path": "content/topics/intermediate-python-patterns/lesson.md",
+  "quality_status": "reference"
+}

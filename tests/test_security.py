@@ -154,6 +154,14 @@ class TestSafeCode:
         violations = scan_for_dangerous_code(code)
         assert violations == []
 
+    def test_allows_time_import(self):
+        # time.perf_counter()/time.sleep() are pure — no filesystem, network,
+        # or process access — and are needed for the decorator-timing example
+        # in the intermediate-python-patterns lesson content.
+        code = "import time\nstart = time.perf_counter()\nprint(time.perf_counter() - start)"
+        violations = scan_for_dangerous_code(code)
+        assert violations == []
+
 
 class TestModuleAllowlist:
     """Regression tests for the CRITICAL sandbox-escape finding: the old module

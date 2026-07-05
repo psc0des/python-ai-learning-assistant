@@ -1,0 +1,115 @@
+{
+  "topic_id": "intermediate-python-patterns",
+  "questions": [
+    {
+      "question": "What does `@decorator` written above a function definition actually do?",
+      "options": [
+        "It comments out the function so it never runs.",
+        "It reassigns the function name to decorator(func), replacing it with whatever the decorator returns.",
+        "It runs the function immediately at import time.",
+        "It converts the function into a class."
+      ],
+      "answer": 1,
+      "explanation": "@decorator above def func(): ... is exactly equivalent to writing func = decorator(func) right after the definition — the decorator receives the original function and returns whatever replaces it, usually a wrapper."
+    },
+    {
+      "question": "Why is `functools.wraps(func)` used inside a decorator's inner wrapper?",
+      "options": [
+        "It makes the wrapper run faster.",
+        "It is required for Python to allow the @ decorator syntax at all.",
+        "It copies metadata like __name__ and __doc__ from func onto the wrapper, so introspection still shows the original function's identity.",
+        "It automatically adds type hints to the wrapper."
+      ],
+      "answer": 2,
+      "explanation": "Without functools.wraps, the wrapped function's __name__ and __doc__ get replaced by the generic wrapper's — functools.wraps copies that metadata across so debuggers, help(), and documentation tools still show the original function's identity."
+    },
+    {
+      "question": "What happens when you call a generator function (one containing yield)?",
+      "options": [
+        "All of its code runs immediately and returns the final value.",
+        "It raises a SyntaxError unless called inside a loop.",
+        "It returns a generator object immediately; none of the function's code runs until you iterate it or call next() on it.",
+        "It runs once and caches the result for future calls."
+      ],
+      "answer": 2,
+      "explanation": "Calling a generator function never executes its body right away — it returns a generator object. Code only runs up to the next yield each time next() is called on it or it is iterated."
+    },
+    {
+      "question": "A generator is iterated fully in one for loop, then the SAME generator object is iterated again in a second for loop. What happens the second time?",
+      "options": [
+        "It yields the same values again from the start.",
+        "It raises a TypeError immediately.",
+        "The second loop produces no values — the generator is already exhausted.",
+        "It automatically restarts from a bookmark."
+      ],
+      "answer": 2,
+      "explanation": "A generator can only be iterated once; once exhausted (StopIteration raised internally), it stays exhausted. To iterate the same sequence again, call the generator function again to get a fresh generator object."
+    },
+    {
+      "question": "Which two dunder methods must a class implement to work directly in a `for` loop as a custom iterator?",
+      "options": [
+        "__init__ and __str__",
+        "__iter__ (returning self) and __next__ (raising StopIteration when done)",
+        "__enter__ and __exit__",
+        "__len__ and __getitem__ only"
+      ],
+      "answer": 1,
+      "explanation": "The iterator protocol requires __iter__ (commonly returning self) and __next__, which returns the next value or raises StopIteration once exhausted — that's exactly what a for loop calls under the hood."
+    },
+    {
+      "question": "What does the `with` statement guarantee that a plain try/except block does not give you automatically?",
+      "options": [
+        "It prevents any exception from ever being raised inside the block.",
+        "It automatically retries the block on failure.",
+        "It calls __exit__ (cleanup) as soon as the block ends, whether it exited normally or via an exception, without needing an explicit finally.",
+        "It makes the block run in a separate thread."
+      ],
+      "answer": 2,
+      "explanation": "with guarantees __exit__ runs exactly once when the block ends, success or failure — that's precisely what a manual finally does, but with ties it automatically to __enter__/__exit__ so it can't be forgotten."
+    },
+    {
+      "question": "In a class-based context manager, what does returning True from __exit__ do?",
+      "options": [
+        "Nothing different from returning False.",
+        "It suppresses (swallows) any exception that occurred inside the with block, so it does not propagate further.",
+        "It re-raises the exception with additional context attached.",
+        "It restarts the with block from __enter__."
+      ],
+      "answer": 1,
+      "explanation": "__exit__'s return value controls whether an exception inside the with block propagates: True suppresses it, and the usual False (or no explicit return) lets it propagate normally — accidentally returning True is a common bug that hides real errors."
+    },
+    {
+      "question": "What does `@contextlib.contextmanager` do?",
+      "options": [
+        "It turns a generator function (with a single yield) into a context manager usable with `with`, without writing a full class with __enter__/__exit__.",
+        "It makes a function run faster by skipping validation.",
+        "It converts any function into a decorator factory.",
+        "It permanently caches a function's return value."
+      ],
+      "answer": 0,
+      "explanation": "@contextlib.contextmanager wraps a generator function — code before the single yield becomes __enter__, the yielded value becomes the `as` target, and code after yield (typically in a finally) becomes __exit__ — a much shorter way to write simple context managers."
+    },
+    {
+      "question": "Which scenario is the best fit for a generator instead of building and returning a full list?",
+      "options": [
+        "You need random access to items by index.",
+        "You need to process a very large or unbounded sequence of items one at a time without holding them all in memory.",
+        "You need the result to be a dict, not a sequence.",
+        "You need the function to run exactly once."
+      ],
+      "answer": 1,
+      "explanation": "Generators shine when a sequence is large, unbounded, or expensive to fully materialize — they compute (and release) one value at a time instead of allocating a full list up front."
+    },
+    {
+      "question": "What is a decorator factory, like `repeat(times)` used as `@repeat(times=3)`?",
+      "options": [
+        "A decorator that only works on class methods.",
+        "A function that takes configuration arguments and returns a decorator, which is itself then applied to a function — three nested layers: factory -> decorator -> wrapper.",
+        "Any decorator that uses functools.wraps.",
+        "A decorator that can only be applied once per program."
+      ],
+      "answer": 1,
+      "explanation": "@repeat(times=3) first calls repeat(times=3), which must return an actual decorator function; that decorator then receives the target function and returns the final wrapper — the extra nesting layer is exactly what lets a decorator accept its own configuration arguments."
+    }
+  ]
+}

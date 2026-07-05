@@ -59,7 +59,7 @@ ALLOWED_MODULES = frozenset({
     "typing", "dataclasses", "enum", "decimal", "fractions",
     "statistics", "copy", "heapq", "bisect", "textwrap",
     "uuid", "abc", "operator", "contextlib", "asyncio",
-    "json", "numbers", "cmath",
+    "json", "numbers", "cmath", "time",
 })
 
 BLOCKED_BUILTINS = frozenset({

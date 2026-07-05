@@ -1,0 +1,252 @@
+[
+  {
+    "id": "decorator-shout",
+    "topic_id": "intermediate-python-patterns",
+    "title": "Shout Decorator",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write a decorator function `shout(func)` that wraps `func` so the wrapped function's return value is converted to uppercase.",
+    "starter": "def shout(func):\n    pass\n",
+    "tests": [
+      {
+        "label": "wraps a lambda",
+        "call": "shout(lambda: 'hello')()",
+        "expected": "HELLO"
+      },
+      {
+        "label": "different text",
+        "call": "shout(lambda: 'test')()",
+        "expected": "TEST"
+      },
+      {
+        "label": "empty string",
+        "call": "shout(lambda: '')()",
+        "expected": ""
+      }
+    ],
+    "hint": "Return an inner wrapper function that calls func(*args, **kwargs) and applies .upper() to its result.",
+    "solution": "def shout(func):\n    def wrapper(*args, **kwargs):\n        return func(*args, **kwargs).upper()\n    return wrapper\n",
+    "explanation": "A decorator's wrapper can freely transform the return value on the way out — here, forcing every call's result to uppercase without touching the original function at all."
+  },
+  {
+    "id": "decorator-double-result",
+    "topic_id": "intermediate-python-patterns",
+    "title": "Double Result Decorator",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write a decorator function `double_result(func)` that wraps `func` so the wrapper returns `func`'s result multiplied by 2. The wrapper must forward any arguments to `func`.",
+    "starter": "def double_result(func):\n    pass\n",
+    "tests": [
+      {
+        "label": "one positional arg",
+        "call": "double_result(lambda x: x + 1)(4)",
+        "expected": 10
+      },
+      {
+        "label": "no args",
+        "call": "double_result(lambda: 3)()",
+        "expected": 6
+      },
+      {
+        "label": "two positional args",
+        "call": "double_result(lambda x, y: x + y)(2, 3)",
+        "expected": 10
+      }
+    ],
+    "hint": "The wrapper should call func(*args, **kwargs) and multiply the result by 2.",
+    "solution": "def double_result(func):\n    def wrapper(*args, **kwargs):\n        return func(*args, **kwargs) * 2\n    return wrapper\n",
+    "explanation": "Decorators wrap any compatible callable — here a wrapper that changes the return value while forwarding whatever arguments were passed in via *args/**kwargs."
+  },
+  {
+    "id": "decorator-repeat-factory",
+    "topic_id": "intermediate-python-patterns",
+    "title": "Repeat Decorator Factory",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `repeat(times)`, a decorator factory. `repeat(times)` returns a decorator; when that decorator is applied to a function, calling the wrapped function returns a list of `times` results from calling the original function.",
+    "starter": "def repeat(times):\n    pass\n",
+    "tests": [
+      {
+        "label": "three times",
+        "call": "repeat(3)(lambda: 'x')()",
+        "expected": [
+          "x",
+          "x",
+          "x"
+        ]
+      },
+      {
+        "label": "one time",
+        "call": "repeat(1)(lambda: 5)()",
+        "expected": [
+          5
+        ]
+      },
+      {
+        "label": "with an argument",
+        "call": "repeat(2)(lambda a: a * 2)(4)",
+        "expected": [
+          8,
+          8
+        ]
+      }
+    ],
+    "hint": "repeat(times) needs three nested functions: repeat -> decorator -> wrapper. wrapper should return a list comprehension that calls func() 'times' times.",
+    "solution": "def repeat(times):\n    def decorator(func):\n        def wrapper(*args, **kwargs):\n            return [func(*args, **kwargs) for _ in range(times)]\n        return wrapper\n    return decorator\n",
+    "explanation": "A decorator factory adds one extra layer of nesting so the decorator itself can be configured, exactly like @repeat(times=3) in the lesson."
+  },
+  {
+    "id": "generator-evens-up-to",
+    "topic_id": "intermediate-python-patterns",
+    "title": "Evens Generator",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write a generator function `evens_up_to(n)` that yields even numbers from 0 up to and including `n`, in order.",
+    "starter": "def evens_up_to(n):\n    pass\n",
+    "tests": [
+      {
+        "label": "up to 10",
+        "call": "list(evens_up_to(10))",
+        "expected": [
+          0,
+          2,
+          4,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "label": "up to 1",
+        "call": "list(evens_up_to(1))",
+        "expected": [
+          0
+        ]
+      },
+      {
+        "label": "first value only",
+        "call": "next(evens_up_to(4))",
+        "expected": 0
+      },
+      {
+        "label": "up to 0",
+        "call": "list(evens_up_to(0))",
+        "expected": [
+          0
+        ]
+      }
+    ],
+    "hint": "Use a while loop: start value at 0, 'yield value', then increment value by 2 each pass, stopping once value exceeds n.",
+    "solution": "def evens_up_to(n):\n    value = 0\n    while value <= n:\n        yield value\n        value += 2\n",
+    "explanation": "A generator function computes each value lazily as it's requested — list() here forces full consumption, but next() shows only the first value is ever computed until asked for more."
+  },
+  {
+    "id": "iterator-fibonacci",
+    "topic_id": "intermediate-python-patterns",
+    "title": "Fibonacci Iterator Class",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Build a class `Fibonacci` that implements the iterator protocol: `Fibonacci(n)` yields the first `n` Fibonacci numbers (starting 0, 1, 1, 2, 3, ...) when iterated with a `for` loop or passed to `list()`.\n\nImplement:\n- `__init__(self, n)` — store `n`, a `count` starting at 0, and the first two Fibonacci values.\n- `__iter__(self)` — return `self`.\n- `__next__(self)` — return the next Fibonacci number, or raise `StopIteration` once `count` reaches `n`.",
+    "starter": "class Fibonacci:\n    def __init__(self, n):\n        pass\n\n    def __iter__(self):\n        pass\n\n    def __next__(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "first 5",
+        "call": "list(Fibonacci(5))",
+        "expected": [
+          0,
+          1,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "label": "first 1",
+        "call": "list(Fibonacci(1))",
+        "expected": [
+          0
+        ]
+      },
+      {
+        "label": "zero requested",
+        "call": "list(Fibonacci(0))",
+        "expected": []
+      },
+      {
+        "label": "first 8",
+        "call": "list(Fibonacci(8))",
+        "expected": [
+          0,
+          1,
+          1,
+          2,
+          3,
+          5,
+          8,
+          13
+        ]
+      }
+    ],
+    "hint": "Track self.a, self.b = 0, 1 and update them with the classic swap: self.a, self.b = self.b, self.a + self.b. Raise StopIteration once self.count reaches self.n.",
+    "solution": "class Fibonacci:\n    def __init__(self, n):\n        self.n = n\n        self.count = 0\n        self.a, self.b = 0, 1\n\n    def __iter__(self):\n        return self\n\n    def __next__(self):\n        if self.count >= self.n:\n            raise StopIteration\n        value = self.a\n        self.a, self.b = self.b, self.a + self.b\n        self.count += 1\n        return value\n",
+    "explanation": "This is the full iterator protocol from the lesson applied to a real sequence — __iter__ returns self so the object works directly in a for loop, and __next__ both produces a value and advances the internal state."
+  },
+  {
+    "id": "intermediate-python-capstone-resource-pool",
+    "topic_id": "intermediate-python-patterns",
+    "title": "Capstone: Resource Pool",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a `ResourcePool` class that models a small pool of shared resources (like a limited number of database connections) using the context manager protocol and an instance-method decorator.\n\nImplement:\n- `__init__(self, size)` — store `size`, `in_use` starting at 0, and an empty `events` list.\n- `__enter__(self)` — increment `in_use`, append `'acquired'` to `events`, and return `self`. (This is exactly what `with pool:` calls automatically.)\n- `__exit__(self, exc_type, exc_val, exc_tb)` — decrement `in_use`, append `'released'` to `events`, and return `False` (never suppress an exception).\n- `track(self, func)` — an instance-method decorator: return a `wrapper(*args, **kwargs)` that calls `func(*args, **kwargs)`, appends `'called:' + func.__name__` to `events`, and returns func's result unchanged.\n- `usage_report(self)` — return a dict counting how many times each event *category* occurred (split each event on `':'` and use the first part as the key), e.g. `{'acquired': 2, 'released': 1, 'called': 3}`.",
+    "starter": "class ResourcePool:\n    def __init__(self, size):\n        pass\n\n    def __enter__(self):\n        pass\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        pass\n\n    def track(self, func):\n        pass\n\n    def usage_report(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "enter records acquired",
+        "call": "(_pool := ResourcePool(3)).__enter__() and list(_pool.events)",
+        "expected": [
+          "acquired"
+        ]
+      },
+      {
+        "label": "exit records released",
+        "call": "_pool.__exit__(None, None, None) or list(_pool.events)",
+        "expected": [
+          "acquired",
+          "released"
+        ]
+      },
+      {
+        "label": "in_use returns to 0",
+        "call": "_pool.in_use",
+        "expected": 0
+      },
+      {
+        "label": "track returns original result",
+        "call": "_pool.track(lambda x: x + 1)(4)",
+        "expected": 5
+      },
+      {
+        "label": "track logs the call",
+        "call": "_pool.events[-1]",
+        "expected": "called:<lambda>"
+      },
+      {
+        "label": "usage_report aggregates by category",
+        "call": "_pool.usage_report()",
+        "expected": {
+          "acquired": 1,
+          "released": 1,
+          "called": 1
+        }
+      },
+      {
+        "label": "second tracked call increments the count",
+        "call": "_pool.track(lambda: 'x')() and _pool.usage_report()['called']",
+        "expected": 2
+      }
+    ],
+    "hint": "In __init__ store size, in_use=0, events=[]. __enter__ mutates in_use/events and returns self. track returns an inner wrapper function (a decorator, same shape as the earlier labs) that calls func and logs to self.events using func.__name__. usage_report loops over self.events, splits each entry on ':', and counts the first part with a dict.",
+    "solution": "class ResourcePool:\n    def __init__(self, size):\n        self.size = size\n        self.in_use = 0\n        self.events = []\n\n    def __enter__(self):\n        self.in_use += 1\n        self.events.append('acquired')\n        return self\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        self.in_use -= 1\n        self.events.append('released')\n        return False\n\n    def track(self, func):\n        def wrapper(*args, **kwargs):\n            result = func(*args, **kwargs)\n            self.events.append('called:' + func.__name__)\n            return result\n        return wrapper\n\n    def usage_report(self):\n        report = {}\n        for event in self.events:\n            key = event.split(':')[0]\n            report[key] = report.get(key, 0) + 1\n        return report\n",
+    "explanation": "This mirrors real connection-pool and rate-limiter code: `with pool:` acquires/releases a slot via the context manager protocol, `pool.track(some_function)` is the same decorator pattern from earlier in this topic but bound to an instance so it can log to that instance's own state, and usage_report() turns a raw event log into the kind of aggregated metrics a monitoring dashboard would show."
+  }
+]

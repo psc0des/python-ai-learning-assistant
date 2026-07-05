@@ -12,9 +12,9 @@ def test_uses_structured_content_mode():
 
 def test_structured_content_has_expected_current_baseline():
     loaded = load_content()
-    assert len(loaded.topics) == 21
-    assert len(loaded.exercises) == 122
-    assert len(loaded.practice_tests) == 21
+    assert len(loaded.topics) == 22
+    assert len(loaded.exercises) == 128
+    assert len(loaded.practice_tests) == 22
 
 
 def test_structured_topic_order_matches_manifest():
