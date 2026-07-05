@@ -17,7 +17,7 @@ Python_Learning_Assistant/
   runner.py           Lab test runner and execution tracer (WASI/wasmtime sandbox, sys.settrace)
   ai_coach.py         AI provider integration
   content/
-    manifest.json     Topic order and schema metadata (22 topics)
+    manifest.json     Topic order and schema metadata (26 topics)
     sources.json      Official source registry
     topics/           Per-topic authored content (topic.json, lesson.md, labs.json, practice.json)
   static/
@@ -366,7 +366,7 @@ Before deploying for multiple users, a senior developer should review and harden
 
 ## Current Product Shape
 
-The app is learning-focused, not interview-only. 22 topics across Python Core, Engineering Habits, Intermediate Python, Must-Know Extras, DevOps, Backend, AI Foundations, AI Apps, and AI Projects.
+The app is learning-focused, not interview-only. 26 topics across Python Core, Engineering Habits, Intermediate Python, Must-Know Extras, DevOps, Backend, AI Foundations, AI Apps, and AI Projects.
 
 Each topic is organized as:
 

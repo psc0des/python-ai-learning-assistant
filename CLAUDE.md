@@ -55,7 +55,7 @@ Python_Learning_Assistant/
   models.py               Request/response validation and startup content checks
   vendor/wasi/            Vendored WASI-target CPython 3.12 build used for code sandboxing
   content/
-    manifest.json         Topic order and schema metadata (22 topics)
+    manifest.json         Topic order and schema metadata (26 topics)
     sources.json          Official source registry with checked_at dates
     topics/               One directory per topic:
       <topic-id>/
@@ -182,7 +182,7 @@ Every topic marked `quality_status: reference` must have:
 
 Each topic has one capstone lab (`difficulty: "Advanced"`, `difficulty_order: 6`) that integrates multiple concepts into a class-based multi-method challenge. Capstone labs are added to `labs.json` only — no changes to `topic.json` or `lesson.md`. All code must be pure Python (no imports from `BLOCKED_MODULES`). Every capstone must use a class with `__init__` and instance methods — not bare functions — so it genuinely exercises the OOP and encapsulation patterns the curriculum teaches.
 
-Topics with capstones: `oop` (TaskManager), `fastapi` (Request Router), `rag-vectors` (Mini RAG Pipeline), `python-devops` (Deployment Checker), `errors-testing` (Debug Report Builder), `pydantic` (Schema Validator), `async` (Task Scheduler), `langchain` (Prompt Pipeline), `langgraph` (State Graph Runner), `mcp` (Tool Registry), `sql-http-git` (HTTP Log Analyzer), `llm-api-basics` (ChatSession), `structured-llm-outputs` (OutputValidator), `simple-rag-project` (MiniRAG), `simple-tool-calling` (ToolRegistry), `ai-evaluation` (EvalHarness), `ai-app-architecture` (SimpleAIApp), `intermediate-python-patterns` (Resource Pool).
+Topics with capstones: `oop` (TaskManager), `fastapi` (Request Router), `rag-vectors` (Mini RAG Pipeline), `python-devops` (Deployment Checker), `errors-testing` (Debug Report Builder), `pydantic` (Schema Validator), `async` (Task Scheduler), `langchain` (Prompt Pipeline), `langgraph` (State Graph Runner), `mcp` (Tool Registry), `sql-http-git` (HTTP Log Analyzer), `llm-api-basics` (ChatSession), `structured-llm-outputs` (OutputValidator), `simple-rag-project` (MiniRAG), `simple-tool-calling` (ToolRegistry), `ai-evaluation` (EvalHarness), `ai-app-architecture` (SimpleAIApp), `intermediate-python-patterns` (Resource Pool), `stdlib-fluency` (Inventory Tracker), `python-typing` (Generic Cache), `regex` (Log Parser), `python-packaging` (Dependency Resolver).
 
 ### Try-it buttons in lesson sections
 
