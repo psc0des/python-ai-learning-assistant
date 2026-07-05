@@ -1,0 +1,232 @@
+[
+  {
+    "id": "stdlib-count-words",
+    "topic_id": "stdlib-fluency",
+    "title": "Count Words",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `count_words(text)` that returns a dict mapping each lowercase word to how many times it appears. Assume words are whitespace-separated.",
+    "starter": "def count_words(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic",
+        "call": "count_words('a b a c b a')",
+        "expected": {
+          "a": 3,
+          "b": 2,
+          "c": 1
+        }
+      },
+      {
+        "label": "case folding",
+        "call": "count_words('Hello hello WORLD')",
+        "expected": {
+          "hello": 2,
+          "world": 1
+        }
+      },
+      {
+        "label": "empty string",
+        "call": "count_words('')",
+        "expected": {}
+      }
+    ],
+    "hint": "Lowercase the text, split on whitespace, then wrap the result in collections.Counter and convert to a plain dict.",
+    "solution": "from collections import Counter\ndef count_words(text):\n    return dict(Counter(text.lower().split()))\n",
+    "explanation": "Counter(iterable) tallies items in one call — no manual dict-building loop needed."
+  },
+  {
+    "id": "stdlib-most-common-word",
+    "topic_id": "stdlib-fluency",
+    "title": "Most Common Word",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `most_common_word(text)` that returns the single most frequent word in `text` (whitespace-separated, no ties in the test cases).",
+    "starter": "def most_common_word(text):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic",
+        "call": "most_common_word('a b a c a b')",
+        "expected": "a"
+      },
+      {
+        "label": "different winner",
+        "call": "most_common_word('x y y x x')",
+        "expected": "x"
+      },
+      {
+        "label": "single word",
+        "call": "most_common_word('only')",
+        "expected": "only"
+      }
+    ],
+    "hint": "Counter(text.split()).most_common(1) returns a list with one (word, count) tuple — you want the word, the first element of the first tuple.",
+    "solution": "from collections import Counter\ndef most_common_word(text):\n    counts = Counter(text.split())\n    return counts.most_common(1)[0][0]\n",
+    "explanation": "most_common(n) already returns results ranked by frequency, so no manual max-finding logic is needed."
+  },
+  {
+    "id": "stdlib-flatten-pairs",
+    "topic_id": "stdlib-fluency",
+    "title": "Flatten a List of Lists",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Write `flatten_pairs(list_of_lists)` using `itertools.chain` that flattens a list of lists into a single list, preserving order.",
+    "starter": "def flatten_pairs(list_of_lists):\n    pass\n",
+    "tests": [
+      {
+        "label": "basic",
+        "call": "flatten_pairs([[1,2],[3,4],[5]])",
+        "expected": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "label": "empty outer list",
+        "call": "flatten_pairs([])",
+        "expected": []
+      },
+      {
+        "label": "uneven sublists",
+        "call": "flatten_pairs([[1],[2,3,4]])",
+        "expected": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "hint": "itertools.chain.from_iterable(list_of_lists) lazily chains every sublist together; wrap it in list(...) to materialize the result.",
+    "solution": "import itertools\ndef flatten_pairs(list_of_lists):\n    return list(itertools.chain.from_iterable(list_of_lists))\n",
+    "explanation": "chain.from_iterable avoids a nested loop or list-comprehension-of-comprehensions for the common 'flatten one level' operation."
+  },
+  {
+    "id": "stdlib-first-n-evens",
+    "topic_id": "stdlib-fluency",
+    "title": "First N Even Numbers",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Write `first_n_evens(numbers, n)` using `itertools.islice` that returns the first `n` even numbers found in `numbers` (an iterable), without processing more of `numbers` than necessary.",
+    "starter": "def first_n_evens(numbers, n):\n    pass\n",
+    "tests": [
+      {
+        "label": "from a range",
+        "call": "first_n_evens(range(20), 3)",
+        "expected": [
+          0,
+          2,
+          4
+        ]
+      },
+      {
+        "label": "from a list",
+        "call": "first_n_evens([1,3,5,6,7,8,9,10], 2)",
+        "expected": [
+          6,
+          8
+        ]
+      },
+      {
+        "label": "not enough evens available",
+        "call": "first_n_evens([1,3,5], 3)",
+        "expected": []
+      }
+    ],
+    "hint": "Build a generator expression that filters for even numbers, then pass it to itertools.islice(evens, n) and wrap in list(...).",
+    "solution": "import itertools\ndef first_n_evens(numbers, n):\n    evens = (x for x in numbers if x % 2 == 0)\n    return list(itertools.islice(evens, n))\n",
+    "explanation": "islice on a generator expression only pulls as many values as needed — it never scans the rest of a huge or infinite iterable once n evens are found."
+  },
+  {
+    "id": "stdlib-cart-total",
+    "topic_id": "stdlib-fluency",
+    "title": "Shopping Cart Total (dataclass)",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Build a dataclass `Item` with fields `name` (str), `price` (float), and `quantity` (int, default `1`), plus a method `total()` returning `price * quantity`. Then write `cart_total(items)` that sums `total()` across a list of `Item` instances.",
+    "starter": "from dataclasses import dataclass\n\n@dataclass\nclass Item:\n    name: str\n    price: float\n    quantity: int = 1\n\n    def total(self):\n        pass\n\ndef cart_total(items):\n    pass\n",
+    "tests": [
+      {
+        "label": "two items",
+        "call": "cart_total([Item('a', 10.0, 2), Item('b', 5.0)])",
+        "expected": 25.0
+      },
+      {
+        "label": "empty cart",
+        "call": "cart_total([])",
+        "expected": 0
+      },
+      {
+        "label": "total() directly",
+        "call": "Item('x', 3.0, 4).total()",
+        "expected": 12.0
+      }
+    ],
+    "hint": "total() is just self.price * self.quantity. cart_total can use sum(item.total() for item in items) with no explicit loop needed.",
+    "solution": "from dataclasses import dataclass\n\n@dataclass\nclass Item:\n    name: str\n    price: float\n    quantity: int = 1\n\n    def total(self):\n        return self.price * self.quantity\n\ndef cart_total(items):\n    return sum(item.total() for item in items)\n",
+    "explanation": "The dataclass gives Item a free __init__ and __repr__; total() is an ordinary method you still write yourself, since dataclasses generate structure, not business logic."
+  },
+  {
+    "id": "stdlib-capstone-inventory-tracker",
+    "topic_id": "stdlib-fluency",
+    "title": "Capstone: Inventory Tracker",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build an `InventoryTracker` class that combines dataclasses, collections, and functools to track a small inventory.\n\nImplement:\n- `__init__(self)` — store an empty `items` list.\n- `add_item(self, name, category, price)` — append an `InventoryItem` (a module-level `@dataclass` with fields `name`, `category`, `price`) built from the arguments.\n- `total_value(self)` — sum every item's price using `functools.reduce`.\n- `group_by_category(self)` — return a dict of `{category: [item names]}` using `collections.defaultdict`.\n- `most_common_category(self)` — return the category name appearing most often (using `collections.Counter`), or `None` if there are no items.\n- `price_summary(self)` — return `{'min': ..., 'max': ..., 'avg': ...}` across all item prices, or `{'min': None, 'max': None, 'avg': None}` if there are no items.",
+    "starter": "from dataclasses import dataclass\n\n@dataclass\nclass InventoryItem:\n    name: str\n    category: str\n    price: float\n\nclass InventoryTracker:\n    def __init__(self):\n        pass\n\n    def add_item(self, name, category, price):\n        pass\n\n    def total_value(self):\n        pass\n\n    def group_by_category(self):\n        pass\n\n    def most_common_category(self):\n        pass\n\n    def price_summary(self):\n        pass\n",
+    "tests": [
+      {
+        "label": "add + total_value",
+        "call": "(_inv := InventoryTracker()).add_item('Widget','tools',10.0) or _inv.total_value()",
+        "expected": 10.0
+      },
+      {
+        "label": "second item updates total",
+        "call": "_inv.add_item('Gadget','electronics',20.0) or _inv.total_value()",
+        "expected": 30.0
+      },
+      {
+        "label": "group_by_category",
+        "call": "_inv.add_item('Gizmo','electronics',5.0) or _inv.group_by_category()",
+        "expected": {
+          "tools": [
+            "Widget"
+          ],
+          "electronics": [
+            "Gadget",
+            "Gizmo"
+          ]
+        }
+      },
+      {
+        "label": "most_common_category",
+        "call": "_inv.most_common_category()",
+        "expected": "electronics"
+      },
+      {
+        "label": "price_summary",
+        "call": "_inv.price_summary()",
+        "expected": {
+          "min": 5.0,
+          "max": 20.0,
+          "avg": 11.666666666666666
+        }
+      },
+      {
+        "label": "empty tracker price_summary",
+        "call": "InventoryTracker().price_summary()",
+        "expected": {
+          "min": null,
+          "max": null,
+          "avg": null
+        }
+      }
+    ],
+    "hint": "add_item appends InventoryItem(name, category, price) to self.items. total_value uses functools.reduce(lambda acc, item: acc + item.price, self.items, 0). group_by_category loops over self.items building a defaultdict(list) keyed by category. most_common_category uses Counter(item.category for item in self.items).most_common(1). price_summary computes min/max/avg over [item.price for item in self.items], handling the empty-list case first.",
+    "solution": "from dataclasses import dataclass\nfrom collections import Counter, defaultdict\nimport functools\n\n@dataclass\nclass InventoryItem:\n    name: str\n    category: str\n    price: float\n\nclass InventoryTracker:\n    def __init__(self):\n        self.items = []\n\n    def add_item(self, name, category, price):\n        self.items.append(InventoryItem(name, category, price))\n\n    def total_value(self):\n        return functools.reduce(lambda acc, item: acc + item.price, self.items, 0)\n\n    def group_by_category(self):\n        groups = defaultdict(list)\n        for item in self.items:\n            groups[item.category].append(item.name)\n        return dict(groups)\n\n    def most_common_category(self):\n        counts = Counter(item.category for item in self.items)\n        return counts.most_common(1)[0][0] if counts else None\n\n    def price_summary(self):\n        if not self.items:\n            return {'min': None, 'max': None, 'avg': None}\n        prices = [item.price for item in self.items]\n        return {'min': min(prices), 'max': max(prices), 'avg': sum(prices) / len(prices)}\n",
+    "explanation": "This mirrors a real internal admin tool: a dataclass models the record shape, defaultdict/Counter aggregate it by category, and reduce composes a running total without a hand-written accumulator loop — the same four stdlib building blocks from this topic's lessons, combined into one class."
+  }
+]

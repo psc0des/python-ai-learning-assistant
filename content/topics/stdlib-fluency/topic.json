@@ -1,0 +1,94 @@
+{
+  "id": "stdlib-fluency",
+  "track": "Intermediate Python",
+  "title": "Standard Library Fluency",
+  "level": "Intermediate",
+  "intro": "Python's standard library ships with tools that replace common hand-rolled patterns: counting (`collections.Counter`), grouping (`itertools.groupby`, `collections.defaultdict`), combining and slicing sequences (`itertools.chain`, `itertools.islice`), memoizing (`functools.lru_cache`), and structured records without boilerplate (`dataclasses`). This topic builds fluency with the tools you will see everywhere in intermediate and professional Python code.",
+  "mental_model": "Think of the standard library as a toolbox of pre-built, battle-tested Lego pieces for common shapes of problem. `Counter` is a specialized dict that already knows how to tally things. `defaultdict` is a dict that never says \"key not found\" — it just builds what's missing on the spot. `itertools` functions are like a factory line: `chain` welds sequences end to end, `islice` cuts off exactly the piece you need without processing the rest. `lru_cache` is a sticky note on a function's door saying \"already answered that one, here's what I said last time.\" A `dataclass` is a form with the boring boilerplate (a constructor, a way to print it, a way to compare two of them) pre-printed for you.",
+  "syntax": "from collections import Counter\n\ndef count_words(text):\n    return dict(Counter(text.lower().split()))\n",
+  "example": "from dataclasses import dataclass\n\n@dataclass\nclass Point:\n    x: float\n    y: float\n\np = Point(3, 4)\nprint(p)\n",
+  "must_know": [
+    "`Counter(iterable)` tallies items; `.most_common(n)` returns the top n as `(item, count)` pairs, ranked highest first.",
+    "`itertools.groupby` only groups **consecutive** matching items — sort by the same key first, or you'll silently get fragmented groups.",
+    "`defaultdict(list)` (or any factory) removes the need to check `if key not in dict` before appending or incrementing.",
+    "`functools.lru_cache` memoizes by argument values; an unbounded cache (`maxsize=None`) on a long-running process can grow memory without limit.",
+    "`@dataclass` generates `__init__`, `__repr__`, and `__eq__` from your field declarations — but never use a mutable default like `= []` directly; use `field(default_factory=list)`."
+  ],
+  "common_traps": [
+    "Calling `itertools.groupby` on unsorted data and getting many small groups instead of one group per key.",
+    "Using `field(default=[])` instead of `field(default_factory=list)` on a dataclass, sharing one list across every instance.",
+    "Leaving `lru_cache(maxsize=None)` on a function whose arguments vary constantly in a long-running process.",
+    "Forgetting that dataclass type annotations are hints, not runtime validation — Python will not stop you from passing the wrong type.",
+    "Reaching for a complex stdlib tool when a plain, obvious 3-line loop would be clearer for the next reader."
+  ],
+  "interview": [
+    "Explain why `itertools.groupby` requires sorted input and what happens if you skip that step.",
+    "Explain the mutable-default bug and how `field(default_factory=list)` avoids it in a dataclass.",
+    "Describe when `functools.lru_cache` helps performance and when it becomes a memory risk.",
+    "Compare `Counter` to a manual dict-based tallying loop — what does Counter give you for free?"
+  ],
+  "docs": [
+    {
+      "label": "Python Docs: itertools",
+      "url": "https://docs.python.org/3/library/itertools.html"
+    },
+    {
+      "label": "Python Docs: collections",
+      "url": "https://docs.python.org/3/library/collections.html"
+    },
+    {
+      "label": "Python Docs: functools",
+      "url": "https://docs.python.org/3/library/functools.html"
+    },
+    {
+      "label": "Python Docs: dataclasses",
+      "url": "https://docs.python.org/3/library/dataclasses.html"
+    }
+  ],
+  "real_world": [
+    "Log analysis and monitoring dashboards lean heavily on `Counter` and `defaultdict` to aggregate events by category.",
+    "Web frameworks and data pipelines use `dataclasses` (and the closely related Pydantic models) as the standard shape for structured request/response data.",
+    "`functools.lru_cache` is a common first-pass performance fix for expensive, pure functions called repeatedly with the same arguments."
+  ],
+  "outcome": "By the end of this topic, you should be able to use itertools.chain/islice/groupby to combine and slice iterables, use Counter and defaultdict to tally and group data without manual bookkeeping, use functools.reduce/partial/lru_cache to transform and memoize functions, and build structured records with dataclasses — including avoiding the mutable-default trap.",
+  "lesson_sections": [
+    {
+      "title": "1. itertools — Combining and Slicing Iterables Without Loops",
+      "body": "`itertools` is a toolbox of small, fast building blocks for working with sequences and iterators without writing manual loops. Two of the most useful: `chain`, which lazily strings several iterables together into one, and `islice`, which takes a slice of an iterator without consuming the whole thing first.\n\n```python run\nimport itertools\n\na = [1, 2, 3]\nb = [4, 5, 6]\ncombined = list(itertools.chain(a, b))\nprint(combined)\n\nfirst_three = list(itertools.islice(range(100), 3))\nprint(first_three)\n```\n\n`itertools.groupby` groups **consecutive** items that share a key — it does not scan ahead to collect every match, so you must sort the input by that key first, or you'll silently get multiple small groups instead of one group per key.\n\n```python run\nimport itertools\n\npeople = [\n    {'name': 'Ada', 'dept': 'Eng'},\n    {'name': 'Grace', 'dept': 'Eng'},\n    {'name': 'Alan', 'dept': 'Math'},\n]\npeople_sorted = sorted(people, key=lambda p: p['dept'])\nfor dept, group in itertools.groupby(people_sorted, key=lambda p: p['dept']):\n    names = [p['name'] for p in group]\n    print(dept, names)\n```\n\n**Common trap:** forgetting to sort before `groupby` — if the Math entry came *between* the two Eng entries in the original list, you'd get three separate one-item groups instead of two.",
+      "source_label": "Python Docs: itertools",
+      "source_url": "https://docs.python.org/3/library/itertools.html"
+    },
+    {
+      "title": "2. collections — Counter, defaultdict, and namedtuple",
+      "body": "`collections.Counter` is a dict built for counting: hand it any iterable and it tallies how many times each item appears, with a `most_common()` method for ranking the results.\n\n```python run\nfrom collections import Counter\n\nvotes = ['red', 'blue', 'red', 'green', 'blue', 'red']\ntally = Counter(votes)\nprint(tally)\nprint(tally.most_common(2))\n```\n\n`collections.defaultdict` removes the need to check whether a key already exists before appending to it — it calls a factory function (like `list` or `int`) to create a default value the first time a key is touched. `collections.namedtuple` gives you a lightweight, immutable record with named fields — cheaper than a class when you just need a labeled tuple.\n\n```python run\nfrom collections import defaultdict, namedtuple\n\ngroups = defaultdict(list)\nfor word in ['apple', 'banana', 'avocado', 'blueberry']:\n    groups[word[0]].append(word)\nprint(dict(groups))\n\nPoint = namedtuple('Point', ['x', 'y'])\np = Point(3, 4)\nprint(p.x, p.y)\nprint(p)\n```\n\nWithout `defaultdict`, the grouping loop above would need `if word[0] not in groups: groups[word[0]] = []` before every append — `defaultdict` makes that check disappear entirely.",
+      "source_label": "Python Docs: collections",
+      "source_url": "https://docs.python.org/3/library/collections.html"
+    },
+    {
+      "title": "3. functools — reduce, lru_cache, and partial",
+      "body": "`functools.reduce` collapses a sequence into a single value by repeatedly applying a two-argument function, carrying an accumulator forward. `functools.partial` pre-fills some of a function's arguments, returning a new callable that only needs the rest.\n\n```python run\nimport functools\n\ntotal = functools.reduce(lambda acc, x: acc + x, [1, 2, 3, 4], 0)\nprint(total)\n\ndef power(base, exponent):\n    return base ** exponent\n\nsquare = functools.partial(power, exponent=2)\nprint(square(5))\n```\n\n`functools.lru_cache` memoizes a function's results, keyed by its arguments — calling it again with the same arguments returns the cached value instead of recomputing it.\n\n```python run\nimport functools\n\ncalls = []\n\n@functools.lru_cache(maxsize=None)\ndef slow_square(n):\n    calls.append(n)\n    return n * n\n\nprint(slow_square(4))\nprint(slow_square(4))\nprint(slow_square(5))\nprint('actual calls made:', calls)\n```\n\nNotice `calls` only ever records `[4, 5]`, even though `slow_square(4)` was called twice — the second call was served entirely from the cache. **Common trap:** an unbounded `lru_cache` (`maxsize=None`) on a function called with many distinct arguments over a long-running process can grow memory usage indefinitely — set a real `maxsize` outside of small scripts.",
+      "source_label": "Python Docs: functools",
+      "source_url": "https://docs.python.org/3/library/functools.html"
+    },
+    {
+      "title": "4. dataclasses — Structured Data Without Boilerplate",
+      "body": "Before dataclasses, a simple data-holding class meant hand-writing `__init__`, `__repr__`, and `__eq__` yourself. `@dataclass` generates all three from your field declarations.\n\n```python run\nfrom dataclasses import dataclass, field\n\n@dataclass\nclass Product:\n    name: str\n    price: float\n    tags: list = field(default_factory=list)\n\np1 = Product('Widget', 9.99)\np2 = Product('Gadget', 19.99, tags=['new'])\nprint(p1)\nprint(p2)\nprint(p1 == Product('Widget', 9.99))\n```\n\n**Common trap:** writing `tags: list = []` instead of `field(default_factory=list)`. A plain `= []` default is the exact same mutable-default-argument bug from function parameters — every instance that doesn't pass its own `tags` would share **one** list object. `default_factory` calls `list()` fresh for each new instance instead.\n\n`__post_init__` runs automatically right after the generated `__init__` assigns all the declared fields — the right place to compute a derived value from them.\n\n```python run\nfrom dataclasses import dataclass\n\n@dataclass\nclass Rectangle:\n    width: float\n    height: float\n    area: float = 0.0\n\n    def __post_init__(self):\n        self.area = self.width * self.height\n\nr = Rectangle(3, 4)\nprint(r)\nprint(r.area)\n```\n\nNote that type annotations like `width: float` are hints, not runtime enforcement — passing `3` (an int) works fine and Python will not convert or reject it; a type checker like mypy is what catches a mismatch, not the dataclass itself.",
+      "source_label": "Python Docs: dataclasses",
+      "source_url": "https://docs.python.org/3/library/dataclasses.html"
+    },
+    {
+      "title": "5. Chaining It Together — A Real Data-Processing Pipeline",
+      "body": "These tools are most valuable combined. A small log-analysis pipeline: a list of structured log records (as dataclasses), tallied by level and filtered by message with `Counter`.\n\n```python run\nfrom collections import Counter\nfrom dataclasses import dataclass\n\n@dataclass\nclass LogEntry:\n    level: str\n    message: str\n\nlogs = [\n    LogEntry('INFO', 'started'),\n    LogEntry('ERROR', 'failed to connect'),\n    LogEntry('INFO', 'retrying'),\n    LogEntry('ERROR', 'timeout'),\n    LogEntry('ERROR', 'timeout'),\n]\n\nlevel_counts = Counter(log.level for log in logs)\nprint(level_counts)\n\nmessage_counts = Counter(log.message for log in logs if log.level == 'ERROR')\nprint(message_counts.most_common(1))\n```\n\nNotice `Counter` accepts any iterable directly — including a generator expression filtering `logs` in place — so no intermediate list is ever built just to count things. This is the same shape as a real monitoring dashboard: structured records in, aggregated counts out, using three or four stdlib tools instead of a hand-rolled nested-loop-and-dict implementation.",
+      "source_label": "Python Docs: collections",
+      "source_url": "https://docs.python.org/3/library/collections.html#collections.Counter"
+    },
+    {
+      "title": "6. When to Reach for the Standard Library vs. Writing It Yourself",
+      "body": "These tools are popular because they are fast, well-tested, and communicate intent clearly to another reader — `Counter(items)` says \"I am counting things\" more clearly than a manual `for`/`if`/`+= 1` loop does. But reaching for them without understanding their exact behavior causes real bugs:\n\n- **`groupby` without sorting first** silently produces multiple small groups instead of one full group per key — one of the most common stdlib-related bugs in real code.\n- **An unbounded `lru_cache`** on a function called with many distinct arguments over a long-running process (like this app's own server) can grow memory usage indefinitely.\n- **A mutable `default_factory`-free default** on a dataclass field (or a function argument) shares one object across every instance — surprising and hard to trace back to its source.\n\n**Reach for the standard library when:** the exact tool matches your problem shape (counting → `Counter`, grouping → `groupby` or `defaultdict`, memoizing → `lru_cache`, structured records → `dataclass`) and you understand its edge cases. **Write your own loop when:** the stdlib tool's specific behavior would be less clear or more error-prone than 3-4 lines of plain, obvious code — clarity for the next reader (including future you) always outranks looking clever.",
+      "source_label": "Python Docs: itertools",
+      "source_url": "https://docs.python.org/3/library/itertools.html#itertools-recipes"
+    }
+  ],
+  "lesson_path": "content/topics/stdlib-fluency/lesson.md",
+  "quality_status": "reference"
+}

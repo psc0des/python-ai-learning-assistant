@@ -1,0 +1,115 @@
+{
+  "topic_id": "stdlib-fluency",
+  "questions": [
+    {
+      "question": "What does `itertools.chain(a, b)` do?",
+      "options": [
+        "Merges two iterables into one iterator without creating an intermediate combined list.",
+        "Raises an error if the two iterables have different lengths.",
+        "Sorts the combined result automatically.",
+        "Only works with lists, not other iterables."
+      ],
+      "answer": 0,
+      "explanation": "itertools.chain lazily iterates over each iterable in sequence, producing a single iterator without ever building a new combined list — memory-efficient for large sequences."
+    },
+    {
+      "question": "Why must a sequence be sorted by key before using `itertools.groupby` on it?",
+      "options": [
+        "groupby only works on sorted numbers.",
+        "groupby only groups consecutive items sharing a key, so unsorted input produces multiple small groups instead of one full group per key.",
+        "groupby requires alphabetical order specifically.",
+        "groupby modifies the list in place, which requires pre-sorting."
+      ],
+      "answer": 1,
+      "explanation": "itertools.groupby doesn't scan ahead to find all matching items — it only groups runs of consecutive equal keys, so unsorted input silently produces multiple separate groups for the same key value."
+    },
+    {
+      "question": "What does `Counter(votes).most_common(2)` return?",
+      "options": [
+        "The 2 least common items.",
+        "The total count of all items combined.",
+        "A list of the 2 (item, count) pairs with the highest counts, in descending order.",
+        "A set containing the 2 most common items."
+      ],
+      "answer": 2,
+      "explanation": "most_common(n) returns a list of (element, count) tuples ordered from most frequent to least, truncated to n entries."
+    },
+    {
+      "question": "What problem does `collections.defaultdict` solve compared to a plain dict?",
+      "options": [
+        "It automatically sorts keys.",
+        "It makes dicts immutable.",
+        "It removes duplicate keys automatically.",
+        "It supplies a default value for a missing key instead of raising KeyError."
+      ],
+      "answer": 3,
+      "explanation": "defaultdict(list) (or any factory) calls the factory to create a value the first time a key is accessed, avoiding a manual 'if key not in dict' check before appending."
+    },
+    {
+      "question": "What does `functools.lru_cache` do to a function?",
+      "options": [
+        "Makes the function's arguments optional.",
+        "Converts the function into a class.",
+        "Caches return values by argument so repeated calls with the same arguments skip re-computing the result.",
+        "Limits how many times the function can be called in total."
+      ],
+      "answer": 2,
+      "explanation": "lru_cache memoizes results keyed by the function's arguments; calling it again with the same arguments returns the cached value instantly instead of re-running the function body."
+    },
+    {
+      "question": "What does `functools.partial(power, exponent=2)` create?",
+      "options": [
+        "A new callable identical to power but with exponent already fixed at 2, needing only the remaining argument(s).",
+        "A copy of power that runs twice as fast.",
+        "A decorator that validates power's arguments.",
+        "An error, since partial only works with positional arguments."
+      ],
+      "answer": 0,
+      "explanation": "functools.partial pre-fills one or more arguments of a callable, returning a new callable that only needs the rest — calling the result with just the base is equivalent to power(base, exponent=2)."
+    },
+    {
+      "question": "What does the `@dataclass` decorator generate for you automatically?",
+      "options": [
+        "Only a custom __str__ method.",
+        "A database table matching the class.",
+        "Type coercion that converts values to the annotated type at runtime.",
+        "__init__, __repr__, and __eq__ based on the declared fields, without writing them by hand."
+      ],
+      "answer": 3,
+      "explanation": "@dataclass writes __init__ (with field defaults), __repr__ (readable printing), and __eq__ (field-by-field comparison) for you — but it does NOT enforce or coerce the annotated types at runtime; those remain just hints."
+    },
+    {
+      "question": "In a dataclass, what does `field(default_factory=list)` do that `default=[]` cannot?",
+      "options": [
+        "Nothing — they behave identically.",
+        "Makes the field read-only.",
+        "Creates a NEW empty list for each instance, avoiding the mutable-default bug where every instance would share the same list.",
+        "Converts the field to a tuple."
+      ],
+      "answer": 2,
+      "explanation": "A plain default=[] would be one single list object shared by every instance (the same mutable-default trap as function arguments); default_factory=list calls list() fresh for each new instance instead."
+    },
+    {
+      "question": "When does `__post_init__` run in a dataclass?",
+      "options": [
+        "Before __init__ assigns any fields.",
+        "Automatically, immediately after __init__ has assigned all the declared fields.",
+        "Only when the object is printed.",
+        "It never runs unless called manually."
+      ],
+      "answer": 1,
+      "explanation": "__post_init__ is called automatically by the generated __init__ right after all declared fields are assigned, making it the right place to compute derived values from those fields."
+    },
+    {
+      "question": "When is it better to write your own loop instead of reaching for itertools/functools/collections?",
+      "options": [
+        "Always — the standard library should never be used for this kind of task.",
+        "When the stdlib tool's specific behavior (e.g. groupby's consecutive-only grouping, or an unbounded cache) would be less clear or correct than a straightforward loop for your case.",
+        "Never — stdlib tools are always faster.",
+        "Only when working with strings."
+      ],
+      "answer": 1,
+      "explanation": "The standard library tools are optimized and well-tested, but choosing them without understanding their edge cases (unsorted groupby, unbounded lru_cache) can introduce subtle bugs — a plain loop is sometimes clearer and just as correct for simple cases."
+    }
+  ]
+}
