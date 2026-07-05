@@ -52,7 +52,7 @@ python -B -m pytest tests -q -p no:cacheprovider
 
 ## What It Covers
 
-- 21 topics: Python basics, functions, data structures, OOP, errors/testing, async, LLM API calls, structured LLM outputs, basic AI evaluation, basic AI app architecture, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 122 labs total, including Advanced capstones for the 17 capstone topics
+- 22 topics: Python basics, functions, data structures, OOP, errors/testing, intermediate Python patterns (decorators, generators, context managers), async, LLM API calls, structured LLM outputs, basic AI evaluation, basic AI app architecture, FastAPI, Pydantic, SQL/HTTP/Git, Python for DevOps, LangChain, LangGraph, MCP, RAG/embeddings, simple RAG project, tool calling — plus a zero-knowledge Getting Started on-ramp; 128 labs total, including Advanced capstones for the 18 capstone topics
 - Topic flow: overview → lesson (with inline concept diagrams) → hands-on labs → practice test
 - **Capstone labs** — one advanced multi-function project per major track (Python Core, Backend, AI Apps, DevOps, Engineering Habits) that integrates concepts from across the track
 - **Learner readiness signals** — sidebar badges show lab progress, the latest submitted practice-test score, and whether a topic is started, core-ready, or complete

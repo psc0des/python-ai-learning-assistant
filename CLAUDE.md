@@ -50,7 +50,7 @@ Python_Learning_Assistant/
   ai_coach.py             AI provider integration (8 providers, fallback-safe)
   models.py               Request/response validation and startup content checks
   content/
-    manifest.json         Topic order and schema metadata (21 topics)
+    manifest.json         Topic order and schema metadata (22 topics)
     sources.json          Official source registry with checked_at dates
     topics/               One directory per topic:
       <topic-id>/
