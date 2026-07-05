@@ -1,0 +1,94 @@
+{
+  "id": "python-typing",
+  "track": "Intermediate Python",
+  "title": "Python Typing in Depth",
+  "level": "Intermediate",
+  "intro": "Basic type hints (`def f(x: int) -> str:`) only scratch the surface. Real intermediate and professional Python code uses `Optional`/`Union` to model values that might be absent or one of several types, `TypeVar`/`Generic` to type containers and functions generically, `Protocol` for structural typing without inheritance, and `TypedDict` for dict shapes. This topic goes deep on all of them — and on the crucial, easy-to-miss fact that none of it is enforced at runtime by Python itself.",
+  "mental_model": "Think of type hints as blueprints, not building inspectors. A blueprint tells everyone reading it exactly what a room is supposed to contain and how the pieces connect — but the blueprint itself cannot stop someone from building it wrong. A separate inspector (a static type checker like mypy) has to actually show up and compare the building to the blueprint to catch a mismatch. Python hands you excellent blueprints (`Optional`, `Generic`, `Protocol`, `TypedDict`) but ships no inspector of its own — you opt into one.",
+  "syntax": "from typing import Optional\n\ndef find_user(user_id: int, users: dict) -> Optional[str]:\n    return users.get(user_id)\n",
+  "example": "from typing import Protocol\n\nclass Named(Protocol):\n    def greet(self) -> str:\n        ...\n\ndef introduce(entity: Named) -> str:\n    return entity.greet()\n",
+  "must_know": [
+    "Type hints are never enforced by the Python interpreter — only a separate static checker (mypy, pyright) actually verifies them.",
+    "`Optional[X]` means `Union[X, None]`; Python 3.10+ can write unions as `X | Y` instead of `Union[X, Y]`.",
+    "`TypeVar` links an input type to an output type in a function signature — the same function stays correctly typed for `int`, `str`, or anything else, without duplicating it.",
+    "`Protocol` enables structural typing — a class satisfies a Protocol just by having the right methods/attributes, with no inheritance required.",
+    "`TypedDict` documents a dict's expected keys and value types for a checker, but is still a plain `dict` at runtime with zero built-in validation."
+  ],
+  "common_traps": [
+    "Assuming a type hint will raise an error at runtime if violated — it will not; only a checker run as a separate step catches it.",
+    "Returning `Optional[X]` from a function and forgetting to handle the `None` case at every call site.",
+    "Using `Any` to silence a checker instead of fixing the actual type mismatch, quietly disabling checking for that value.",
+    "Expecting `TypedDict` to validate or require keys at runtime the way a dataclass's `__init__` does.",
+    "Writing a class that inherits from a `Protocol` when structural typing (no inheritance at all) was the actual point."
+  ],
+  "interview": [
+    "Explain why Python type hints are called 'gradual typing' and what enforces them in practice.",
+    "Explain the difference between nominal typing (inheritance-based) and structural typing (Protocol-based).",
+    "Walk through what TypeVar buys you over a plain, untyped container.",
+    "Describe a real bug a static type checker would catch that Python itself would not."
+  ],
+  "docs": [
+    {
+      "label": "Python Docs: typing",
+      "url": "https://docs.python.org/3/library/typing.html"
+    },
+    {
+      "label": "Python Docs: typing.Optional",
+      "url": "https://docs.python.org/3/library/typing.html#typing.Optional"
+    },
+    {
+      "label": "Python Docs: typing.Protocol",
+      "url": "https://docs.python.org/3/library/typing.html#typing.Protocol"
+    },
+    {
+      "label": "Python Docs: typing.TypedDict",
+      "url": "https://docs.python.org/3/library/typing.html#typing.TypedDict"
+    }
+  ],
+  "real_world": [
+    "FastAPI and Pydantic use type hints as their core mechanism — the hints on a request model directly drive runtime validation there (Pydantic is the exception that DOES enforce hints, by choice, at the framework layer).",
+    "Large Python codebases (Instagram, Dropbox) adopted mypy gradually, file by file, to catch real bugs in code that had run untyped and unchecked for years.",
+    "Protocol-based structural typing is exactly how you type a function that accepts 'anything file-like' or 'anything with a .read() method' without forcing every caller to inherit from a base class."
+  ],
+  "outcome": "By the end of this topic, you should be able to use Optional/Union (and the `|` shorthand) to model values that may be absent or multiple types, use TypeVar and Generic to type functions and classes generically, define and use a Protocol for structural typing, define a TypedDict for a fixed dict shape, and explain precisely what Python's type system does and does not enforce at runtime.",
+  "lesson_sections": [
+    {
+      "title": "1. Why Type Hints — Documentation, Not Enforcement",
+      "body": "Type hints like `def add(a: int, b: int) -> int:` describe what a function *expects* and *returns* — for readers, IDEs, and static checkers like mypy. Python itself does **not** enforce them at runtime; they are documentation with tooling superpowers, not a guarantee.\n\n```python run\ndef add(a: int, b: int) -> int:\n    return a + b\n\nprint(add(2, 3))\nprint(add('x', 'y'))   # Python does NOT stop this -- hints are not enforced at runtime\n```\n\nBoth calls run without error — `add('x', 'y')` even \"succeeds\" because `+` happens to work on strings too, just not in the way the hint promised. A static type checker (mypy, pyright) would flag the second call as an error *before* you ever run the code; Python the language will not.",
+      "source_label": "Python Docs: typing",
+      "source_url": "https://docs.python.org/3/library/typing.html"
+    },
+    {
+      "title": "2. Optional and Union — Modeling 'Might Not Have a Value'",
+      "body": "`Optional[str]` means \"a `str`, or `None`\" — it is shorthand for `Union[str, None]`. `Union[int, float, str]` means the value could be any one of those types.\n\n```python run\nfrom typing import Optional, Union\n\ndef find_user(user_id: int, users: dict) -> Optional[str]:\n    return users.get(user_id)\n\ndef normalize(value: Union[int, float, str]) -> str:\n    return str(value)\n\nusers = {1: 'Ada', 2: 'Grace'}\nprint(find_user(1, users))\nprint(find_user(99, users))\nprint(normalize(42))\nprint(normalize(3.14))\n```\n\nPython 3.10 introduced a shorter syntax using `|`: `int | str` instead of `Union[int, str]`, and `int | None` instead of `Optional[int]`.\n\n```python run\ndef describe(value: int | str | None) -> str:\n    if value is None:\n        return 'nothing'\n    return f'{type(value).__name__}: {value}'\n\nprint(describe(5))\nprint(describe('hi'))\nprint(describe(None))\n```\n\n**Common trap:** returning `Optional[str]` from a function and then forgetting to handle the `None` case at the call site — the annotation is a promise the *caller* must also respect, which is exactly what a static checker verifies for you.",
+      "source_label": "Python Docs: typing.Optional",
+      "source_url": "https://docs.python.org/3/library/typing.html#typing.Optional"
+    },
+    {
+      "title": "3. Generics — TypeVar and Generic Containers",
+      "body": "A plain `list` hint says \"a list of something,\" but doesn't say what. `TypeVar` lets you link an input type to an output type — \"whatever type goes in a list of T, a T comes back out.\"\n\n```python run\nfrom typing import TypeVar, List\n\nT = TypeVar('T')\n\ndef first(items: List[T]) -> T:\n    return items[0]\n\nprint(first([1, 2, 3]))\nprint(first(['a', 'b']))\n```\n\nA type checker uses this to verify that `first([1, 2, 3])` is known to return an `int`, and `first(['a', 'b'])` a `str` — without you writing two separate functions. `Generic[T]` extends the same idea to classes, so a container class can be typed for whatever it holds.\n\n```python run\nfrom typing import Generic, TypeVar\n\nT = TypeVar('T')\n\nclass Stack(Generic[T]):\n    def __init__(self):\n        self.items: list[T] = []\n\n    def push(self, item: T) -> None:\n        self.items.append(item)\n\n    def pop(self) -> T:\n        return self.items.pop()\n\ns: Stack[int] = Stack()\ns.push(1)\ns.push(2)\nprint(s.pop())\nprint(s.pop())\n```\n\n`Stack[int]` tells a checker this particular stack only ever holds `int`s — pushing a string onto it would be a static type error, even though nothing stops it at runtime.",
+      "source_label": "Python Docs: typing.TypeVar",
+      "source_url": "https://docs.python.org/3/library/typing.html#typing.TypeVar"
+    },
+    {
+      "title": "4. Protocol — Structural Typing Made Explicit",
+      "body": "Python has always supported \"duck typing\" — if an object has the right methods, it works, regardless of its class hierarchy. `Protocol` lets you describe that shape explicitly, so a type checker can verify it *without requiring inheritance*.\n\n```python run\nfrom typing import Protocol\n\nclass Named(Protocol):\n    name: str\n\n    def greet(self) -> str:\n        ...\n\nclass Person:\n    def __init__(self, name):\n        self.name = name\n\n    def greet(self):\n        return f'Hello, I am {self.name}'\n\ndef introduce(entity: Named) -> str:\n    return entity.greet()\n\nprint(introduce(Person('Ada')))\n```\n\n`Person` never inherits from `Named` — it just happens to have a `.name` attribute and a `.greet()` method, which is all `introduce()` actually needs. This is **structural typing**: 'if it looks like a duck and quacks like a duck, it satisfies the Duck protocol' — a checker verifies the shape matches, not the class ancestry.",
+      "source_label": "Python Docs: typing.Protocol",
+      "source_url": "https://docs.python.org/3/library/typing.html#typing.Protocol"
+    },
+    {
+      "title": "5. TypedDict — Typing Dictionary Shapes",
+      "body": "Plain `dict` hints (like `dict[str, int]`) describe uniform key/value types, but many dicts in real code have a *fixed, specific* shape — `{'title': ..., 'year': ...}`, always those two keys. `TypedDict` documents exactly that shape.\n\n```python run\nfrom typing import TypedDict\n\nclass Movie(TypedDict):\n    title: str\n    year: int\n\ndef summarize(movie: Movie) -> str:\n    return f\"{movie['title']} ({movie['year']})\"\n\nm: Movie = {'title': 'Arrival', 'year': 2016}\nprint(summarize(m))\n```\n\n**Common trap:** a `TypedDict` is still just a regular `dict` at runtime — it adds no validation of its own. Nothing stops you from constructing one with a missing key; only a static checker catches it.\n\n```python run\nfrom typing import TypedDict\n\nclass Movie(TypedDict):\n    title: str\n    year: int\n\nbad_movie = {'title': 'Oops'}   # missing 'year' -- but this is just a dict, so it's allowed\nprint(bad_movie)\nprint(type(bad_movie).__name__)\n```\n\nIf you need the missing-key case to be an actual runtime error, a `dataclass` (which has a real `__init__` requiring its declared fields) is a better fit than `TypedDict`.",
+      "source_label": "Python Docs: typing.TypedDict",
+      "source_url": "https://docs.python.org/3/library/typing.html#typing.TypedDict"
+    },
+    {
+      "title": "6. Static Checking in Practice — mypy and the Limits of Type Hints",
+      "body": "Everything in this topic — `Optional`, `Union`, `TypeVar`, `Protocol`, `TypedDict` — is inert at runtime. The tool that actually *enforces* these promises is a separate static type checker, most commonly `mypy`, run as its own step (`mypy your_file.py`), not by the Python interpreter.\n\nThis means Python's typing is **gradual and optional** by design: you can add hints to one function at a time, run mypy in CI to catch mismatches before they reach production, and still run completely unhinted code right alongside fully-typed code. `Any` is the deliberate escape hatch — a value typed `Any` opts out of checking entirely, useful for gradually typing an untyped codebase but easy to overuse as a way of silencing the checker instead of fixing the actual type mismatch.\n\n**The honest scope of Python's type system:** it improves documentation, catches real bugs *before* runtime when checked by a separate tool, and helps IDEs autocomplete and refactor correctly — but it adds **zero enforcement on its own**. A function annotated `-> int` can still return a string at runtime, and Python will happily let it. Treat type hints as a contract you and your tooling agree to honor, not a guarantee the language backs up.",
+      "source_label": "Python Docs: typing",
+      "source_url": "https://docs.python.org/3/library/typing.html#module-typing"
+    }
+  ],
+  "lesson_path": "content/topics/python-typing/lesson.md",
+  "quality_status": "reference"
+}

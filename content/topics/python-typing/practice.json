@@ -1,0 +1,115 @@
+{
+  "topic_id": "python-typing",
+  "questions": [
+    {
+      "question": "What is the main purpose of a type hint like `def add(a: int, b: int) -> int:`?",
+      "options": [
+        "It converts arguments to the annotated type automatically.",
+        "It raises a TypeError immediately if the wrong type is passed.",
+        "It documents expected types and enables tool/IDE checking, but Python does not enforce it at runtime.",
+        "It is required for the function to run at all."
+      ],
+      "answer": 2,
+      "explanation": "Type hints are documentation and tooling metadata — Python's interpreter runs the function the same way whether the hints are honored, violated, or absent."
+    },
+    {
+      "question": "What does `Optional[str]` mean?",
+      "options": [
+        "The argument is optional and can be omitted entirely from the call.",
+        "It's required syntax with no special meaning of its own.",
+        "The value must always be a non-empty string.",
+        "The value is either a str or None."
+      ],
+      "answer": 3,
+      "explanation": "Optional[str] is shorthand for Union[str, None] — the value is a str, or it's None; it says nothing about whether the argument itself can be omitted from a call."
+    },
+    {
+      "question": "What is the modern (Python 3.10+) equivalent of `Union[int, str]`?",
+      "options": [
+        "int | str",
+        "int & str",
+        "int, str",
+        "int and str"
+      ],
+      "answer": 0,
+      "explanation": "PEP 604 introduced the | operator as shorthand for Union in type hints — int | str means exactly the same as Union[int, str]."
+    },
+    {
+      "question": "What does a `TypeVar` let you express in a function signature?",
+      "options": [
+        "That the function accepts any number of positional arguments.",
+        "That a function's input and output types are linked — e.g. a list of T returns a T, whatever T actually is at each call.",
+        "That the function must be called with keyword arguments only.",
+        "That the function is deprecated and should not be used."
+      ],
+      "answer": 1,
+      "explanation": "TypeVar ties types together across a signature so a checker can verify, for example, that a function taking a List[T] and returning T preserves that specific T for each call site."
+    },
+    {
+      "question": "What makes a class satisfy a `Protocol`, without inheriting from it?",
+      "options": [
+        "Explicitly registering it with the protocol's register() method.",
+        "Adding a special __protocol__ attribute to the class.",
+        "Simply having the methods/attributes the Protocol declares — this is structural typing.",
+        "It's impossible; Protocol always requires inheritance in Python."
+      ],
+      "answer": 2,
+      "explanation": "Protocol enables structural typing: a class satisfies it purely by having the right shape (matching methods and attributes), with zero inheritance relationship required."
+    },
+    {
+      "question": "What is `TypedDict` used for?",
+      "options": [
+        "Making a dict immutable once created.",
+        "Describing the expected shape (keys and value types) of a plain dict, for a type checker to validate statically.",
+        "Automatically converting a dict into a dataclass instance.",
+        "Sorting dictionary keys automatically on insertion."
+      ],
+      "answer": 1,
+      "explanation": "TypedDict documents a dict's expected keys and their value types so a static checker can catch a missing or mistyped key — it does not change the dict's runtime behavior at all."
+    },
+    {
+      "question": "If a `TypedDict`-annotated dict is missing one of its declared keys at runtime, what actually happens?",
+      "options": [
+        "Python raises a KeyError the moment the dict literal is created.",
+        "The missing key is automatically filled in with None.",
+        "The program refuses to start up.",
+        "Nothing at runtime — TypedDict is purely a static-checking annotation; only a type checker like mypy would flag it."
+      ],
+      "answer": 3,
+      "explanation": "A TypedDict is still just a plain dict at runtime with no validation of its own — a missing or extra key only becomes an error if you run a separate static checker against the code."
+    },
+    {
+      "question": "What tool actually enforces the promises made by type hints?",
+      "options": [
+        "The Python interpreter itself, at every function call.",
+        "A separate static type checker (like mypy), run as its own step — not the interpreter.",
+        "The typing module raises errors automatically at import time.",
+        "pytest, automatically, whenever the test suite runs."
+      ],
+      "answer": 1,
+      "explanation": "Type hints are inert as far as the Python interpreter is concerned; a static checker like mypy or pyright is a separate tool you run deliberately to catch violations before runtime."
+    },
+    {
+      "question": "Why is `list[T]` more useful in a signature than a plain, unparameterized `list`?",
+      "options": [
+        "It makes the list read-only at runtime.",
+        "It's required syntax — plain list is invalid inside a type hint.",
+        "It documents and lets a checker verify what's inside the list, not just that it's a list.",
+        "It makes list operations run faster."
+      ],
+      "answer": 2,
+      "explanation": "Plain list says nothing about its contents; list[T] (or List[T]) lets a checker verify that every element is the expected type T, catching a wrong-type item before runtime."
+    },
+    {
+      "question": "What is the honest scope of Python's type system?",
+      "options": [
+        "It guarantees no TypeError can ever occur at runtime.",
+        "It's optional, gradual, and checked only by external tools — it improves documentation and catches bugs before runtime, but adds zero runtime enforcement by itself.",
+        "It replaces the need for automated tests entirely.",
+        "It only applies to function arguments, never to return values."
+      ],
+      "answer": 1,
+      "explanation": "Python's typing is deliberately gradual and optional — you can adopt it incrementally, and it is enforced only by whatever separate checker you choose to run, never by the interpreter itself."
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+[
+  {
+    "id": "typing-safe-divide",
+    "topic_id": "python-typing",
+    "title": "Safe Divide (Optional)",
+    "difficulty": "Beginner",
+    "difficulty_order": 1,
+    "prompt": "Write `safe_divide(a: float, b: float) -> Optional[float]` that returns `a / b`, or `None` if `b` is 0.",
+    "starter": "from typing import Optional\n\ndef safe_divide(a: float, b: float) -> Optional[float]:\n    pass\n",
+    "tests": [
+      {
+        "label": "normal division",
+        "call": "safe_divide(10, 2)",
+        "expected": 5.0
+      },
+      {
+        "label": "zero divisor",
+        "call": "safe_divide(10, 0)",
+        "expected": null
+      },
+      {
+        "label": "zero numerator",
+        "call": "safe_divide(0, 5)",
+        "expected": 0.0
+      }
+    ],
+    "hint": "Guard b == 0 and return None; otherwise return a / b.",
+    "solution": "from typing import Optional\n\ndef safe_divide(a: float, b: float) -> Optional[float]:\n    if b == 0:\n        return None\n    return a / b\n",
+    "explanation": "Optional[float] documents that this function can legitimately return 'no value' — the caller is expected to check for None before using the result."
+  },
+  {
+    "id": "typing-describe-value",
+    "topic_id": "python-typing",
+    "title": "Describe a Value (Union)",
+    "difficulty": "Beginner",
+    "difficulty_order": 2,
+    "prompt": "Write `describe_value(value: int | str | None) -> str` that returns `'empty'` for `None`, `f'number: {value}'` for an int, or `f'text: {value}'` for a str.",
+    "starter": "def describe_value(value: int | str | None) -> str:\n    pass\n",
+    "tests": [
+      {
+        "label": "int",
+        "call": "describe_value(5)",
+        "expected": "number: 5"
+      },
+      {
+        "label": "str",
+        "call": "describe_value('hi')",
+        "expected": "text: hi"
+      },
+      {
+        "label": "none",
+        "call": "describe_value(None)",
+        "expected": "empty"
+      }
+    ],
+    "hint": "Check for None first, then use isinstance(value, int) to distinguish the remaining two cases.",
+    "solution": "def describe_value(value: int | str | None) -> str:\n    if value is None:\n        return 'empty'\n    if isinstance(value, int):\n        return f'number: {value}'\n    return f'text: {value}'\n",
+    "explanation": "The int | str | None union (3.10+ syntax) documents all three shapes a caller might pass, and the function handles each explicitly rather than assuming one."
+  },
+  {
+    "id": "typing-last-generic",
+    "topic_id": "python-typing",
+    "title": "Last Item (Generic Function)",
+    "difficulty": "Intermediate",
+    "difficulty_order": 3,
+    "prompt": "Using `TypeVar`, write `last(items: List[T]) -> T` that returns the last item of a non-empty list.",
+    "starter": "from typing import TypeVar, List\n\nT = TypeVar('T')\n\ndef last(items: List[T]) -> T:\n    pass\n",
+    "tests": [
+      {
+        "label": "ints",
+        "call": "last([1,2,3])",
+        "expected": 3
+      },
+      {
+        "label": "strings",
+        "call": "last(['a','b'])",
+        "expected": "b"
+      },
+      {
+        "label": "single item",
+        "call": "last([42])",
+        "expected": 42
+      }
+    ],
+    "hint": "items[-1] returns the last element of any list.",
+    "solution": "from typing import TypeVar, List\n\nT = TypeVar('T')\n\ndef last(items: List[T]) -> T:\n    return items[-1]\n",
+    "explanation": "TypeVar links the list's element type to the return type, so a checker knows last([1,2,3]) returns an int and last(['a','b']) returns a str, from one generic function."
+  },
+  {
+    "id": "typing-total-area-protocol",
+    "topic_id": "python-typing",
+    "title": "Total Area (Protocol)",
+    "difficulty": "Intermediate",
+    "difficulty_order": 4,
+    "prompt": "Define a `Protocol` named `Shaped` with a method `area() -> float`. Write `total_area(shapes)` that sums `.area()` across a list of objects satisfying `Shaped` — they should NOT need to inherit from it.",
+    "starter": "from typing import Protocol\n\nclass Shaped(Protocol):\n    def area(self) -> float:\n        ...\n\ndef total_area(shapes):\n    pass\n",
+    "tests": [
+      {
+        "label": "two shapes",
+        "call": "total_area([type('C', (), {'area': lambda self: 3.0})(), type('S', (), {'area': lambda self: 4.5})()])",
+        "expected": 7.5
+      },
+      {
+        "label": "empty list",
+        "call": "total_area([])",
+        "expected": 0
+      },
+      {
+        "label": "single shape's own area()",
+        "call": "type('Sq', (), {'area': lambda self: 9.0})().area()",
+        "expected": 9.0
+      }
+    ],
+    "hint": "sum(shape.area() for shape in shapes) works regardless of each shape's actual class, as long as it has an area() method.",
+    "solution": "from typing import Protocol\n\nclass Shaped(Protocol):\n    def area(self) -> float:\n        ...\n\ndef total_area(shapes):\n    return sum(shape.area() for shape in shapes)\n",
+    "explanation": "Neither test object inherits from Shaped at all — this is structural typing in action: total_area only cares that each object has a callable .area(), exactly what the Protocol declares."
+  },
+  {
+    "id": "typing-format-address-typeddict",
+    "topic_id": "python-typing",
+    "title": "Format Address (TypedDict)",
+    "difficulty": "Intermediate",
+    "difficulty_order": 5,
+    "prompt": "Define a `TypedDict` named `Config` with keys `host` (str) and `port` (int). Write `format_address(config: Config) -> str` that returns `f'{host}:{port}'`.",
+    "starter": "from typing import TypedDict\n\nclass Config(TypedDict):\n    host: str\n    port: int\n\ndef format_address(config: Config) -> str:\n    pass\n",
+    "tests": [
+      {
+        "label": "localhost",
+        "call": "format_address({'host': 'localhost', 'port': 8080})",
+        "expected": "localhost:8080"
+      },
+      {
+        "label": "wildcard host",
+        "call": "format_address({'host': '0.0.0.0', 'port': 443})",
+        "expected": "0.0.0.0:443"
+      }
+    ],
+    "hint": "config['host'] and config['port'] read like plain dict access, since a TypedDict is a plain dict at runtime.",
+    "solution": "from typing import TypedDict\n\nclass Config(TypedDict):\n    host: str\n    port: int\n\ndef format_address(config: Config) -> str:\n    return f\"{config['host']}:{config['port']}\"\n",
+    "explanation": "TypedDict gives a checker the exact expected shape of the dict without changing anything about how you read from it at runtime — it's still plain key access."
+  },
+  {
+    "id": "typing-capstone-cache",
+    "topic_id": "python-typing",
+    "title": "Capstone: Generic Cache",
+    "difficulty": "Advanced",
+    "difficulty_order": 6,
+    "prompt": "Build a generic `Cache` class combining `Generic`, `Optional`, and a `TypedDict` summary.\n\nImplement:\n- `__init__(self)` — store an empty dict internally.\n- `set(self, key: str, value: T) -> None` — store a value under a key.\n- `get(self, key: str) -> Optional[T]` — return the stored value, or `None` if the key is missing.\n- `keys_matching(self, predicate) -> list` — return a **sorted** list of keys for which `predicate(key)` is truthy.\n- `stats(self) -> CacheStats` — return `{'size': <number of entries>, 'keys': <sorted list of all keys>}` (a module-level `CacheStats` TypedDict with fields `size: int` and `keys: list` is provided in the starter).",
+    "starter": "from typing import Generic, TypeVar, Optional, Callable, TypedDict\n\nT = TypeVar('T')\n\nclass CacheStats(TypedDict):\n    size: int\n    keys: list\n\nclass Cache(Generic[T]):\n    def __init__(self):\n        pass\n\n    def set(self, key: str, value: T) -> None:\n        pass\n\n    def get(self, key: str) -> Optional[T]:\n        pass\n\n    def keys_matching(self, predicate: Callable[[str], bool]) -> list:\n        pass\n\n    def stats(self) -> CacheStats:\n        pass\n",
+    "tests": [
+      {
+        "label": "set + get",
+        "call": "(_c := Cache()).set('a', 1) or _c.get('a')",
+        "expected": 1
+      },
+      {
+        "label": "get missing key returns None",
+        "call": "_c.get('nope')",
+        "expected": null
+      },
+      {
+        "label": "keys_matching with predicate",
+        "call": "_c.set('b', 2) or _c.set('apple', 3) or _c.keys_matching(lambda k: k.startswith('a'))",
+        "expected": [
+          "a",
+          "apple"
+        ]
+      },
+      {
+        "label": "stats summarizes the cache",
+        "call": "_c.stats()",
+        "expected": {
+          "size": 3,
+          "keys": [
+            "a",
+            "apple",
+            "b"
+          ]
+        }
+      }
+    ],
+    "hint": "__init__ stores self._data = {}. set/get are simple dict operations (get uses .get() to avoid KeyError). keys_matching filters self._data's keys through predicate and sorts the result. stats returns a dict with 'size' from len(self._data) and 'keys' from sorted(self._data.keys()).",
+    "solution": "from typing import Generic, TypeVar, Optional, Callable, TypedDict\n\nT = TypeVar('T')\n\nclass CacheStats(TypedDict):\n    size: int\n    keys: list\n\nclass Cache(Generic[T]):\n    def __init__(self):\n        self._data: dict = {}\n\n    def set(self, key: str, value: T) -> None:\n        self._data[key] = value\n\n    def get(self, key: str) -> Optional[T]:\n        return self._data.get(key)\n\n    def keys_matching(self, predicate: Callable[[str], bool]) -> list:\n        return sorted(k for k in self._data if predicate(k))\n\n    def stats(self) -> CacheStats:\n        return {'size': len(self._data), 'keys': sorted(self._data.keys())}\n",
+    "explanation": "This combines every tool from the topic: Generic[T] so the cache is typed for whatever it holds, Optional[T] documenting that get() can legitimately return nothing, Callable for the predicate parameter's shape, and a TypedDict describing exactly what stats() hands back — the same pattern a real caching library's public API would use."
+  }
+]
