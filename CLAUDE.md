@@ -214,6 +214,7 @@ Keep:
 **Do not introduce:** generic dashboard chrome, purple gradients, oversized hero sections, marketing-page layouts, or dark mode (removed — caused inconsistent contrast).
 
 Critical CSS invariants:
+- `.intro` and `.study-note` (the Overview tab's intro paragraph, Mental Model, and Learning Outcome cards) are capped at `max-width: 720px` for reading comfort — on wide screens the `.topic-shell` container is up to 1180px, which produced ~120 characters per line (well past the ~65-75 char comfortable reading measure) before this cap existed. Do not remove this or raise it back toward `.topic-shell`'s full width. This is unrelated to `.viz-modal`'s own `max-width: 780px`, which sizes the Execution Visualizer popup, not lesson prose — don't confuse the two. The Lesson tab's `.lesson-section-card` cards are unaffected (already narrower via the existing 2-column `.lesson-sections` grid, ~580px per card) and do not need the same cap.
 - `[hidden] { display: none }` overrides are required for both overlays — do not remove them
 - `.code-popup` / `.code-popup-modal` sit at `z-index: 800`; `#vizOverlay` stays at `z-index: 1000`
 - Both modals (`.viz-modal` and `.code-popup-modal`) use `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%)` to self-center — do **not** add `display: flex` centering back to `.viz-overlay` or `.code-popup` (that fights the drag logic)

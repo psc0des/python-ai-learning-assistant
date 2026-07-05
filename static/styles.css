@@ -343,6 +343,18 @@ button, input, select, textarea {
   color: var(--ink-secondary);
 }
 
+/* Long-form reading measure: the Overview tab's intro paragraph and its
+   Mental Model / Learning Outcome cards used to stretch to the full
+   .topic-shell width (up to 1180px), producing ~120 characters per line on
+   wide screens — well past the ~65-75 char measure that's comfortable to
+   read. Capping just these prose blocks (not the whole topic-shell, which
+   also holds the Labs code editor and Practice Test grid that legitimately
+   want the extra width) fixes this with no layout risk elsewhere. */
+.intro,
+.study-note {
+  max-width: 720px;
+}
+
 /* --- Lesson content --- */
 .lesson-grid {
   display: grid;
